@@ -1,0 +1,14 @@
+Required Notice: Copyright 2026 Trellis contributors
+
+Trellis-authored material without a separate license notice is offered under the
+PolyForm Noncommercial License 1.0.0 in LICENSE. Noncommercial use, study, modification
+and redistribution are permitted under that license. Commercial use outside the
+license's permitted purposes requires separate written permission from the rights
+holders.
+
+Files carrying their own SPDX or license notices retain those terms. The protocol
+specification in spec/ is Apache-2.0 (spec/LICENSE). Package dependencies and their
+assets remain subject to their respective licenses.
+
+No trademark license to the Trellis name or logo is granted by the software license.
+Attribution and accurate, non-endorsing references are welcome.

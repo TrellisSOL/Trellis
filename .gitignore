@@ -1,0 +1,46 @@
+node_modules/
+.data/
+.env
+.env.local
+.env.*.local
+*.log
+dist/
+out/
+.next/
+coverage/
+.DS_Store
+target/
+.anchor/
+test-ledger/
+deployments/devnet.secrets.json
+.env.devnet
+
+# Example files only (no secret values). A machine-wide ignore rule may hide names like these; track them explicitly.
+!deploy/production/.env.production.example
+!deploy/production/secrets.example/
+!deploy/production/secrets.example/*.env
+# Generated scan output
+release-evidence/
+
+# proofs of concept never carry dependency links
+security/poc/**/node_modules
+
+# Local backups and owner documents kept beside the repository
+.env.*.bak
+/Trellis.zip
+/Trellis Backend.pdf
+/Trellis Overview.pdf
+
+# Operator-specific upstreams and generated local provider inventory
+config/providers.yaml
+config/providers.local.yaml
+
+# Public release excludes internal documentation and local build records.
+/docs/
+/security/
+PORT-NOTES.md
+MAINNET.md
+MONITORING.md
+*.pdf
+*.docx
+*.zip
