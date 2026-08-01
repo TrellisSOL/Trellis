@@ -1,0 +1,49 @@
+**/node_modules
+**/.DS_Store
+.git
+.github
+.githooks
+.data
+.env
+.env.*
+docs
+test
+contracts
+# Website: only the sources the image build needs
+web/*
+!web/app
+!web/components
+!web/lib
+!web/public
+!web/package.json
+!web/pnpm-lock.yaml
+!web/pnpm-workspace.yaml
+!web/scripts/build-pwa.mjs
+!web/scripts/check-public-wording.mjs
+!web/scripts/whitepaper-wording.mjs
+!web/next.config.mjs
+
+.audit-grade
+.solidity-auditor
+.security-tools
+.claude
+release-evidence
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.egg-info
+packages/*/dist
+sdks/*/dist
+# Build outputs and local chain state: never needed by the image, and large
+target
+.anchor
+test-ledger
+# Local secrets of the production recipe and the devnet deployment (never copied into an image; kept out of the context too)
+deploy/production/.env.production
+deploy/production/stack.env
+deploy/production/secrets
+deployments/*.secrets.json
+
+# Operator-specific upstreams and generated local provider inventory
+config/providers.yaml
+config/providers.local.yaml

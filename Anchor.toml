@@ -1,0 +1,33 @@
+[toolchain]
+package_manager = "bun"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+trellis_credits = "dtwL4NqHvvF2QAB84y9VjfNdkEUGw6NWbNWRtgjifAi"
+trellis_anchor = "GAzh2GTSDpqcNcMX1iiCq5Dezx85fQLNXA7M1tS5BMjn"
+trellis_rules = "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5"
+trellis_fee_router = "68siMcyf6bvCae4v4TJLkqjBoeM4GfJmTmNSZp8CFRAt"
+trellis_tab = "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL"
+trellis_bond = "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+trellis_capacity = "G4cDQ3duVPoSQunY1zRMyn1n7r1rsf7hh9J65iKPzYNy"
+trellis_measurements = "4PzSbQpW3tGQJY676KNr6AwWY9WZ4feKZ1rx6JjtTgNY"
+
+[programs.devnet]
+trellis_credits = "dtwL4NqHvvF2QAB84y9VjfNdkEUGw6NWbNWRtgjifAi"
+trellis_anchor = "GAzh2GTSDpqcNcMX1iiCq5Dezx85fQLNXA7M1tS5BMjn"
+trellis_rules = "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5"
+trellis_fee_router = "68siMcyf6bvCae4v4TJLkqjBoeM4GfJmTmNSZp8CFRAt"
+trellis_tab = "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL"
+trellis_bond = "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+trellis_capacity = "G4cDQ3duVPoSQunY1zRMyn1n7r1rsf7hh9J65iKPzYNy"
+trellis_measurements = "4PzSbQpW3tGQJY676KNr6AwWY9WZ4feKZ1rx6JjtTgNY"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "bun ./node_modules/mocha/bin/mocha.js -t 1000000 tests/*.ts"
