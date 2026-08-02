@@ -1,0 +1,201 @@
+# Explicit production inputs. No .env file is imported into a service.
+# Worker signing keys belong in separate workloads.
+# This file is the topology the tests pin (migrate -> runtime role -> provider init -> API and one-key workers), with
+# every input injected by the operator's own secret system. For one host with TLS, env files, a bootstrap script and a
+# systemd unit, use deploy/production/ instead.
+x-runtime: &runtime
+  TRELLIS_ENV: production
+  RUNTIME_ROLE: api
+  AUTO_MIGRATE: "false"
+  HOST: 0.0.0.0
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set the HTTPS public origin}
+  DATABASE_URL: ${DATABASE_URL:?Inject a nondefault PostgreSQL URL}
+  REDIS_URL: ${REDIS_URL:?Inject an authenticated Redis URL}
+  APP_SECRET: ${APP_SECRET:?Inject the application encryption secret}
+  ADMIN_TOKEN: ${ADMIN_TOKEN:?Inject the operator token}
+  # Solana. The USDC mint is the mainnet-beta constant; the program ids come from deployments/mainnet.json once the
+  # programs are deployed (bun scripts/mainnet/verify.ts --env prints them). SOL_USDC_MINT is kept for older env files;
+  # the router reads USDC_ADDRESS.
+  SOL_RPC_URL: ${SOL_RPC_URL:?Set a trusted Solana RPC URL}
+  SOL_CLUSTER: ${SOL_CLUSTER:-mainnet-beta}
+  SOL_USDC_MINT: ${SOL_USDC_MINT:-EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v}
+  USDC_ADDRESS: ${SOL_USDC_MINT:-EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v}
+  TRELLIS_CREDITS_PROGRAM_ID: ${TRELLIS_CREDITS_PROGRAM_ID:?Set the deployed credits program id}
+  TRELLIS_TAB_PROGRAM_ID: ${TRELLIS_TAB_PROGRAM_ID:?Set the deployed tab program id}
+  TRELLIS_BOND_PROGRAM_ID: ${TRELLIS_BOND_PROGRAM_ID:?Set the deployed bond program id}
+  TRELLIS_ANCHOR_PROGRAM_ID: ${TRELLIS_ANCHOR_PROGRAM_ID:?Set the deployed anchor program id}
+  TRELLIS_RULES_PROGRAM_ID: ${TRELLIS_RULES_PROGRAM_ID:-}
+  TRELLIS_FEE_ROUTER_PROGRAM_ID: ${TRELLIS_FEE_ROUTER_PROGRAM_ID:-}
+  TRELLIS_CAPACITY_PROGRAM_ID: ${TRELLIS_CAPACITY_PROGRAM_ID:-}
+  TRELLIS_MEASUREMENTS_PROGRAM_ID: ${TRELLIS_MEASUREMENTS_PROGRAM_ID:-}
+  # The production guard of src/config.ts still requires these four older names; they carry the same programs
+  # (credits, trellis_tab as the per-call payment program, trellis_bond, trellis_anchor).
+  CREDITS_ADDRESS: ${TRELLIS_CREDITS_PROGRAM_ID:?Set the deployed credits program id}
+  CALLPAY_ADDRESS: ${TRELLIS_TAB_PROGRAM_ID:?Set the deployed tab program id}
+  PROVIDER_BOND_ADDRESS: ${TRELLIS_BOND_PROGRAM_ID:?Set the deployed bond program id}
+  RECEIPT_ANCHOR_ADDRESS: ${TRELLIS_ANCHOR_PROGRAM_ID:?Set the deployed anchor program id}
+  # Set true once the scheduled backup below runs, so readiness reports backup_fresh.
+  BACKUP_REQUIRED: ${BACKUP_REQUIRED:-false}
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Set a reviewed PostgreSQL 16 image pinned by sha256 digest}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trellis}
+      POSTGRES_DB: ${POSTGRES_DB:-trellis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Inject a unique database password}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [storage]
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2
+    healthcheck: { test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'], interval: 5s, retries: 20 }
+  redis:
+    image: ${REDIS_IMAGE:?Set a reviewed Redis image pinned by sha256 digest}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Inject a unique Redis password}
+    command: ["sh", "-ec", 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    volumes: [redisdata:/data]
+    networks: [storage]
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1
+    healthcheck: { test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG'], interval: 5s, retries: 20 }
+  migrate:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment: { DATABASE_URL: "${MIGRATION_DATABASE_URL:?Inject the separate PostgreSQL migration-role URL}" }
+    command: ["bun", "scripts/migrate.ts"]
+    networks: [storage]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+  # Runs as the migration/schema owner after migrations and before any runtime workload. It
+  # creates or updates trellis_runtime (the DATABASE_URL identity) with DML-only privileges.
+  runtime-role-grants:
+    image: ${POSTGRES_IMAGE:?Set a reviewed PostgreSQL 16 image pinned by sha256 digest}
+    entrypoint: ["sh", "-ec"]
+    command: ["exec psql \"$$MIGRATION_DATABASE_URL\" -X -v ON_ERROR_STOP=1 -f /run/trellis/production-db-runtime-role.sql"]
+    environment:
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Inject the separate PostgreSQL migration-role URL}
+      RUNTIME_DB_PASSWORD: ${RUNTIME_DB_PASSWORD:?Inject the trellis_runtime password used in DATABASE_URL}
+    volumes: ["./scripts/production-db-runtime-role.sql:/run/trellis/production-db-runtime-role.sql:ro"]
+    networks: [storage]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: "no"
+  provider-init:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKER_JOBS: provider-registry
+      WORKERS: "false"
+      PROVIDERS_FILE: /run/providers.yaml
+      # Configure provider credential variables through the deployment secret system.
+    env_file: ["${PROVIDER_SECRETS_FILE:?Provide a file containing only provider credential variables}"]
+    volumes: ["${PROVIDERS_MANIFEST:?Provide a reviewed local provider manifest}:/run/providers.yaml:ro"]
+    command: ["bun", "scripts/seed.ts"]
+    networks: [storage, egress]
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    restart: "no"
+  router:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment:
+      <<: *runtime
+      WORKERS: "false"
+      ROUTER_PRIVATE_KEY: ${ROUTER_PRIVATE_KEY:?Inject only the restricted router role into the API}
+    depends_on:
+      provider-init: { condition: service_completed_successfully }
+    ports: ["127.0.0.1:8787:8787"]
+    networks: [storage, egress]
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2
+    stop_grace_period: 45s
+  registry-worker:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      # The job runner takes one job of a worker at a time: where a slow provider or a throttled RPC must not delay the
+      # bookkeeping loops, split these as deploy/production/docker-compose.yml does (worker-core, worker-chain, worker-providers).
+      WORKER_JOBS: health-flush,holds-expire,catalog-refresh,provider-registry,health-probes,canaries,attestor,chain-indexer,batches,x402-recovery-expire
+    command: ["bun", "src/worker.ts"]
+    networks: [storage, egress]
+    depends_on:
+      provider-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    stop_grace_period: 45s
+    # Read-only heartbeat freshness check; see scripts/worker-healthcheck.sh. Compose only reports
+    # it (it never restarts an unhealthy container); do not attach an auto-restarter to signing
+    # workers. A stale heartbeat also shows up as failed job checks in /ready and alerts.
+    healthcheck: { test: ["CMD", "sh", "scripts/worker-healthcheck.sh"], interval: 30s, timeout: 5s, retries: 3, start_period: 2m }
+  settlement-worker:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: settlement
+      # The settlement signer: a Solana keypair (base58 secret or JSON byte array), injected only here.
+      SETTLEMENT_PRIVATE_KEY: ${SETTLEMENT_PRIVATE_KEY:?Inject only into the isolated settlement worker}
+    command: ["bun", "src/worker.ts"]
+    networks: [storage, egress]
+    depends_on:
+      provider-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    stop_grace_period: 45s
+    # Read-only heartbeat freshness check; see scripts/worker-healthcheck.sh.
+    healthcheck: { test: ["CMD", "sh", "scripts/worker-healthcheck.sh"], interval: 30s, timeout: 5s, retries: 3, start_period: 2m }
+  anchor-worker:
+    image: ${TRELLIS_IMAGE:?Set the reviewed application image pinned by sha256 digest}
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: receipts-anchor,receipt-key-rotation
+      # The anchoring signer: a Solana keypair that pays for the hourly anchor transactions, injected only here.
+      ANCHORER_PRIVATE_KEY: ${ANCHORER_PRIVATE_KEY:?Inject only into the isolated anchor worker}
+    command: ["bun", "src/worker.ts"]
+    networks: [storage, egress]
+    depends_on:
+      provider-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    stop_grace_period: 45s
+    # Read-only heartbeat freshness check; see scripts/worker-healthcheck.sh.
+    healthcheck: { test: ["CMD", "sh", "scripts/worker-healthcheck.sh"], interval: 30s, timeout: 5s, retries: 3, start_period: 2m }
+  # Encrypted off-host backup (BACKUP_IMAGE: an image that runs pg_dump, age-encrypts and uploads; the earlier
+  # platform-specific recipe was dropped with the port). `up` never starts it; schedule it from the host in UTC, e.g. `17 3 * * * docker compose --profile backup run --rm --no-deps backup`.
+  # It connects as the runtime role and needs only the age public key, never the private identity.
+  backup:
+    profiles: [backup]
+    image: ${BACKUP_IMAGE:-}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Inject a nondefault PostgreSQL URL}
+      BACKUP_AGE_RECIPIENTS: ${BACKUP_AGE_RECIPIENTS:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+    networks: [storage, egress]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    mem_limit: 1g
+    cpus: 1
+networks:
+  storage: { internal: true }
+  egress: {}
+volumes:
+  pgdata: {}
+  redisdata: {}

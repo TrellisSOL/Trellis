@@ -1,0 +1,8 @@
+[test]
+# Bun reads no timeout from this file, and one set in the preload reaches only the first test file. The budget is
+# the --timeout flag of `bun run test`, `bun run test:pg` and CI (see test/setup.ts).
+preload = ["./test/setup.ts"]
+root = "./test"
+
+[install]
+minimumReleaseAge = 604800

@@ -1,0 +1,91 @@
+# Disposable production-topology fixture used only by scripts/production-topology-smoke.sh.
+# This fixture temporarily routes the global-looking provider subnet through the Docker host.
+# The smoke requires a disposable CI host and tears the network down before returning.
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: topology_migrator
+      POSTGRES_DB: topology_database
+
+  # TODO(solana): the smoke used a local EVM dev chain here. Replace with a local validator
+  # (solana-test-validator) once the Trellis programs exist; until then the chain jobs are off in the smoke.
+  validator:
+    image: ${SOLANA_VALIDATOR_IMAGE:?Set a reviewed Solana test-validator image pinned by sha256 digest}
+    command: ["solana-test-validator", "--bind-address", "0.0.0.0", "--rpc-port", "8899", "--quiet"]
+    networks: [egress, control]
+    ports:
+      - "127.0.0.1:${TOPOLOGY_VALIDATOR_PORT:-18899}:8899"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST -H 'content-type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getHealth\"}' http://127.0.0.1:8899 | grep -q ok"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+    restart: "no"
+
+  mock-provider:
+    image: ${TRELLIS_IMAGE:?Use the built CI application image}
+    command: ["bun", "scripts/production-topology-provider.ts"]
+    user: "0:0" # Read the fixture TLS key, which is host-generated with mode 0600.
+    environment:
+      TOPOLOGY_TLS_CERT: /run/topology/tls.crt
+      TOPOLOGY_TLS_KEY: /run/topology/tls.key
+      NODE_EXTRA_CA_CERTS: /run/topology/tls.crt
+    volumes:
+      - ${FIXTURE_OUTPUT_DIR:?Fixture script supplies a temporary directory}:/run/topology:ro
+    networks:
+      egress:
+        ipv4_address: ${TOPOLOGY_PROVIDER_IP:-45.67.88.10}
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('https://mock-provider:9443/health'); if (!r.ok) process.exit(1)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: "no"
+
+  # runtime-role-grants comes from the base file unchanged, so the smoke exercises the production step.
+
+  provider-init:
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/topology/tls.crt
+    volumes:
+      - ${FIXTURE_OUTPUT_DIR:?Fixture script supplies a temporary directory}:/run/topology:ro
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+      mock-provider: { condition: service_healthy }
+
+  router:
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/topology/tls.crt
+    volumes:
+      - ${FIXTURE_OUTPUT_DIR:?Fixture script supplies a temporary directory}:/run/topology:ro
+    ports:
+      - "127.0.0.1:${TOPOLOGY_HTTP_PORT:-18787}:8787"
+    networks: [storage, egress, control]
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+
+  registry-worker:
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/topology/tls.crt
+    volumes:
+      - ${FIXTURE_OUTPUT_DIR:?Fixture script supplies a temporary directory}:/run/topology:ro
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+
+  settlement-worker:
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+
+  anchor-worker:
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+
+networks:
+  # Docker Desktop/Linux CI publishes host ports from this ordinary bridge. Only the
+  # API and the validator attach; mock provider traffic remains on the internal fixture network.
+  control: {}
+  egress:
+    internal: true
+    ipam:
+      config:
+        - subnet: 45.67.88.0/24
