@@ -1,0 +1,19 @@
+{
+  "_note": "Solana mainnet-beta addresses the router uses. Only the USDC mint is a known constant today; every Trellis program id is a placeholder until the programs are deployed (TODO(solana)). Verify each value against the cluster before use; nothing here is read from the network at build time.",
+  "cluster": "mainnet-beta",
+  "caip2": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+  "rpc": "<your trusted Solana RPC URL>",
+  "commitment": "finalized",
+  "usdc": { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6, "program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+  "trls": { "_note": "TODO(solana): the $TRLS mint and the pools that price it in USDC are not deployed yet.", "mint": "<to-be-published>", "decimals": 9, "symbol": "TRLS" },
+  "programs": {
+    "_note": "TODO(solana): program ids of the Trellis on-chain programs (the EVM contracts Credits, CallPay, ProviderBond/HostBond, ReceiptAnchor, MeasurementRegistry and BlindIssuer are being re-implemented as Solana programs).",
+    "receiptAnchor": "<to-be-published>",
+    "credits": "<to-be-published>",
+    "callPay": "<to-be-published>",
+    "hostBond": "<to-be-published>",
+    "measurementRegistry": "<to-be-published>",
+    "blindIssuer": "<to-be-published>"
+  },
+  "anchoring": { "leaf": "sha256(sha256(bytes))", "node": "sha256(min(a,b) || max(a,b))", "interval": "hourly" }
+}

@@ -1,0 +1,14 @@
+# bun scripts/seed.ts config/providers.upstream.example.yaml
+# An upstream catalogue reached with one key. Supply UPSTREAM_API_KEY and a persistent APP_SECRET through
+# environment injection; the catalogue (/models) is refreshed by provider-registry. Catalogues priced in USD
+# per million tokens are detected and converted automatically.
+providers:
+  - id: relay
+    name: Trellis Relay
+    base_url: https://upstream.example/v1
+    api_key_env: UPSTREAM_API_KEY
+    status: live
+    # Conservative aggregate policy: upstream retention/training is not ruled out unless the upstream
+    # confirms zero data retention per request; a catalogue badge is insufficient.
+    data_policy: { training: true, retains_prompts: true, zdr: false }
+    datacenters: []
