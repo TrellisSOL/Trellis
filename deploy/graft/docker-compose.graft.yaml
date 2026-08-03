@@ -1,0 +1,55 @@
+# docker-compose.graft.yaml: the Trellis sidecar in front of a model server that is already running on this host.
+#
+# Template. install.sh renders it: it replaces each __NAME__ token, keeps the lines tagged with the attestation
+# provider it chose (# graft:dstack, # graft:tdx or # graft:dev), # graft:weights when you pass --weights-dir and
+# # graft:gpu when the sidecar attests the GPUs (--cc-mode on with --gpu-models), drops the other tagged lines and
+# removes the tags.
+# The engine (vLLM, SGLang, llama.cpp server or Ollama) stays yours; this file only adds the sidecar.
+#
+# The file is part of what gets attested: on dstack the platform measures it, on a bare TDX host the sidecar hashes
+# it (compose.file in sidecar.yaml). The labels commit to the exact graft.yaml and sidecar.yaml it runs with.
+
+name: trellis-graft
+
+services:
+  sidecar:
+    # Pinned by digest. SIDECAR_IMAGE_DIGEST repeats it: a process cannot read its own image digest, so the operator
+    # declares it and the sidecar binds it into the attestation.
+    image: __SIDECAR_IMAGE__
+    # Host networking: the sidecar reaches the engine on the host's loopback (engine_url in graft.yaml) and the engine
+    # port is never published. The sidecar listens on __SIDECAR_PORT__.
+    network_mode: host
+    user: "__RUN_AS__"
+    environment:
+      SIDECAR_CONFIG: /etc/graft/sidecar.yaml
+      SIDECAR_IMAGE_DIGEST: "__SIDECAR_IMAGE_DIGEST__"
+      SIDECAR_PORT: "__SIDECAR_PORT__"
+      SIDECAR_DEV_ATTESTATION: "true" # graft:dev
+      NVIDIA_DRIVER_CAPABILITIES: utility # graft:gpu
+    # gpu.cc_mode on with allowed_models: the sidecar attests every GPU before it starts and refuses to start if one # graft:gpu
+    # does not verify. It needs the sidecar image built with --target gpu (it contains NVIDIA's nvattest), and the # graft:gpu
+    # NVIDIA container runtime to mount nvidia-smi and the management library: hence this reservation. # graft:gpu
+    deploy: # graft:gpu
+      resources: # graft:gpu
+        reservations: # graft:gpu
+          devices: # graft:gpu
+            - driver: nvidia # graft:gpu
+              count: all # graft:gpu
+              capabilities: [gpu, utility] # graft:gpu
+    volumes:
+      - ./graft.yaml:/etc/graft/graft.yaml:ro
+      - ./sidecar.yaml:/etc/graft/sidecar.yaml:ro
+      # With --weights-dir the sidecar hashes the weights at boot and refuses to start on a mismatch. Without it the
+      # digest in graft.yaml is declared, not measured, and /attest says so (digest_source: declared).
+      - __WEIGHTS_DIR__:/models/model:ro # graft:weights
+      - ./docker-compose.graft.yaml:/etc/graft/docker-compose.graft.yaml:ro # graft:tdx
+      - ./docker-compose.graft.yaml:/etc/graft/docker-compose.graft.yaml:ro # graft:dev
+      - /var/run/dstack.sock:/var/run/dstack.sock # graft:dstack
+      - /sys/kernel/config:/sys/kernel/config # graft:tdx
+    labels:
+      xyz.trellis.graft.version: "1"
+      xyz.trellis.graft.host-id: "__HOST_ID__"
+      xyz.trellis.graft.graft-yaml-sha256: "__GRAFT_YAML_SHA256__"
+      xyz.trellis.graft.sidecar-yaml-sha256: "__SIDECAR_YAML_SHA256__"
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
