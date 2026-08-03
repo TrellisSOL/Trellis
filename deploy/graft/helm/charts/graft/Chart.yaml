@@ -1,0 +1,10 @@
+apiVersion: v2
+name: graft
+description: Trellis GRAFT host. The attested sidecar in front of an OpenAI-compatible engine, in one pod.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [trellis, graft, tdx, confidential-computing, vllm]
+home: https://github.com/example-org/trellis
+sources:
+  - https://github.com/example-org/trellis/tree/main/deploy/graft
