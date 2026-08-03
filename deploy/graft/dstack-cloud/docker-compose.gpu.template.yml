@@ -1,0 +1,197 @@
+# Trellis Graft (the sidecar image) in front of vLLM, for a dstack Intel TDX confidential VM with NVIDIA GPUs on the
+# TEE cloud. Template: deploy.sh --profile gpu replaces every double-underscore token and writes docker-compose.yml.
+#
+#   model-fetch  downloads the weights directory at a pinned Hugging Face revision into the models volume, then exits.
+#                The download itself is not hash-pinned per file here; the sidecar hashes the whole directory at boot
+#                and refuses to start unless the Trellis model digest is on its allow-list, so a changed download
+#                fails closed. (For per-file pins, generate the deployment with
+#                `bun sidecar/src/cli.ts init --target dstack-gpu` from a local copy of the weights.)
+#   vllm         vLLM's OpenAI-compatible server on the GPUs, on an internal network with no route out.
+#   sidecar      the Graft image, pinned by digest: hashes the weights, attests the GPUs (gpu.cc_mode "on"), attests
+#                through the dstack guest agent, serves TLS on 8443 with a certificate bound to the quote, signs every
+#                response.
+#
+# dstack measures the hash of this file (as part of app-compose.json) into RTMR3, and the sidecar binds that compose
+# hash into its own quote. Keep every image pinned by digest.
+#
+# No secrets: the only ${...} references are DSTACK_APP_ID and DSTACK_GATEWAY_DOMAIN, which the platform sets, and they
+# only name the gateway host in the certificate. Shell variables are written $$name so that compose leaves them to the
+# shell.
+#
+# GPU: the `deploy.resources.reservations.devices` stanza is what the TEE cloud's GPU CVMs expect. Whether the GPU runs
+# in NVIDIA confidential-computing mode is a property of the instance type you chose, not of this file. With
+# gpu.cc_mode "on" (deploy.sh --cc-mode on, the default for this profile) the sidecar checks it: before it requests its
+# quote it collects each GPU's attestation report for a nonce derived from its own keys (`nvattest collect-evidence`),
+# has the NVIDIA Remote Attestation Service verify it, checks the signed answer and the driver's CC state, and refuses
+# to start otherwise. The hash of that evidence is in the quote's report data; the tokens are served in the attestation
+# document. That is why the sidecar service below reserves the same GPUs as vLLM (it only queries them) and why the
+# Graft image for this profile must contain NVIDIA's `nvattest` (see README.md, "GPU").
+
+services:
+  model-fetch:
+    image: __VLLM_IMAGE__
+    entrypoint: ["/bin/sh", "-euc"]
+    command:
+      - |
+        dest=/models/model
+        if [ -f "$$dest/.trellis-fetched" ] && [ "$$(cat "$$dest/.trellis-fetched")" = "__HF_REVISION__" ]; then
+          echo "weights present at revision __HF_REVISION__"; exit 0
+        fi
+        rm -rf "$$dest"
+        python3 - <<'PY'
+        from huggingface_hub import snapshot_download
+        snapshot_download(repo_id="__HF_REPO__", revision="__HF_REVISION__", local_dir="/models/model")
+        PY
+        rm -rf "$$dest/.cache"
+        printf '%s' "__HF_REVISION__" > "$$dest/.trellis-fetched"
+    volumes:
+      - models:/models
+    networks: [egress]
+    restart: "no"
+
+  vllm:
+    image: __VLLM_IMAGE__
+    depends_on:
+      model-fetch:
+        condition: service_completed_successfully
+    command: ["--model", "/models/model", "--served-model-name", "__SERVED_NAME__", "--host", "0.0.0.0", "--port", "8000", "--tensor-parallel-size", "__GPU_COUNT__"]
+    environment:
+      HF_HUB_OFFLINE: "1"
+      # Batch-invariant serving, so a response can be re-executed bit for bit on another host with the same digest.
+      VLLM_BATCH_INVARIANT: "1"
+    volumes:
+      - models:/models:ro
+    networks: [backend]
+    shm_size: "16gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: __GPU_COUNT__
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  sidecar:
+    # The Graft image, pinned by digest. The same digest is declared below so the sidecar binds it into the quote.
+    image: __GRAFT_IMAGE__
+    depends_on:
+      model-fetch:
+        condition: service_completed_successfully
+      vllm:
+        condition: service_started
+    # root, to open the dstack guest agent socket.
+    user: root
+    entrypoint: ["/bin/sh", "-euc"]
+    command:
+      - |
+        mkdir -p "$$(dirname "$$SIDECAR_CONFIG")"
+        printf '%s' "$$SIDECAR_CONFIG_YAML" > "$$SIDECAR_CONFIG"
+        exec bun src/main.ts serve --config "$$SIDECAR_CONFIG"
+    # The same GPUs as vLLM, for attestation only: the NVIDIA runtime mounts nvidia-smi and the management library
+    # (NVML), which `nvattest` reads the attestation report through. The sidecar runs no workload on them.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: __GPU_COUNT__
+              capabilities: [gpu, utility]
+    environment:
+      NODE_ENV: production
+      NVIDIA_DRIVER_CAPABILITIES: utility
+      SIDECAR_CONFIG: /run/sidecar/sidecar.yaml
+      SIDECAR_IMAGE_DIGEST: "__GRAFT_IMAGE_DIGEST__"
+      # The sidecar's configuration, verbatim. deploy.sh writes the same text to sidecar.yaml next to this file.
+      SIDECAR_CONFIG_YAML: |
+        server:
+          host: 0.0.0.0
+          port: 8443
+          tls: self_signed
+          # The TLS-passthrough name the dstack gateway routes to this port.
+          hostnames: ["${DSTACK_APP_ID}-8443s.${DSTACK_GATEWAY_DOMAIN}"]
+          cert_validity_days: 30
+
+        upstream:
+          base_url: http://vllm:8000
+          timeout_ms: 180000
+          stream_idle_timeout_ms: 60000
+          max_request_bytes: 262144
+          max_response_bytes: 4194304
+
+        model:
+          # The weights directory vLLM serves, mounted read-only. It is hashed at boot (Trellis model digest).
+          path: /models/model
+          served_name: __SERVED_NAME__
+
+        allowlist:
+          # bun sidecar/src/main.ts digest <weights dir>
+          model_digests: ["__MODEL_DIGEST__"]
+
+        # The Graft image this process runs in, pinned by the same digest in the compose file.
+        image_digest: "__GRAFT_IMAGE_DIGEST__"
+
+        attestation:
+          provider: dstack
+          dstack:
+            endpoint: /var/run/dstack.sock
+          fresh_quotes_per_minute: 10
+
+        # NVIDIA GPU attestation. "on": refuse to start, and stop taking requests later, unless every GPU attests
+        # through the NVIDIA Remote Attestation Service as one of allowed_models (NRAS hwmodel, matched as a prefix)
+        # with the driver reporting CC State ON. "off": no GPU is attested and the document says gpu: null.
+        gpu:
+          cc_mode: "__GPU_CC_MODE__"
+          allowed_models: [__GPU_ALLOWED_MODELS__]
+          nras_url: __NRAS_URL__
+          # Re-attest every 30 minutes; NRAS tokens live about an hour, so the published ones are always current.
+          refresh_seconds: 1800
+          max_age_seconds: 3600
+
+        # One key, for the router that sends this provider its traffic. Only its SHA-256 is here.
+        auth:
+          keys:
+            - id: router
+              sha256: "__ROUTER_KEY_SHA256__"
+              quota:
+                requests_per_minute: 600
+                burst: 120
+                tokens_per_minute: 2000000
+                token_burst: 2000000
+
+        quota:
+          default:
+            requests_per_minute: 30
+            burst: 10
+          global:
+            requests_per_minute: 900
+            burst: 200
+            tokens_per_minute: 3000000
+            token_burst: 3000000
+
+        receipts:
+          queue_capacity: 10000
+    volumes:
+      - models:/models:ro
+      # dstack guest agent (attestation.provider: dstack)
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    ports:
+      - "8443:8443"
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "bun", "src/main.ts", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      start_period: 1800s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  # No route out: the model server is reachable only from the sidecar.
+  backend:
+    internal: true
+  # Downloads at start (the weights) and the published port.
+  egress: {}
+
+volumes:
+  models: {}
