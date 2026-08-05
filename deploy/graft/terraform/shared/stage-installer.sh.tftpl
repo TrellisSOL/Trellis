@@ -1,0 +1,19 @@
+#!/bin/sh
+# Cloud-init / startup script rendered by the GRAFT Terraform modules. It stages the installer and its options on the
+# VM and stops there: the engine is yours to start, then you run the installer yourself (it asks before nothing,
+# starts nothing without --apply, and prints the verify command).
+set -eu
+mkdir -p /opt/trellis-graft
+printf '%s' '${installer_b64}' | base64 -d > /opt/trellis-graft/install.sh
+chmod 755 /opt/trellis-graft/install.sh
+cat > /opt/trellis-graft/install.flags <<'GRAFT_FLAGS_EOF'
+${installer_flags}
+GRAFT_FLAGS_EOF
+cat > /opt/trellis-graft/NEXT.txt <<'GRAFT_NEXT_EOF'
+Trellis GRAFT: the installer is staged in /opt/trellis-graft.
+${notes}
+1. Install the NVIDIA driver and Docker, start your engine (vLLM, SGLang, llama.cpp server or Ollama) on 127.0.0.1.
+2. cd /opt/trellis-graft && sh install.sh $(cat install.flags)
+3. Review graft.yaml and docker-compose.graft.yaml, then re-run with --apply --sidecar-image <name@sha256:...>.
+GRAFT_NEXT_EOF
+cat /opt/trellis-graft/NEXT.txt
