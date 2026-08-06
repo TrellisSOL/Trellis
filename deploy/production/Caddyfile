@@ -1,0 +1,50 @@
+# TLS termination and the public ports for the Trellis router (deploy/production/docker-compose.yml).
+# Certificates are requested and renewed automatically for TRELLIS_DOMAIN once its DNS A/AAAA records point at this
+# host and ports 80 and 443 are reachable. For "localhost" Caddy issues a certificate from its own local authority.
+{
+	# The admin API stays on loopback inside the container; the container healthcheck reads it.
+	# To give the certificate authority a contact for expiry notices, add a line `email <address>` here on the host.
+	admin 127.0.0.1:2019
+}
+
+{$TRELLIS_DOMAIN} {
+	encode zstd gzip
+
+	# The router serves the API and the static dashboard from the same origin. Streaming responses (SSE) must not be
+	# buffered, and a long generation must not be cut: no read or write deadline on the upstream.
+	reverse_proxy api:8787 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+			write_timeout 0
+			dial_timeout 5s
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Request bodies: the router enforces its own limits per route (INFERENCE_MAX_BYTES, 2 MiB by default and at most
+	# 4 MiB on the core surface; REQUEST_MAX_BYTES for everything else) and its own budget of bodies held at one time.
+	# This stops anything larger at the edge, before it is proxied. Raise it together with INFERENCE_MAX_BYTES.
+	request_body {
+		max_size 5MB
+	}
+
+	log {
+		output stdout
+		# Access logs keep the path, status, size and timing. Headers (which carry API keys) and query strings are dropped.
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+				resp_headers delete
+				request>uri regexp "\\?.*$" ""
+			}
+		}
+	}
+}

@@ -1,0 +1,6 @@
+# Real settings and secrets of a deployment never enter the repository. The *.example files are the templates.
+.env.production
+stack.env
+monitor.env
+providers.yaml
+secrets/
