@@ -1,0 +1,25 @@
+# systemd unit for the Trellis stack of deploy/production. Install:
+#   sudo cp trellis.service trellis-backup.service trellis-backup.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now trellis.service trellis-backup.timer
+# It assumes the repository is checked out at /opt/trellis; change WorkingDirectory if it is elsewhere.
+# The containers restart themselves (restart: unless-stopped); this unit brings the stack up at boot, in order, and
+# stops it cleanly at shutdown. First start is ./bootstrap.sh, which also runs the settings check; this unit does not.
+[Unit]
+Description=Trellis router stack (docker compose)
+Documentation=file:///opt/trellis/deploy/production/README.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/trellis/deploy/production
+ExecStart=/usr/bin/docker compose --env-file stack.env up -d --remove-orphans
+ExecReload=/usr/bin/docker compose --env-file stack.env up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file stack.env stop --timeout 60
+TimeoutStartSec=600
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target
