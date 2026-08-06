@@ -1,0 +1,12 @@
+# Daily backup at 03:17 UTC, with a few minutes of jitter. BACKUP_MAX_AGE_HOURS=26 in .env.production leaves room for
+# one late run before the backup_fresh readiness check fails.
+[Unit]
+Description=Daily Trellis database backup
+
+[Timer]
+OnCalendar=*-*-* 03:17:00 UTC
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

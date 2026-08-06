@@ -1,0 +1,399 @@
+# Trellis on one host: the API, the workers (one signing key each, as src/config.ts requires in production), PostgreSQL
+# (Timescale optional, see stack.env.example), Redis, and Caddy for TLS. README.md in this folder is the walkthrough; bootstrap.sh brings it up.
+#
+#   docker compose --env-file stack.env config -q        # validate
+#   ./bootstrap.sh                                        # first start: database, migrations, runtime role, gateway, services
+#   docker compose --env-file stack.env ps
+#
+# Three kinds of input, kept apart on purpose:
+#   stack.env            compose variables: image references, the domain, the infrastructure passwords
+#   .env.production      router settings shared by the API and the workers (no signing key)
+#   secrets/<role>.env   one file per service that signs: exactly the key that service may hold
+# All three are gitignored; the *.example files beside them are the templates.
+#
+# Key isolation (src/config.ts production guards):
+#   api                router signing key (x402 fee payer) and the facilitator relay key (fees only). Never a
+#                      settlement, anchoring, slashing or keeper key.
+#   worker-core, worker-chain, worker-providers   no signing key
+#   worker-settlement  SETTLEMENT_PRIVATE_KEY only (job: settlement)
+#   worker-anchor      ANCHORER_PRIVATE_KEY only (jobs: receipts-anchor, receipt-key-rotation)
+#   worker-tabs        the router signing key again, as the tab payee (job: tab-close; on the launch since 2026-11-04)
+# Not on the core launch surface (LAUNCH_SURFACE=core, the default: src/surface/core-allowlist.ts). Each is behind a
+# compose profile and starts only on a router that runs LAUNCH_SURFACE=all with its acknowledgement, after the feature's
+# entries in security/DEFERRED.md are cleared:
+#   worker-slasher     SLASHER_PRIVATE_KEY only (profile "slasher": needed once bonded Graft hosts exist)
+#   worker-makegood    MAKEGOOD_REFUND_PRIVATE_KEY only (profile "makegood")
+# deploy/production/check-env.ts loads each service's settings through the router's own validator before anything starts.
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "5", compress: "true" }
+
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+x-app: &app
+  image: ${TRELLIS_IMAGE:?Set the application image, pinned by sha256 digest}
+  restart: unless-stopped
+  logging: *logging
+  <<: *hardening
+  stop_grace_period: 45s
+  tmpfs: ["/tmp:size=64m,mode=1777"]
+  networks: [storage, egress]
+  volumes:
+    # deployments/mainnet.manifest.json and mainnet.verification.json (scripts/mainnet/verify.ts --write-report), read-only.
+    - ../../deployments:/run/trellis/deployments:ro
+
+# What every router process gets on top of .env.production. The two URLs are assembled here so a password lives in one place.
+x-runtime: &runtime
+  TRELLIS_ENV: production
+  # The launch surface: core registers only the allow-listed routes and jobs. `all` needs LAUNCH_SURFACE_ACK (stack.env).
+  LAUNCH_SURFACE: ${LAUNCH_SURFACE:-core}
+  LAUNCH_SURFACE_ACK: ${LAUNCH_SURFACE_ACK:-}
+  AUTO_MIGRATE: "false"
+  HOST: 0.0.0.0
+  PORT: "8787"
+  TRUST_PROXY: "true" # exactly one proxy (Caddy) sits in front and appends X-Forwarded-For
+  # R5-14: operator routes answer a loopback caller (`docker compose exec api ...`) only because no proxy shares the API
+  # container's loopback here. Behind any proxy on the API's own host, set this to false and use ADMIN_ALLOWED_SOURCES.
+  ADMIN_TRUST_LOOPBACK: ${ADMIN_TRUST_LOOPBACK:-true}
+  DATABASE_URL: postgres://trellis_runtime:${RUNTIME_DB_PASSWORD:?Set the runtime database password}@postgres:5432/${POSTGRES_DB:-trellis}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?Set the Redis password}@redis:6379
+
+x-worker: &worker
+  <<: *app
+  command: ["bun", "src/worker.ts"]
+  depends_on:
+    runtime-role-grants: { condition: service_completed_successfully }
+    redis: { condition: service_healthy }
+  # Read-only heartbeat freshness (scripts/worker-healthcheck.sh). Compose reports it and never restarts on it: a signing
+  # worker must not be bounced by a probe.
+  healthcheck: { test: ["CMD", "sh", "scripts/worker-healthcheck.sh"], interval: 30s, timeout: 5s, retries: 3, start_period: 2m }
+  mem_limit: 768m
+  cpus: 1
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Set a PostgreSQL 16 image pinned by sha256 digest}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trellis_owner}
+      POSTGRES_DB: ${POSTGRES_DB:-trellis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the database owner password}
+    command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}", "-c", "log_min_duration_statement=2000"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [storage]
+    restart: unless-stopped
+    logging: *logging
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 256m
+    mem_limit: ${POSTGRES_MEM_LIMIT:-2g}
+    cpus: 2
+    stop_grace_period: 60s
+    healthcheck: { test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'], interval: 5s, timeout: 3s, retries: 30 }
+
+  redis:
+    image: ${REDIS_IMAGE:?Set a Redis image pinned by sha256 digest}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set the Redis password}
+    command: ["sh", "-ec", 'exec redis-server --appendonly yes --maxmemory 384mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"']
+    volumes: [redisdata:/data]
+    networks: [storage]
+    restart: unless-stopped
+    logging: *logging
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 1
+    healthcheck: { test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG'], interval: 5s, timeout: 3s, retries: 30 }
+
+  # Schema migrations, as the database owner. Runs to completion before anything else connects.
+  migrate:
+    image: ${TRELLIS_IMAGE:?Set the application image, pinned by sha256 digest}
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-trellis_owner}:${POSTGRES_PASSWORD:?Set the database owner password}@postgres:5432/${POSTGRES_DB:-trellis}
+    command: ["bun", "scripts/migrate.ts"]
+    networks: [storage]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+    <<: *hardening
+
+  # Creates or updates trellis_runtime, the identity the API and the workers connect as: data changes only, no schema rights.
+  runtime-role-grants:
+    image: ${POSTGRES_IMAGE:?Set a PostgreSQL 16 image pinned by sha256 digest}
+    entrypoint: ["sh", "-ec"]
+    command: ['exec psql "$$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f /run/trellis/production-db-runtime-role.sql']
+    environment:
+      MIGRATION_DATABASE_URL: postgres://${POSTGRES_USER:-trellis_owner}:${POSTGRES_PASSWORD:?Set the database owner password}@postgres:5432/${POSTGRES_DB:-trellis}
+      RUNTIME_DB_PASSWORD: ${RUNTIME_DB_PASSWORD:?Set the runtime database password}
+    volumes: ["../../scripts/production-db-runtime-role.sql:/run/trellis/production-db-runtime-role.sql:ro"]
+    networks: [storage]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: "no"
+    logging: *logging
+
+  api:
+    <<: *app
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/api.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: api
+      WORKERS: "false"
+    depends_on:
+      runtime-role-grants: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    expose: ["8787"]
+    healthcheck: { test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 15s, timeout: 3s, retries: 4, start_period: 40s }
+    mem_limit: ${API_MEM_LIMIT:-2g}
+    cpus: 2
+
+  # Every worker also runs job-watchdog: it publishes which of that worker's jobs are stuck or overdue (round 4, R4-01).
+  # The job runner works through one worker's jobs one at a time (src/services/jobs.ts), so jobs are grouped by what can
+  # hold them up: a slow provider or a throttled RPC must not delay the five-second bookkeeping loops.
+  # worker-core: database-bound bookkeeping. No signing key, no long network calls.
+  worker-core:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: health-flush,holds-expire,catalog-refresh,x402-recovery-expire,alert-notifier,provider-reconcile,low-balance-alerts,job-watchdog
+
+  # worker-chain: follows the Trellis programs through the RPC (deposits, closures, bonds). No signing key.
+  worker-chain:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: chain-indexer,job-watchdog
+    mem_limit: 1g
+
+  # worker-providers: everything that talks to providers and outside services: the registry, health probes, the
+  # attestor and the sanctions list. No signing key. (Canaries and batch lines are not on the core surface.)
+  worker-providers:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: provider-registry,health-probes,attestor,sanctions-refresh,job-watchdog
+    mem_limit: 1536m
+
+  worker-settlement:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/settlement.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: settlement,job-watchdog
+
+  worker-anchor:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/anchor.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: receipts-anchor,receipt-key-rotation,job-watchdog
+
+  worker-tabs:
+    <<: *worker
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/tabs.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: tab-close
+    mem_limit: 512m
+
+  worker-slasher:
+    <<: *worker
+    profiles: [slasher]
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/slasher.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: slasher
+    mem_limit: 512m
+
+  worker-makegood:
+    <<: *worker
+    profiles: [makegood]
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/makegood.env, required: true }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "true"
+      WORKER_JOBS: makegood-payouts
+      MAKEGOOD_ENABLED: "true"
+    mem_limit: 512m
+
+  # TLS and the public ports. Certificates are obtained and renewed automatically for TRELLIS_DOMAIN; with
+  # TRELLIS_DOMAIN=localhost it issues a local certificate instead (for trying the stack on a workstation).
+  caddy:
+    image: ${CADDY_IMAGE:?Set a Caddy 2 image pinned by sha256 digest}
+    environment:
+      TRELLIS_DOMAIN: ${TRELLIS_DOMAIN:?Set the public host name}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks: [egress]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+    <<: *hardening
+    cap_add: [NET_BIND_SERVICE]
+    mem_limit: 256m
+    cpus: 1
+    healthcheck: { test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"], interval: 30s, timeout: 3s, retries: 3 }
+
+  # One-off jobs from the application image (bootstrap.sh runs them).
+  # tools: the gateway seeding (deploy/production/seed-gateway.ts), with the router's own settings and database.
+  tools:
+    <<: *app
+    profiles: [tools]
+    restart: "no"
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: secrets/providers.env, required: false }
+    environment:
+      <<: *runtime
+      RUNTIME_ROLE: worker
+      WORKERS: "false"
+      WORKER_JOBS: provider-registry
+    command: ["bun", "deploy/production/seed-gateway.ts"]
+
+  # env-check: every service's settings through the router's validator (deploy/production/check-env.ts). bootstrap.sh
+  # pipes the resolved compose configuration to it on standard input; it has no network and mounts no secret.
+  env-check:
+    image: ${TRELLIS_IMAGE:?Set the application image, pinned by sha256 digest}
+    profiles: [tools]
+    restart: "no"
+    network_mode: none
+    <<: *hardening
+    stdin_open: true
+    environment:
+      TRELLIS_DOMAIN: ${TRELLIS_DOMAIN:?Set the public host name}
+    volumes:
+      - ../../deployments:/run/trellis/deployments:ro
+    command: ["bun", "--no-env-file", "deploy/production/check-env.ts"]
+
+  # Encrypted off-host backup: pg_dump, age to public recipients, upload, verify, record (scripts/backup-offsite.ts).
+  # `up` never starts it. Schedule it from the host (see trellis-backup.timer in this folder).
+  backup:
+    profiles: [backup]
+    image: ${BACKUP_IMAGE:-trellis-backup:local}
+    build:
+      context: ../..
+      dockerfile: deploy/production/backup.Dockerfile
+    environment:
+      DATABASE_URL: postgres://trellis_runtime:${RUNTIME_DB_PASSWORD:?Set the runtime database password}@postgres:5432/${POSTGRES_DB:-trellis}
+      BACKUP_AGE_RECIPIENTS: ${BACKUP_AGE_RECIPIENTS:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+    networks: [storage, egress]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+    mem_limit: 1g
+    cpus: 1
+
+  # Monitoring overlay (profile "monitoring"): Prometheus scrapes the router's readiness gauges and the chain monitor,
+  # Alertmanager delivers to the on-call webhook read from a secret file. See MONITORING.md.
+  chain-monitor:
+    <<: *app
+    profiles: [monitoring]
+    env_file:
+      - { path: .env.production, required: true }
+      - { path: monitor.env, required: false }
+    environment:
+      MONITOR_BASE_URL: http://api:8787
+      TRELLIS_DEPLOYMENTS_FILE: /run/trellis/deployments/mainnet.json
+    command: ["bun", "scripts/monitor.ts", "--chain", "--watch", "300", "--json", "--metrics-port", "9797", "--metrics-host", "0.0.0.0", "--cluster", "mainnet"]
+    healthcheck: { disable: true }
+    mem_limit: 512m
+    cpus: 0.5
+
+  prometheus:
+    profiles: [monitoring]
+    image: ${PROMETHEUS_IMAGE:-}
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d", "--web.listen-address=0.0.0.0:9090"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/alerts.yml:/etc/prometheus/trellis-alerts.yml:ro
+      - prometheusdata:/prometheus
+    networks: [egress]
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on:
+      alertmanager: { condition: service_started }
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 512m
+    cpus: 1
+
+  alertmanager:
+    profiles: [monitoring]
+    image: ${ALERTMANAGER_IMAGE:-}
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager", "--data.retention=120h"]
+    volumes:
+      - ../../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanagerdata:/alertmanager
+    secrets: [alert_webhook_url]
+    networks: [egress]
+    ports: ["127.0.0.1:9093:9093"]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 256m
+    cpus: 0.5
+
+secrets:
+  alert_webhook_url:
+    file: ${ALERT_WEBHOOK_URL_FILE:-./secrets/alert-webhook-url}
+
+networks:
+  # PostgreSQL and Redis are reachable only from this network: no published port, no route out.
+  storage: { internal: true }
+  # Outbound: providers, the RPC, the attested gateway, verifiers.
+  egress: {}
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  caddydata: {}
+  caddyconfig: {}
+  prometheusdata: {}
+  alertmanagerdata: {}

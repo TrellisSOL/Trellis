@@ -1,0 +1,13 @@
+# One encrypted off-host backup (scripts/backup-offsite.ts through the compose profile "backup"). Started by
+# trellis-backup.timer. A failed run leaves the unit failed, which `systemctl --failed` and the backup_fresh readiness
+# check both show.
+[Unit]
+Description=Trellis encrypted off-host database backup
+Requires=docker.service
+After=docker.service trellis.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/trellis/deploy/production
+ExecStart=/usr/bin/docker compose --env-file stack.env --profile backup run --rm --no-deps backup
+TimeoutStartSec=3600
