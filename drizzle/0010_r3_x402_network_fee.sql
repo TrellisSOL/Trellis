@@ -1,0 +1,1 @@
+ALTER TABLE "facilitator_settlements" ADD COLUMN "fee_lamports" numeric(78, 0);
