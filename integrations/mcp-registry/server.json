@@ -1,0 +1,93 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.example-org/trellis",
+  "title": "Trellis",
+  "description": "Call 350+ AI models with signed receipts, or keep a prompt on attested TEE providers only. Pay with prepaid USDC credits on Solana, per call with x402 (exact), or from an open tab.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/example-org/trellis",
+    "source": "github"
+  },
+  "websiteUrl": "https://trellis.example/docs",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://trellis.example/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <your Trellis API key (sk-tr-v1-...)>. Only the chat tool needs it; the model lists, verify_provider and the receipt tools answer without one.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "X-Trellis-Lane",
+          "description": "Optional. Set to attested to send every chat call only to providers whose enclave the router verified (it refuses rather than falls back).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "X-PAYMENT",
+          "description": "Optional, instead of a key: an x402 exact payment on Solana for this call (base64 JSON {x402Version: 1, scheme: \"exact\", network, payload: {transaction}}, the payer-signed USDC TransferChecked with the facilitator as fee payer) from the 402 reply's accepts entry.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "X-Trellis-Tab",
+          "description": "Optional, instead of a key: the base58 address of an open trellis_tab Tab whose payee is this router (the tab x402 scheme).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "X-Trellis-Tab-Voucher",
+          "description": "With X-Trellis-Tab: base64(tab || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key), covering everything served so far.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "payments": {
+        "x402": {
+          "facilitator": "https://trellis.example/facilitator",
+          "supported": "https://trellis.example/facilitator/supported",
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+              "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "payTo": "<X402_PAY_TO>",
+              "maxTimeoutSeconds": 300,
+              "extra": {
+                "name": "USD Coin",
+                "decimals": 6,
+                "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "feePayer": "<X402_FEE_PAYER>"
+              }
+            },
+            {
+              "scheme": "tab",
+              "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+              "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "payTo": "<X402_PAY_TO>",
+              "maxTimeoutSeconds": 300,
+              "extra": {
+                "program": "<TRELLIS_TAB_PROGRAM>",
+                "feePayer": "<X402_FEE_PAYER>",
+                "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+                "settlement": "payee_signed_close_relayed",
+                "headers": [
+                  "X-Trellis-Tab",
+                  "X-Trellis-Tab-Voucher"
+                ]
+              }
+            }
+          ],
+          "note": "The 402 reply of the chat tool's upstream call quotes the exact amount; payTo, feePayer and program are filled in at deploy time from GET /facilitator/supported."
+        }
+      }
+    }
+  }
+}
