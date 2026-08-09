@@ -1,0 +1,6 @@
+{
+    "trellis": {
+        "base_url": "https://trellis.example/api/v1",
+        "api_key_env": "TRELLIS_API_KEY"
+    }
+}
