@@ -1,0 +1,915 @@
+{
+  "_note": "Trellis x402 discovery document. Network is Solana mainnet (CAIP-2 solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) and the asset is USDC (mint EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v, 6 decimals). Two schemes per resource: exact (one SPL TransferChecked of USDC to payTo's associated token account, with extra.feePayer as the sponsored fee payer, sent base64 in X-PAYMENT) and tab (program trellis_tab: an escrowed cap opened by the payer, paid per request with X-Trellis-Tab and X-Trellis-Tab-Voucher vouchers signed by a session key, settled on close through the hosted facilitator). payTo is the router's wallet, feePayer its fee-paying relay key and program the trellis_tab program id, all filled in at deploy time from GET /facilitator/supported. Hosts: trellis.example is a placeholder domain.",
+  "x402Version": 1,
+  "items": [
+    {
+      "resource": "https://trellis.example/api/v1/chat/completions",
+      "type": "http",
+      "x402Version": 1,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/chat/completions",
+          "description": "OpenAI-compatible chat completion on any of 350+ models, with a signed receipt. Priced per request; the 402 reply quotes the exact amount.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "name": "USD Coin",
+            "decimals": 6,
+            "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "feePayer": "<X402_FEE_PAYER>",
+            "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Any id from GET /api/v1/models, e.g. meta-llama/llama-3.3-70b-instruct"
+                },
+                "messages": {
+                  "type": "array",
+                  "required": true,
+                  "description": "OpenAI chat messages"
+                },
+                "max_tokens": {
+                  "type": "number",
+                  "required": false,
+                  "description": "Caps the quoted price"
+                },
+                "stream": {
+                  "type": "boolean",
+                  "required": false
+                },
+                "provider": {
+                  "type": "object",
+                  "required": false,
+                  "description": "{\"lane\":\"attested\"} sends only to providers whose enclave the router verified, or refuses with nothing sent"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI chat.completion plus usage.cost (USD) and receipt {id, sig, key_id, alg, payload}"
+            }
+          }
+        },
+        {
+          "scheme": "tab",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/chat/completions",
+          "description": "OpenAI-compatible chat completion on any of 350+ models, with a signed receipt. Priced per request; the 402 reply quotes the exact amount. Paid from an open tab: the payer authorized a cap into escrow and signs a cumulative voucher per request; on close it pays exactly what it used.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "program": "<TRELLIS_TAB_PROGRAM>",
+            "feePayer": "<X402_FEE_PAYER>",
+            "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+            "settlement": "payee_signed_close_relayed",
+            "headers": [
+              "X-Trellis-Tab",
+              "X-Trellis-Tab-Voucher"
+            ],
+            "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Any id from GET /api/v1/models, e.g. meta-llama/llama-3.3-70b-instruct"
+                },
+                "messages": {
+                  "type": "array",
+                  "required": true,
+                  "description": "OpenAI chat messages"
+                },
+                "max_tokens": {
+                  "type": "number",
+                  "required": false,
+                  "description": "Caps the quoted price"
+                },
+                "stream": {
+                  "type": "boolean",
+                  "required": false
+                },
+                "provider": {
+                  "type": "object",
+                  "required": false,
+                  "description": "{\"lane\":\"attested\"} sends only to providers whose enclave the router verified, or refuses with nothing sent"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI chat.completion plus usage.cost (USD) and receipt {id, sig, key_id, alg, payload}"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "name": "Trellis chat completions",
+        "tags": [
+          "attested",
+          "tee",
+          "uncensored-ok"
+        ],
+        "category": "ai-inference",
+        "priceHint": "Per request: the model's per-token price (GET /api/v1/models) times the request's prompt and max_tokens, plus a 1% per-call margin; at most 25 USDC.",
+        "docs": "https://trellis.example/docs",
+        "models": "https://trellis.example/api/v1/models",
+        "facilitator": "https://trellis.example/facilitator",
+        "schemes": [
+          "exact",
+          "tab"
+        ]
+      }
+    },
+    {
+      "resource": "https://trellis.example/api/v1/completions",
+      "type": "http",
+      "x402Version": 1,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/completions",
+          "description": "OpenAI-compatible text completion on any Trellis model, with a signed receipt. Priced per request; the 402 reply quotes the exact amount.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "name": "USD Coin",
+            "decimals": 6,
+            "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "feePayer": "<X402_FEE_PAYER>",
+            "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true
+                },
+                "prompt": {
+                  "type": "string",
+                  "required": true
+                },
+                "max_tokens": {
+                  "type": "number",
+                  "required": false,
+                  "description": "Caps the quoted price"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI text_completion plus usage.cost (USD) and receipt"
+            }
+          }
+        },
+        {
+          "scheme": "tab",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/completions",
+          "description": "OpenAI-compatible text completion on any Trellis model, with a signed receipt. Priced per request; the 402 reply quotes the exact amount. Paid from an open tab: the payer authorized a cap into escrow and signs a cumulative voucher per request; on close it pays exactly what it used.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "program": "<TRELLIS_TAB_PROGRAM>",
+            "feePayer": "<X402_FEE_PAYER>",
+            "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+            "settlement": "payee_signed_close_relayed",
+            "headers": [
+              "X-Trellis-Tab",
+              "X-Trellis-Tab-Voucher"
+            ],
+            "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true
+                },
+                "prompt": {
+                  "type": "string",
+                  "required": true
+                },
+                "max_tokens": {
+                  "type": "number",
+                  "required": false,
+                  "description": "Caps the quoted price"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI text_completion plus usage.cost (USD) and receipt"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "name": "Trellis text completions",
+        "tags": [
+          "attested",
+          "tee",
+          "uncensored-ok"
+        ],
+        "category": "ai-inference",
+        "priceHint": "Per request: per-token price times prompt and max_tokens, plus a 1% per-call margin; at most 25 USDC.",
+        "facilitator": "https://trellis.example/facilitator",
+        "schemes": [
+          "exact",
+          "tab"
+        ]
+      }
+    },
+    {
+      "resource": "https://trellis.example/api/v1/embeddings",
+      "type": "http",
+      "x402Version": 1,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/embeddings",
+          "description": "OpenAI-compatible embeddings with a signed receipt; on the attested lane the vectors come back only from a verified enclave.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "name": "USD Coin",
+            "decimals": 6,
+            "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "feePayer": "<X402_FEE_PAYER>",
+            "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true,
+                  "description": "e.g. qwen/qwen3-embedding-8b"
+                },
+                "input": {
+                  "type": "string",
+                  "required": true,
+                  "description": "A string or an array of strings"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI embedding list plus usage.cost (USD) and receipt"
+            }
+          }
+        },
+        {
+          "scheme": "tab",
+          "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          "maxAmountRequired": "25000000",
+          "resource": "https://trellis.example/api/v1/embeddings",
+          "description": "OpenAI-compatible embeddings with a signed receipt; on the attested lane the vectors come back only from a verified enclave. Paid from an open tab: the payer authorized a cap into escrow and signs a cumulative voucher per request; on close it pays exactly what it used.",
+          "mimeType": "application/json",
+          "payTo": "<X402_PAY_TO>",
+          "maxTimeoutSeconds": 300,
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "extra": {
+            "program": "<TRELLIS_TAB_PROGRAM>",
+            "feePayer": "<X402_FEE_PAYER>",
+            "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+            "settlement": "payee_signed_close_relayed",
+            "headers": [
+              "X-Trellis-Tab",
+              "X-Trellis-Tab-Voucher"
+            ],
+            "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+            "facilitator": "https://trellis.example/facilitator"
+          },
+          "outputSchema": {
+            "input": {
+              "type": "http",
+              "method": "POST",
+              "bodyType": "json",
+              "bodyFields": {
+                "model": {
+                  "type": "string",
+                  "required": true,
+                  "description": "e.g. qwen/qwen3-embedding-8b"
+                },
+                "input": {
+                  "type": "string",
+                  "required": true,
+                  "description": "A string or an array of strings"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "OpenAI embedding list plus usage.cost (USD) and receipt"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "name": "Trellis embeddings",
+        "tags": [
+          "attested",
+          "tee"
+        ],
+        "category": "ai-inference",
+        "priceHint": "Per request: per-token input price times the input length, plus a 1% per-call margin; at most 25 USDC.",
+        "facilitator": "https://trellis.example/facilitator",
+        "schemes": [
+          "exact",
+          "tab"
+        ]
+      }
+    }
+  ],
+  "v2": {
+    "x402Version": 2,
+    "items": [
+      {
+        "resource": "https://trellis.example/api/v1/chat/completions",
+        "type": "http",
+        "x402Version": 2,
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "name": "USD Coin",
+              "decimals": 6,
+              "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "feePayer": "<X402_FEE_PAYER>",
+              "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          },
+          {
+            "scheme": "tab",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "program": "<TRELLIS_TAB_PROGRAM>",
+              "feePayer": "<X402_FEE_PAYER>",
+              "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+              "settlement": "payee_signed_close_relayed",
+              "headers": [
+                "X-Trellis-Tab",
+                "X-Trellis-Tab-Voucher"
+              ],
+              "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          }
+        ],
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "type": "http",
+                "method": "POST",
+                "bodyType": "json",
+                "body": {
+                  "model": "meta-llama/llama-3.3-70b-instruct",
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": "Hello"
+                    }
+                  ],
+                  "max_tokens": 256
+                }
+              },
+              "output": {
+                "type": "json",
+                "example": {
+                  "object": "chat.completion",
+                  "model": "meta-llama/llama-3.3-70b-instruct",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "Hello! How can I help?"
+                      },
+                      "finish_reason": "stop"
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 9,
+                    "completion_tokens": 7,
+                    "total_tokens": 16,
+                    "cost": 3.1e-06
+                  },
+                  "receipt": {
+                    "id": "gen-...",
+                    "alg": "Ed25519",
+                    "key_id": "...",
+                    "sig": "...",
+                    "payload": {}
+                  }
+                }
+              }
+            },
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "POST"
+                      ]
+                    },
+                    "bodyType": {
+                      "type": "string",
+                      "enum": [
+                        "json"
+                      ]
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "model": {
+                          "type": "string",
+                          "description": "Any id from GET /api/v1/models, e.g. meta-llama/llama-3.3-70b-instruct"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "description": "OpenAI chat messages"
+                        },
+                        "max_tokens": {
+                          "type": "integer",
+                          "description": "Caps the quoted price"
+                        },
+                        "stream": {
+                          "type": "boolean"
+                        },
+                        "provider": {
+                          "type": "object",
+                          "description": "{\"lane\":\"attested\"} sends only to providers whose enclave the router verified, or refuses with nothing sent"
+                        }
+                      },
+                      "required": [
+                        "model",
+                        "messages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method",
+                    "bodyType",
+                    "body"
+                  ],
+                  "additionalProperties": false
+                },
+                "output": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "object",
+                      "description": "OpenAI chat.completion plus usage.cost (USD) and receipt {id, sig, key_id, alg, payload}"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "input"
+              ]
+            }
+          }
+        },
+        "metadata": {
+          "name": "Trellis chat completions",
+          "tags": [
+            "attested",
+            "tee",
+            "uncensored-ok"
+          ],
+          "category": "ai-inference",
+          "priceHint": "Per request: the model's per-token price (GET /api/v1/models) times the request's prompt and max_tokens, plus a 1% per-call margin; at most 25 USDC.",
+          "docs": "https://trellis.example/docs",
+          "models": "https://trellis.example/api/v1/models",
+          "facilitator": "https://trellis.example/facilitator",
+          "schemes": [
+            "exact",
+            "tab"
+          ]
+        }
+      },
+      {
+        "resource": "https://trellis.example/api/v1/completions",
+        "type": "http",
+        "x402Version": 2,
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "name": "USD Coin",
+              "decimals": 6,
+              "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "feePayer": "<X402_FEE_PAYER>",
+              "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          },
+          {
+            "scheme": "tab",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "program": "<TRELLIS_TAB_PROGRAM>",
+              "feePayer": "<X402_FEE_PAYER>",
+              "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+              "settlement": "payee_signed_close_relayed",
+              "headers": [
+                "X-Trellis-Tab",
+                "X-Trellis-Tab-Voucher"
+              ],
+              "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          }
+        ],
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "type": "http",
+                "method": "POST",
+                "bodyType": "json",
+                "body": {
+                  "model": "meta-llama/llama-3.3-70b-instruct",
+                  "prompt": "Once upon a time",
+                  "max_tokens": 64
+                }
+              },
+              "output": {
+                "type": "json",
+                "example": {
+                  "object": "text_completion",
+                  "model": "meta-llama/llama-3.3-70b-instruct",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "text": " there was a router.",
+                      "finish_reason": "stop"
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 4,
+                    "completion_tokens": 5,
+                    "total_tokens": 9,
+                    "cost": 1.2e-06
+                  },
+                  "receipt": {
+                    "id": "gen-...",
+                    "alg": "Ed25519",
+                    "key_id": "...",
+                    "sig": "...",
+                    "payload": {}
+                  }
+                }
+              }
+            },
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "POST"
+                      ]
+                    },
+                    "bodyType": {
+                      "type": "string",
+                      "enum": [
+                        "json"
+                      ]
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "model": {
+                          "type": "string"
+                        },
+                        "prompt": {
+                          "type": "string"
+                        },
+                        "max_tokens": {
+                          "type": "integer",
+                          "description": "Caps the quoted price"
+                        }
+                      },
+                      "required": [
+                        "model",
+                        "prompt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method",
+                    "bodyType",
+                    "body"
+                  ],
+                  "additionalProperties": false
+                },
+                "output": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "object",
+                      "description": "OpenAI text_completion plus usage.cost (USD) and receipt"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "input"
+              ]
+            }
+          }
+        },
+        "metadata": {
+          "name": "Trellis text completions",
+          "tags": [
+            "attested",
+            "tee",
+            "uncensored-ok"
+          ],
+          "category": "ai-inference",
+          "priceHint": "Per request: per-token price times prompt and max_tokens, plus a 1% per-call margin; at most 25 USDC.",
+          "facilitator": "https://trellis.example/facilitator",
+          "schemes": [
+            "exact",
+            "tab"
+          ]
+        }
+      },
+      {
+        "resource": "https://trellis.example/api/v1/embeddings",
+        "type": "http",
+        "x402Version": 2,
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "name": "USD Coin",
+              "decimals": 6,
+              "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "feePayer": "<X402_FEE_PAYER>",
+              "transaction": "one SPL TransferChecked of USDC to payTo's associated token account; fee payer = feePayer (signature slot left empty, named by no instruction); exactly two signatures; optional SetComputeUnitLimit (<= 200000) and SetComputeUnitPrice (<= 5000000 micro-lamports, priority fee <= 10000 lamports); payTo's token account may be created idempotently by the payer, never by the fee payer; no address lookup tables; sent base64 as payload.transaction in X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2)",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          },
+          {
+            "scheme": "tab",
+            "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+            "amount": "25000000",
+            "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "payTo": "<X402_PAY_TO>",
+            "maxTimeoutSeconds": 300,
+            "extra": {
+              "program": "<TRELLIS_TAB_PROGRAM>",
+              "feePayer": "<X402_FEE_PAYER>",
+              "maxCapUnits": "<TAB_MAX_CAP_UNITS>",
+              "settlement": "payee_signed_close_relayed",
+              "headers": [
+                "X-Trellis-Tab",
+                "X-Trellis-Tab-Voucher"
+              ],
+              "voucher": "X-Trellis-Tab-Voucher = base64('trellis:tab:voucher:v1' (22 ASCII bytes) || tab program id (32) || tab (32) || Tab.created_at i64 LE || cumulative_used u64 LE || seq u64 LE) + '.' + base64(ed25519 signature by the tab's session key); 110 bytes, bound to the tab program and to this opening of the tab (created_at is read from the Tab account); cumulative_used never decreases, seq strictly increases",
+              "facilitator": "https://trellis.example/facilitator"
+            }
+          }
+        ],
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "type": "http",
+                "method": "POST",
+                "bodyType": "json",
+                "body": {
+                  "model": "qwen/qwen3-embedding-8b",
+                  "input": [
+                    "pay per embedding"
+                  ]
+                }
+              },
+              "output": {
+                "type": "json",
+                "example": {
+                  "object": "list",
+                  "model": "qwen/qwen3-embedding-8b",
+                  "data": [
+                    {
+                      "object": "embedding",
+                      "index": 0,
+                      "embedding": [
+                        0.0123,
+                        -0.0456,
+                        0.0789
+                      ]
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 4,
+                    "total_tokens": 4,
+                    "cost": 2e-07
+                  },
+                  "receipt": {
+                    "id": "gen-...",
+                    "alg": "Ed25519",
+                    "key_id": "...",
+                    "sig": "...",
+                    "payload": {}
+                  }
+                }
+              }
+            },
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "POST"
+                      ]
+                    },
+                    "bodyType": {
+                      "type": "string",
+                      "enum": [
+                        "json"
+                      ]
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "model": {
+                          "type": "string",
+                          "description": "e.g. qwen/qwen3-embedding-8b"
+                        },
+                        "input": {
+                          "type": [
+                            "string",
+                            "array"
+                          ],
+                          "description": "A string or an array of strings"
+                        }
+                      },
+                      "required": [
+                        "model",
+                        "input"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method",
+                    "bodyType",
+                    "body"
+                  ],
+                  "additionalProperties": false
+                },
+                "output": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "object",
+                      "description": "OpenAI embedding list plus usage.cost (USD) and receipt"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "input"
+              ]
+            }
+          }
+        },
+        "metadata": {
+          "name": "Trellis embeddings",
+          "tags": [
+            "attested",
+            "tee"
+          ],
+          "category": "ai-inference",
+          "priceHint": "Per request: per-token input price times the input length, plus a 1% per-call margin; at most 25 USDC.",
+          "facilitator": "https://trellis.example/facilitator",
+          "schemes": [
+            "exact",
+            "tab"
+          ]
+        }
+      }
+    ]
+  }
+}
