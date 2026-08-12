@@ -1,0 +1,87 @@
+{
+  "name": "@trellis/client",
+  "version": "0.1.0",
+  "description": "OpenAI-compatible client for Trellis with receipt verification, verify-before-send for attested providers, blind tokens, chunked Oblivious HTTP and an HPKE hook. One small runtime dependency (@noble/hashes, for synchronous sha256); Solana payments (x402 per call, tabs, deposits) encoded in plain TypeScript, with @solana/web3.js as an optional peer.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./blind": {
+      "bun": "./src/blind.ts",
+      "types": "./dist/blind.d.ts",
+      "import": "./dist/blind.js"
+    },
+    "./node": {
+      "bun": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./ohttp": {
+      "bun": "./src/ohttp.ts",
+      "types": "./dist/ohttp.d.ts",
+      "import": "./dist/ohttp.js"
+    },
+    "./solana": {
+      "bun": "./src/solana.ts",
+      "types": "./dist/solana.d.ts",
+      "import": "./dist/solana.js"
+    },
+    "./characters": {
+      "bun": "./src/characters.ts",
+      "types": "./dist/characters.d.ts",
+      "import": "./dist/characters.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0"
+  },
+  "peerDependencies": {
+    "@cloudflare/blindrsa-ts": "0.4.6",
+    "@solana/web3.js": "^1.98.0",
+    "hpke": "1.1.7",
+    "ohttp-ts": "0.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@cloudflare/blindrsa-ts": {
+      "optional": true
+    },
+    "@solana/web3.js": {
+      "optional": true
+    },
+    "hpke": {
+      "optional": true
+    },
+    "ohttp-ts": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cloudflare/blindrsa-ts": "0.4.6",
+    "@solana/web3.js": "1.99.0",
+    "@types/bun": "1.4.2",
+    "@types/node": "26.6.4",
+    "hpke": "1.1.7",
+    "ohttp-ts": "0.6.0",
+    "typescript": "7.0.2"
+  }
+}
