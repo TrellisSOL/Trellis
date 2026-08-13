@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trellis-client"
+version = "0.1.0"
+description = "Receipt verification and verify-before-send for attested Trellis providers, with an OpenAI-compatible chat call."
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "cryptography==50.0.1",
+  "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+solana = ["solders==0.29.0"]
+test = ["pytest==9.1.1", "coverage==7.10.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv]
+exclude-newer = "2026-09-25T00:00:00Z"
+exclude-newer-package = { certifi = "2026-10-20T00:00:00Z" }
+build-constraint-dependencies = ["setuptools==84.0.0", "hatchling==1.32.4"]
