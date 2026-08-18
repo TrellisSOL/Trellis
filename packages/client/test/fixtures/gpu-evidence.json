@@ -1,0 +1,213 @@
+{
+ "note": "Synthetic. A test P-384 key plays the NVIDIA Remote Attestation Service and a test Ed25519 key the enclave's receipt key; only public keys and signed tokens are here. The quote is a TDX-shaped body without a signature. Generated once from test/support/gpu-fixtures.ts; both clients verify these bytes (packages/client/test/gpu.test.ts, packages/client-py/tests/test_gpu.py).",
+ "now": "2026-10-01T00:00:00.000Z",
+ "issuer": "https://nras.test",
+ "jwks": {
+  "keys": [
+   {
+    "kty": "EC",
+    "x": "Zor2FASL7b_45MqX2Z3CP3Cjujjjtn5PGOtIR12fNijdXO66VpNbLszVSPCl3DC9",
+    "y": "5DtjQsXXGOxTYwKyh8fnzMkl1qm7iukcMOpNggaDu-Us5b03vOhAYZRADFY3nCjC",
+    "crv": "P-384",
+    "kid": "test-nras-key-1"
+   }
+  ]
+ },
+ "document": {
+  "v": 1,
+  "type": "trellis.sidecar.attestation",
+  "dev": false,
+  "attestation_ref": "a7cb329b1d0c291862799fe97196ef59e7cad0108d4a81c884bd5d3a240283d7",
+  "attestation_san": "a7cb329b1d0c291862799fe97196ef59.e7cad0108d4a81c884bd5d3a240283d7.attest.trellis",
+  "evidence": {
+   "kind": "dstack",
+   "format": "tdx-quote-v4",
+   "dev": false,
+   "quote": "04000000810000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b345f0f92d9752337b936045f35bf21ebbd7b83cd918c718d1abf4be0ed5dd8f7300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+   "report_data": "45f0f92d9752337b936045f35bf21ebbd7b83cd918c718d1abf4be0ed5dd8f730000000000000000000000000000000000000000000000000000000000000000",
+   "nonce": null,
+   "boot": true,
+   "measurements": {
+    "mrtd": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rtmr0": "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0",
+    "rtmr1": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+    "rtmr2": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "rtmr3": "b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3"
+   }
+  },
+  "bindings": {
+   "image_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+   "compose_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+   "model_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+   "receipt_pubkey": "c1dbb2e1aabf24b162cfc3d70898faa9cecdc473f85ddd851e89bf27fbefe4d0",
+   "tls_pubkey": "04abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+   "gpu_evidence_sha256": "2d52d9bde8463c0cd738b4b3e3c98ca567a91019b193259bb0828b2c73040563"
+  },
+  "receipt_key": {
+   "alg": "Ed25519",
+   "key_id": "0123456789abcdef",
+   "public_key": "c1dbb2e1aabf24b162cfc3d70898faa9cecdc473f85ddd851e89bf27fbefe4d0"
+  },
+  "gpu": {
+   "v": 1,
+   "mode": "nras",
+   "nras_url": "https://nras.test",
+   "evidence_sha256": "2d52d9bde8463c0cd738b4b3e3c98ca567a91019b193259bb0828b2c73040563",
+   "boot": {
+    "seq": 0,
+    "verified_at": "2026-09-30T23:20:00.000Z",
+    "nonce": "b439ec22fe9b53dbb136c6bb2001b58c12b6b9057188ec15eae0edaf4f6e0df8",
+    "nonce_input": {
+     "issued_at": "2026-09-30T23:20:00.000Z",
+     "salt": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "arch": "HOPPER",
+    "verifier": {
+     "kind": "nras",
+     "issuer": "https://nras.test"
+    },
+    "local": {
+     "source": "test",
+     "cc_state": "on",
+     "devtools_mode": "off",
+     "multi_gpu_mode": "Protected PCIe",
+     "uuids": [
+      "GPU-00000000-aaaa-bbbb-cccc-000000000000",
+      "GPU-00000001-aaaa-bbbb-cccc-000000000000"
+     ]
+    },
+    "tokens": {
+     "overall": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMDQwMCwibmJmIjoxNzkwODEwNDAwLCJleHAiOjE3OTA4MTQwMDAsIngtbnZpZGlhLXZlciI6IjMuMCIsInN1YiI6Ik5WSURJQS1QTEFURk9STS1BVFRFU1RBVElPTiIsIngtbnZpZGlhLW92ZXJhbGwtYXR0LXJlc3VsdCI6dHJ1ZSwic3VibW9kcyI6eyJHUFUtMCI6WyJESUdFU1QiLFsiU0hBLTI1NiIsIjRmMmZjNzZkMzFmMmE1NWE1NGJmMmQ3MGVhNThhOTE3NDcyYTMzOTgxOTk1ZTc4MTQzYWY3NjhkZTM0OTRhNDIiXV0sIkdQVS0xIjpbIkRJR0VTVCIsWyJTSEEtMjU2IiwiM2ZjY2VjMGRkMzRiMzAxMDhmY2Y1YWIwYmVlMTVkMDkwYTEwMTg4ODExMDkyNzNiYWYxZDVhMTUzMzI1MDFlNSJdXX0sImVhdF9ub25jZSI6ImI0MzllYzIyZmU5YjUzZGJiMTM2YzZiYjIwMDFiNThjMTJiNmI5MDU3MTg4ZWMxNWVhZTBlZGFmNGY2ZTBkZjgiLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.rrklxOHcGh1xR_cpDr0AkunsKneFv2A8044Z1FU5ir4clvy_grfODcUoEi-zWXmzTt5P7cRMf5Z6EYfqlW93llQIpfDgl3LyL7szO0FLOHuA68Po7XqPC0R6tKiYc_ez",
+     "gpus": {
+      "GPU-0": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMDQwMCwibmJmIjoxNzkwODEwNDAwLCJleHAiOjE3OTA4MTQwMDAsIngtbnZpZGlhLXZlciI6IjMuMCIsImVhdF9ub25jZSI6ImI0MzllYzIyZmU5YjUzZGJiMTM2YzZiYjIwMDFiNThjMTJiNmI5MDU3MTg4ZWMxNWVhZTBlZGFmNGY2ZTBkZjgiLCJtZWFzcmVzIjoic3VjY2VzcyIsImh3bW9kZWwiOiJHSDEwMCBBMDEgR1NQIEJST00iLCJ1ZWlkIjoiNTM3NjA1MjY0MDE5MzU5NTg3NzQxMTI0MjI1NTMxNDkxMjc2MTUyNjIyNzUzMjgwIiwib2VtaWQiOiI1NzAzIiwic2VjYm9vdCI6dHJ1ZSwiZGJnc3RhdCI6ImRpc2FibGVkIiwieC1udmlkaWEtZ3B1LWRyaXZlci12ZXJzaW9uIjoiNTc1LjI4IiwieC1udmlkaWEtZ3B1LXZiaW9zLXZlcnNpb24iOiI5Ni4wMC5BRi4wMC4wMSIsIngtbnZpZGlhLWdwdS1hcmNoLWNoZWNrIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LW5vbmNlLW1hdGNoIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LXNpZ25hdHVyZS12ZXJpZmllZCI6dHJ1ZX0.3_EUud83aYGV0t-T16eslv1ObhhuPlvYC9npp4PrCNgXBj9er9gDQNhsSM1ypWP9wYa7nEsgK0JCde8wSXAInz2DXwzrp8Izn1tEy9FYXest-HZ9lq_ID-Zdev9vkmzs",
+      "GPU-1": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMDQwMCwibmJmIjoxNzkwODEwNDAwLCJleHAiOjE3OTA4MTQwMDAsIngtbnZpZGlhLXZlciI6IjMuMCIsImVhdF9ub25jZSI6ImI0MzllYzIyZmU5YjUzZGJiMTM2YzZiYjIwMDFiNThjMTJiNmI5MDU3MTg4ZWMxNWVhZTBlZGFmNGY2ZTBkZjgiLCJtZWFzcmVzIjoic3VjY2VzcyIsImh3bW9kZWwiOiJHSDEwMCBBMDEgR1NQIEJST00iLCJ1ZWlkIjoiNTM3NjA1MjY0MDE5MzU5NTg3NzQxMTI0MjI1NTMxNDkxMjc2MTUyNjIyNzUzMjgxIiwib2VtaWQiOiI1NzAzIiwic2VjYm9vdCI6dHJ1ZSwiZGJnc3RhdCI6ImRpc2FibGVkIiwieC1udmlkaWEtZ3B1LWRyaXZlci12ZXJzaW9uIjoiNTc1LjI4IiwieC1udmlkaWEtZ3B1LXZiaW9zLXZlcnNpb24iOiI5Ni4wMC5BRi4wMC4wMSIsIngtbnZpZGlhLWdwdS1hcmNoLWNoZWNrIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LW5vbmNlLW1hdGNoIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LXNpZ25hdHVyZS12ZXJpZmllZCI6dHJ1ZX0.HZYHS_eXtyhiCpHo4ymBR6teMN5g0XTytXYbeelt68hnw5YHLERqijRyMrKCSZ5O2yudieUwSH451dAEM9bizOQ3Ajg-K7559rDyPzRohiZiCZNX7pdT6RimAd68sTwS"
+     }
+    },
+    "gpus": [
+     {
+      "id": "GPU-0",
+      "index": 0,
+      "uuid": "GPU-00000000-aaaa-bbbb-cccc-000000000000",
+      "model": "GH100 A01 GSP BROM",
+      "cc_state": "on",
+      "driver_version": "575.28",
+      "vbios_version": "96.00.AF.00.01",
+      "token_sha256": "4f2fc76d31f2a55a54bf2d70ea58a917472a33981995e78143af768de3494a42"
+     },
+     {
+      "id": "GPU-1",
+      "index": 1,
+      "uuid": "GPU-00000001-aaaa-bbbb-cccc-000000000000",
+      "model": "GH100 A01 GSP BROM",
+      "cc_state": "on",
+      "driver_version": "575.28",
+      "vbios_version": "96.00.AF.00.01",
+      "token_sha256": "3fccec0dd34b30108fcf5ab0bee15d090a1018881109273baf1d5a15332501e5"
+     }
+    ],
+    "summary_sha256": "2d52d9bde8463c0cd738b4b3e3c98ca567a91019b193259bb0828b2c73040563",
+    "signature": {
+     "alg": "Ed25519",
+     "sig": "e3RHSCbnLP/Wk6R00aKxwrw/nYjNDFoN85sbLeoLxTM/5J7CLCno+tU1Br59DIzb4SnidztGknb9WyYN+SDFBQ=="
+    }
+   },
+   "refresh": {
+    "seq": 1,
+    "verified_at": "2026-09-30T23:50:00.000Z",
+    "nonce": "14433ac81344c232db3adde8aceae9b5758d44ad2d4ee6f3947fd17a56f14cd9",
+    "nonce_input": {
+     "issued_at": "2026-09-30T23:50:00.000Z",
+     "salt": "0101010101010101010101010101010101010101010101010101010101010101"
+    },
+    "arch": "HOPPER",
+    "verifier": {
+     "kind": "nras",
+     "issuer": "https://nras.test"
+    },
+    "local": {
+     "source": "test",
+     "cc_state": "on",
+     "devtools_mode": "off",
+     "multi_gpu_mode": "Protected PCIe",
+     "uuids": [
+      "GPU-00000000-aaaa-bbbb-cccc-000000000000",
+      "GPU-00000001-aaaa-bbbb-cccc-000000000000"
+     ]
+    },
+    "tokens": {
+     "overall": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMjIwMCwibmJmIjoxNzkwODEyMjAwLCJleHAiOjE3OTA4MTU4MDAsIngtbnZpZGlhLXZlciI6IjMuMCIsInN1YiI6Ik5WSURJQS1QTEFURk9STS1BVFRFU1RBVElPTiIsIngtbnZpZGlhLW92ZXJhbGwtYXR0LXJlc3VsdCI6dHJ1ZSwic3VibW9kcyI6eyJHUFUtMCI6WyJESUdFU1QiLFsiU0hBLTI1NiIsImIwOTQ3MDEzYzYyM2VhZDA3M2QwZTVhMTY3ZDllNDBhZmNmZmI3MzViMWY3NDMxYzIzN2IwNDBiN2VjYjI4NDEiXV0sIkdQVS0xIjpbIkRJR0VTVCIsWyJTSEEtMjU2IiwiMjUyOGIzNzUwOTc1YTlhNDhkYjc1ZDhkNzVjMjk2ZjQ3MTZjMzM2ODFmZjZjNGJmNzgyOTVjODljNmMxMDUxMiJdXX0sImVhdF9ub25jZSI6IjE0NDMzYWM4MTM0NGMyMzJkYjNhZGRlOGFjZWFlOWI1NzU4ZDQ0YWQyZDRlZTZmMzk0N2ZkMTdhNTZmMTRjZDkiLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.zBcQbFlhktHTX3zIHjeqYsE_GiM7TwOxeFfohYF2BgbtBEVa_AwJbebhtHry9A9ee5X5vaVYDadoow3uefqe7ZKrdkW43Gk0OjEzD9z0baKK5qFD5o1jPIkbh7TOZZcb",
+     "gpus": {
+      "GPU-0": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMjIwMCwibmJmIjoxNzkwODEyMjAwLCJleHAiOjE3OTA4MTU4MDAsIngtbnZpZGlhLXZlciI6IjMuMCIsImVhdF9ub25jZSI6IjE0NDMzYWM4MTM0NGMyMzJkYjNhZGRlOGFjZWFlOWI1NzU4ZDQ0YWQyZDRlZTZmMzk0N2ZkMTdhNTZmMTRjZDkiLCJtZWFzcmVzIjoic3VjY2VzcyIsImh3bW9kZWwiOiJHSDEwMCBBMDEgR1NQIEJST00iLCJ1ZWlkIjoiNTM3NjA1MjY0MDE5MzU5NTg3NzQxMTI0MjI1NTMxNDkxMjc2MTUyNjIyNzUzMjgwIiwib2VtaWQiOiI1NzAzIiwic2VjYm9vdCI6dHJ1ZSwiZGJnc3RhdCI6ImRpc2FibGVkIiwieC1udmlkaWEtZ3B1LWRyaXZlci12ZXJzaW9uIjoiNTc1LjI4IiwieC1udmlkaWEtZ3B1LXZiaW9zLXZlcnNpb24iOiI5Ni4wMC5BRi4wMC4wMSIsIngtbnZpZGlhLWdwdS1hcmNoLWNoZWNrIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LW5vbmNlLW1hdGNoIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LXNpZ25hdHVyZS12ZXJpZmllZCI6dHJ1ZX0.Dhkh0yLnlC2j5wxvhw8R4rm0yfAGIxFYVyr6Kd637_QUvGhyXlvMryiiWLBDlExnALfc6RS-y6YmHABF3uzJwAZnDzcYivv_lxyOK9Y8MTZbvgub31R01noxQlWYfFkZ",
+      "GPU-1": "eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QtbnJhcy1rZXktMSJ9.eyJpc3MiOiJodHRwczovL25yYXMudGVzdCIsImlhdCI6MTc5MDgxMjIwMCwibmJmIjoxNzkwODEyMjAwLCJleHAiOjE3OTA4MTU4MDAsIngtbnZpZGlhLXZlciI6IjMuMCIsImVhdF9ub25jZSI6IjE0NDMzYWM4MTM0NGMyMzJkYjNhZGRlOGFjZWFlOWI1NzU4ZDQ0YWQyZDRlZTZmMzk0N2ZkMTdhNTZmMTRjZDkiLCJtZWFzcmVzIjoic3VjY2VzcyIsImh3bW9kZWwiOiJHSDEwMCBBMDEgR1NQIEJST00iLCJ1ZWlkIjoiNTM3NjA1MjY0MDE5MzU5NTg3NzQxMTI0MjI1NTMxNDkxMjc2MTUyNjIyNzUzMjgxIiwib2VtaWQiOiI1NzAzIiwic2VjYm9vdCI6dHJ1ZSwiZGJnc3RhdCI6ImRpc2FibGVkIiwieC1udmlkaWEtZ3B1LWRyaXZlci12ZXJzaW9uIjoiNTc1LjI4IiwieC1udmlkaWEtZ3B1LXZiaW9zLXZlcnNpb24iOiI5Ni4wMC5BRi4wMC4wMSIsIngtbnZpZGlhLWdwdS1hcmNoLWNoZWNrIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LW5vbmNlLW1hdGNoIjp0cnVlLCJ4LW52aWRpYS1ncHUtYXR0ZXN0YXRpb24tcmVwb3J0LXNpZ25hdHVyZS12ZXJpZmllZCI6dHJ1ZX0.AB5O4yY3k59SuVo1pzHq0VeEoBBhtBL73zvizMMZsGQrUHMG1PEgW6-VppITXpHgr45g7JbXfUp1rvoTMo2bcEim-nbRfPfptIiHFCOgiflR5J6rhf4mAUD84VxAnpvy"
+     }
+    },
+    "gpus": [
+     {
+      "id": "GPU-0",
+      "index": 0,
+      "uuid": "GPU-00000000-aaaa-bbbb-cccc-000000000000",
+      "model": "GH100 A01 GSP BROM",
+      "cc_state": "on",
+      "driver_version": "575.28",
+      "vbios_version": "96.00.AF.00.01",
+      "token_sha256": "b0947013c623ead073d0e5a167d9e40afcffb735b1f7431c237b040b7ecb2841"
+     },
+     {
+      "id": "GPU-1",
+      "index": 1,
+      "uuid": "GPU-00000001-aaaa-bbbb-cccc-000000000000",
+      "model": "GH100 A01 GSP BROM",
+      "cc_state": "on",
+      "driver_version": "575.28",
+      "vbios_version": "96.00.AF.00.01",
+      "token_sha256": "2528b3750975a9a48db75d8d75c296f4716c33681ff6c4bf78295c89c6c10512"
+     }
+    ],
+    "summary_sha256": "f13a50b10efcad68b5e0dc6937cd8e4d7a1dfaba6d7cc5167557bdae0cd3709d",
+    "signature": {
+     "alg": "Ed25519",
+     "sig": "2Y95SJR9t/LTHG+AuwGM4uHHBEBQ9javnmIfPlkxjYCclzU8jbVTNkoBylamBlQkmEtZD+dcg7B/RlYM3kJEBg=="
+    }
+   },
+   "stale": false,
+   "policy": {
+    "allowed_models": [
+     "GH100"
+    ],
+    "min_driver_version": null,
+    "min_vbios_version": null,
+    "refresh_seconds": 1800,
+    "max_age_seconds": 3600
+   },
+   "derivation": {
+    "nonce": "see sidecar/src/attestation/gpu.ts",
+    "summary": "",
+    "binding": "",
+    "refresh": ""
+   },
+   "limits": []
+  }
+ },
+ "expected": {
+  "status": "verified",
+  "evidence_sha256": "2d52d9bde8463c0cd738b4b3e3c98ca567a91019b193259bb0828b2c73040563",
+  "nonce": "14433ac81344c232db3adde8aceae9b5758d44ad2d4ee6f3947fd17a56f14cd9",
+  "verified_at": "2026-09-30T23:50:00.000Z",
+  "expires_at": "2026-10-01T00:50:00.000Z",
+  "models": [
+   "GH100 A01 GSP BROM",
+   "GH100 A01 GSP BROM"
+  ],
+  "token_sha256": [
+   "b0947013c623ead073d0e5a167d9e40afcffb735b1f7431c237b040b7ecb2841",
+   "2528b3750975a9a48db75d8d75c296f4716c33681ff6c4bf78295c89c6c10512"
+  ],
+  "not_checked": [
+   "NRAS attests that a genuine NVIDIA GPU signed a report over this nonce and that its firmware and driver measurements match NVIDIA's reference values. Trust rests on NVIDIA's device keys, reference values and the NRAS signing key.",
+   "Nothing hardware-enforced ties the GPU to this TD (there is no TDISP binding on these parts). The tie is the nonce, which only the measured sidecar derives from keys the TDX quote commits to, and the measured guest software that talks to the GPU.",
+   "cc_state, devtools_mode and multi_gpu_mode are read from the in-guest NVIDIA driver (nvidia-smi) by the sidecar. They are committed in the evidence summary but are not signed by the GPU or by NRAS.",
+   "The evidence covers the GPUs visible to the sidecar at the moment of each attestation. It does not show which GPU served a given request, nor anything between two attestations.",
+   "With several GPUs in protected-PCIe mode, NVLink traffic between them is not encrypted; this evidence says nothing about the links."
+  ]
+ }
+}
