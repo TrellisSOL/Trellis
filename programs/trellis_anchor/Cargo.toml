@@ -1,0 +1,29 @@
+[package]
+name = "trellis_anchor"
+version = "0.1.0"
+description = "Trellis hourly receipt roots and receipt-signer set"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "trellis_anchor"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+# DEVNET ONLY: compiles the short devnet timelock (src/constants.rs). Mainnet builds must not enable it.
+devnet = []
+
+[dependencies]
+anchor-lang = "1.2.1"
+solana-sha256-hasher = "3.1.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
