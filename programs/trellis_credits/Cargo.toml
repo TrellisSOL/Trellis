@@ -1,0 +1,31 @@
+[package]
+name = "trellis_credits"
+version = "0.1.0"
+description = "Trellis prepaid, spend-only USDC inference credits"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "trellis_credits"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+# DEVNET ONLY: compiles the short devnet floors and timelock (src/constants.rs). Mainnet builds must not enable it.
+devnet = []
+
+[dependencies]
+anchor-lang = { version = "1.2.1", features = ["init-if-needed"] }
+anchor-spl = "1.2.1"
+# Same cohort as anchor-lang 1.2.1 (solana-v3): sha256 of the key address for key-authorised instructions.
+solana-sha256-hasher = "3.1.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
