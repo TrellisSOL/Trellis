@@ -1,0 +1,35 @@
+[package]
+name = "trellis_tab"
+version = "0.1.0"
+description = "Trellis tab x402 scheme: USDC escrow tabs closed by Ed25519 session-key vouchers (Backend spec section 5.2)"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "trellis_tab"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "trellis_rules/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+# DEVNET ONLY: compiles the short devnet floors and timelock (src/state.rs). Mainnet builds must not enable it.
+devnet = []
+
+[dependencies]
+# allow-missing-optionals: trailing optional accounts (the rulebook group) may be left out, so clients that open and top
+# up tabs without a rulebook keep their shorter account lists.
+anchor-lang = { version = "1.2.1", features = ["allow-missing-optionals"] }
+anchor-spl = "1.2.1"
+# Same cohort as anchor-lang 1.2.1 (solana-v3): instruction introspection for the Ed25519 precompile.
+solana-instructions-sysvar = "3"
+# Rulebook enforcement when USDC is committed (`open_tab` / `top_up` CPI into record_commitment). The sibling program.
+trellis_rules = { path = "../trellis_rules", features = ["cpi"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
