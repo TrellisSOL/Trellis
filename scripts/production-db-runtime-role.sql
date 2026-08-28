@@ -1,0 +1,31 @@
+\set ON_ERROR_STOP on
+-- Run as the migration/schema owner after migrations, with RUNTIME_DB_PASSWORD injected into psql.
+-- API and workers get application DML only; they cannot create/alter schema objects or roles.
+\getenv runtime_password RUNTIME_DB_PASSWORD
+-- Use the actual connection target and effective schema owner. Psql quotes both as identifiers below.
+SELECT current_database() AS target_database, current_user AS migration_owner \gset
+SELECT format('CREATE ROLE trellis_runtime LOGIN PASSWORD %L', :'runtime_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'trellis_runtime')
+\gexec
+ALTER ROLE trellis_runtime PASSWORD :'runtime_password';
+ALTER ROLE trellis_runtime NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+GRANT CONNECT ON DATABASE :"target_database" TO trellis_runtime;
+GRANT USAGE ON SCHEMA public, drizzle TO trellis_runtime;
+REVOKE CREATE ON SCHEMA public, drizzle FROM PUBLIC, trellis_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO trellis_runtime;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO trellis_runtime;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA drizzle FROM trellis_runtime;
+GRANT SELECT ON ALL TABLES IN SCHEMA drizzle TO trellis_runtime;
+-- Sequence SELECT only reads last_value (pg_dump needs it); nextval/setval need USAGE/UPDATE.
+REVOKE USAGE, UPDATE ON ALL SEQUENCES IN SCHEMA drizzle FROM trellis_runtime;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA drizzle TO trellis_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE :"migration_owner" IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO trellis_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE :"migration_owner" IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO trellis_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE :"migration_owner" IN SCHEMA drizzle
+  REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM trellis_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE :"migration_owner" IN SCHEMA drizzle
+  GRANT SELECT ON TABLES TO trellis_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE :"migration_owner" IN SCHEMA drizzle
+  GRANT SELECT ON SEQUENCES TO trellis_runtime;
