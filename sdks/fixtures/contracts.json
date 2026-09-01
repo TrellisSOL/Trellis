@@ -1,0 +1,1361 @@
+{
+  "generated_by": "sdks/fixtures/generate.ts (bun sdks/fixtures/generate.ts). Do not edit: every value is produced by the router's own code.",
+  "keys": {
+    "about": "Each key is the ed25519 key whose 32-byte seed is SHA-256(\"trellis-sdk-fixture:\" + label), UTF-8. No seed is stored in this file.",
+    "seed_prefix": "trellis-sdk-fixture:",
+    "wallet": {
+      "label": "wallet",
+      "address": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc"
+    },
+    "session": {
+      "label": "session",
+      "address": "AToGGpiaYqUEt5GdVWZ4Cspod89CwZ7A6xfJCSgq8FWY"
+    },
+    "fee_payer": {
+      "label": "fee-payer",
+      "address": "3VYZYUMKTqYTwMSDiwBsLCHNAFnqBWyWEZJvgttHjF2G"
+    },
+    "payee": {
+      "label": "payee",
+      "address": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC"
+    },
+    "refund_to": {
+      "label": "refund-to",
+      "address": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW"
+    },
+    "second_depositor": {
+      "label": "second-depositor",
+      "address": "JAsM8j57YVbWu3hg8ah2p27JMb82HnyRhPLsNLbSPdXx"
+    }
+  },
+  "now": 1790000000,
+  "host": "router.example",
+  "sign_in": {
+    "version": "trellis:wallet:v2",
+    "about": "POST /api/v1/auth/wallet/challenge {address} returns `challenge`. The wallet signs the UTF-8 bytes of challenge.message exactly as returned (base58 signature) and posts `request` to /api/v1/auth/wallet. A client checks that challenge.domain is the host it is talking to before it signs.",
+    "expected_host": "router.example",
+    "challenge": {
+      "nonce": "6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56",
+      "message": "router.example wants you to sign in with your Solana account:\nGXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc\n\nSign in to Trellis with this wallet. Signing proves you hold the address: it sends no transaction and costs nothing.\n\nURI: https://router.example\nVersion: 1\nChain ID: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1\nNonce: 6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56\nIssued At: 2026-09-21T14:13:20.000Z\nExpiration Time: 2026-09-21T14:18:20.000Z",
+      "domain": "router.example",
+      "uri": "https://router.example",
+      "chain_id": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "issued_at": "2026-09-21T14:13:20.000Z",
+      "expires_at": "2026-09-21T14:18:20.000Z",
+      "version": "trellis:wallet:v2"
+    },
+    "request": {
+      "address": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "nonce": "6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56",
+      "signature": "3jny7LZEsESsJ3xjzKp2XK36t3bh6cdosdqa1AKjJDwtiTP5eYteDnJCvi95VL6fFgbDRKTAAW59VczxhacptiFC",
+      "message": "router.example wants you to sign in with your Solana account:\nGXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc\n\nSign in to Trellis with this wallet. Signing proves you hold the address: it sends no transaction and costs nothing.\n\nURI: https://router.example\nVersion: 1\nChain ID: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1\nNonce: 6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56\nIssued At: 2026-09-21T14:13:20.000Z\nExpiration Time: 2026-09-21T14:18:20.000Z",
+      "name": "SDK fixture key"
+    },
+    "signature": "3jny7LZEsESsJ3xjzKp2XK36t3bh6cdosdqa1AKjJDwtiTP5eYteDnJCvi95VL6fFgbDRKTAAW59VczxhacptiFC",
+    "other_domain_challenge": {
+      "nonce": "6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56",
+      "message": "phish.example wants you to sign in with your Solana account:\nGXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc\n\nSign in to Trellis with this wallet. Signing proves you hold the address: it sends no transaction and costs nothing.\n\nURI: https://phish.example\nVersion: 1\nChain ID: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1\nNonce: 6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56\nIssued At: 2026-09-21T14:13:20.000Z\nExpiration Time: 2026-09-21T14:18:20.000Z",
+      "domain": "phish.example",
+      "uri": "https://phish.example",
+      "chain_id": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "issued_at": "2026-09-21T14:13:20.000Z",
+      "expires_at": "2026-09-21T14:18:20.000Z",
+      "version": "trellis:wallet:v2"
+    },
+    "retired_v1_message": "trellis:wallet:v1\n6d729779745184b0d7b5532503d30cbb3a8cf64b771fdf56\n1790000000"
+  },
+  "wallet_auth": {
+    "version": "trellis:wallet-auth:v2",
+    "about": "X-Wallet-Auth: <base58 address>:<unixSeconds>:<base58 ed25519 signature> over the UTF-8 bytes of `message`: the version line, METHOD, host, path (with the query string), unixSeconds and a SHA-256 hex, joined by \\n. `sha256` is what the route binds: for chat routes the SHA-256 of the canonical JSON (keys sorted, no spaces) of the body without `stream` and `stream_options`; for other JSON routes the SHA-256 of the canonical JSON of the body; for GET routes the SHA-256 of the empty string; for GET /api/v1/hosts/{id} the SHA-256 of \"GET /api/v1/hosts/<url-encoded id>\".",
+    "address": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+    "empty_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cases": [
+      {
+        "name": "get_empty_body",
+        "about": "A GET with no body: sha256 of the empty string.",
+        "method": "GET",
+        "host": "router.example",
+        "path": "/api/v1/refunds",
+        "url": "https://router.example/api/v1/refunds",
+        "timestamp": 1790000000,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "body": null,
+        "message": "trellis:wallet-auth:v2\nGET\nrouter.example\n/api/v1/refunds\n1790000000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "signature": "2ktUn1xHtzbVx6U6n9Zr8F6SCAU9hmypvw9UWnp9fq9TURtvp6Nhf4zCCQbgzr67AHzSaLnp21ogCYKQUjvPocLe",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:2ktUn1xHtzbVx6U6n9Zr8F6SCAU9hmypvw9UWnp9fq9TURtvp6Nhf4zCCQbgzr67AHzSaLnp21ogCYKQUjvPocLe"
+      },
+      {
+        "name": "get_with_query",
+        "about": "The query string is part of the signed path.",
+        "method": "GET",
+        "host": "router.example",
+        "path": "/api/v1/generation?id=gen_fixture_1",
+        "url": "https://router.example/api/v1/generation?id=gen_fixture_1",
+        "timestamp": 1790000000,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "body": null,
+        "message": "trellis:wallet-auth:v2\nGET\nrouter.example\n/api/v1/generation?id=gen_fixture_1\n1790000000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "signature": "2vdayghcNTDmdPn1KSExtAqtfYRY3X3EvAd9roJY7yhkFRNC1kk4jYGkhCF7frtwHowQb56SqqFDL2Cc5gwPPrpq",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:2vdayghcNTDmdPn1KSExtAqtfYRY3X3EvAd9roJY7yhkFRNC1kk4jYGkhCF7frtwHowQb56SqqFDL2Cc5gwPPrpq"
+      },
+      {
+        "name": "chat_request",
+        "about": "Chat: sha256 of the canonical JSON of the body without stream and stream_options (the router's requestHash).",
+        "method": "POST",
+        "host": "router.example",
+        "path": "/api/v1/chat/completions",
+        "url": "https://router.example/api/v1/chat/completions",
+        "timestamp": 1790000000,
+        "sha256": "c006aba605e4bd2626138aa05e0304483039d9f31f3c892dacd8b030296b1a35",
+        "body": {
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Reply with one word: héllo ✓"
+            }
+          ],
+          "temperature": 0.7,
+          "top_p": 1,
+          "max_tokens": 64,
+          "stream": true,
+          "stream_options": {
+            "include_usage": true
+          },
+          "usage": {
+            "include": true
+          }
+        },
+        "canonical_json": "{\"max_tokens\":64,\"messages\":[{\"content\":\"Reply with one word: héllo ✓\",\"role\":\"user\"}],\"model\":\"meta-llama/llama-3.3-70b-instruct\",\"temperature\":0.7,\"top_p\":1,\"usage\":{\"include\":true}}",
+        "message": "trellis:wallet-auth:v2\nPOST\nrouter.example\n/api/v1/chat/completions\n1790000000\nc006aba605e4bd2626138aa05e0304483039d9f31f3c892dacd8b030296b1a35",
+        "signature": "3wNJSAmqhdS9ms2nTUSPuw1qd5Sx2W1gbDparwXF8cyEweg1y3gbvqVjo9GtwKnFGWHQR1KxzuTwkwZEVxpJdtTk",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:3wNJSAmqhdS9ms2nTUSPuw1qd5Sx2W1gbDparwXF8cyEweg1y3gbvqVjo9GtwKnFGWHQR1KxzuTwkwZEVxpJdtTk"
+      },
+      {
+        "name": "json_body",
+        "about": "A JSON route: sha256 of the canonical JSON of the body.",
+        "method": "POST",
+        "host": "router.example",
+        "path": "/api/v1/holders/polls/poll_fixture/vote",
+        "url": "https://router.example/api/v1/holders/polls/poll_fixture/vote",
+        "timestamp": 1790000000,
+        "sha256": "f2126f86342b423fb64a10129116cf59c98d6c799b4bef2b245d0d033777ad41",
+        "body": {
+          "poll_id": "poll_fixture",
+          "option": "yes"
+        },
+        "canonical_json": "{\"option\":\"yes\",\"poll_id\":\"poll_fixture\"}",
+        "message": "trellis:wallet-auth:v2\nPOST\nrouter.example\n/api/v1/holders/polls/poll_fixture/vote\n1790000000\nf2126f86342b423fb64a10129116cf59c98d6c799b4bef2b245d0d033777ad41",
+        "signature": "3GNcGa6vZGtVggfyLoYiYzPU7vHUx959ncokAGgK5g7BpkM8uGQUtU8jpzDqzq1KMPpENoKQ87babuNj1ao6ada3",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:3GNcGa6vZGtVggfyLoYiYzPU7vHUx959ncokAGgK5g7BpkM8uGQUtU8jpzDqzq1KMPpENoKQ87babuNj1ao6ada3"
+      },
+      {
+        "name": "host_signup",
+        "about": "Host signup, signed by the operator wallet.",
+        "method": "POST",
+        "host": "router.example",
+        "path": "/api/v1/network/hosts",
+        "url": "https://router.example/api/v1/network/hosts",
+        "timestamp": 1790000000,
+        "sha256": "50a02de391baccf8624a5dca8f466913af303a74adb174bb72f6ad80823192bf",
+        "body": {
+          "name": "Fixture host",
+          "endpoint": "https://sidecar.example",
+          "payout_address": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+          "models": [
+            "org/model"
+          ]
+        },
+        "canonical_json": "{\"endpoint\":\"https://sidecar.example\",\"models\":[\"org/model\"],\"name\":\"Fixture host\",\"payout_address\":\"BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW\"}",
+        "message": "trellis:wallet-auth:v2\nPOST\nrouter.example\n/api/v1/network/hosts\n1790000000\n50a02de391baccf8624a5dca8f466913af303a74adb174bb72f6ad80823192bf",
+        "signature": "5frTP9mhHEwesw98iNJzk3oLDUWU5PLeLnQ4JKkJLYN2RUjX46z2oHSetSyvQrWHqA7u9xEumJosFshaNz88kD1K",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:5frTP9mhHEwesw98iNJzk3oLDUWU5PLeLnQ4JKkJLYN2RUjX46z2oHSetSyvQrWHqA7u9xEumJosFshaNz88kD1K"
+      },
+      {
+        "name": "host_resource",
+        "about": "The operator reading its own host: the hash names the resource.",
+        "method": "GET",
+        "host": "router.example",
+        "path": "/api/v1/hosts/fixture%20host%2F1",
+        "url": "https://router.example/api/v1/hosts/fixture%20host%2F1",
+        "timestamp": 1790000000,
+        "sha256": "2b5c365e34aa20b96511fda72764b689e4aebf9ddeeb6bf4860bea5b804a3654",
+        "body": null,
+        "host_id": "fixture host/1",
+        "resource": "GET /api/v1/hosts/fixture%20host%2F1",
+        "message": "trellis:wallet-auth:v2\nGET\nrouter.example\n/api/v1/hosts/fixture%20host%2F1\n1790000000\n2b5c365e34aa20b96511fda72764b689e4aebf9ddeeb6bf4860bea5b804a3654",
+        "signature": "4oirnEParHPPea2oe1g6YU28cnsWNXHymXj5R8JQxRcgjxZaMM9ti7QAUVxB7jGTg8CysNY3nEgWiBv24Hbmi9cN",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000000:4oirnEParHPPea2oe1g6YU28cnsWNXHymXj5R8JQxRcgjxZaMM9ti7QAUVxB7jGTg8CysNY3nEgWiBv24Hbmi9cN"
+      },
+      {
+        "name": "host_with_port",
+        "about": "A router on a port: the host carries it. Upper-case input is signed in lower case.",
+        "method": "GET",
+        "host": "127.0.0.1:8787",
+        "path": "/api/v1/refunds",
+        "url": "https://127.0.0.1:8787/api/v1/refunds",
+        "timestamp": 1790000001,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "body": null,
+        "message": "trellis:wallet-auth:v2\nGET\n127.0.0.1:8787\n/api/v1/refunds\n1790000001\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "signature": "55tviTQ9Hcps9nkFcYdgdqGGMxeaqBHPWAzcozXVZtgwUqzSidGmauQZ1rVGVFH1KQgYSkC88cDrhmyNKLVTnk1F",
+        "header": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc:1790000001:55tviTQ9Hcps9nkFcYdgdqGGMxeaqBHPWAzcozXVZtgwUqzSidGmauQZ1rVGVFH1KQgYSkC88cDrhmyNKLVTnk1F"
+      }
+    ],
+    "retired_v1_message": "trellis:1790000000:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "tab": {
+    "about": "trellis_tab. open_tab and top_up take the rulebook accounts when the tab is bound to a rulebook and leave them out otherwise; close, post_voucher and reclaim never take them. A voucher is the session key's ed25519 signature over `domain || program id (32) || tab (32) || created_at i64 LE || cumulative_used u64 LE || seq u64 LE`: created_at is the open tab's Tab.created_at, read from the chain after open_tab lands.",
+    "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+    "rules_program_id": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5",
+    "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+    "payee": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+    "session": "AToGGpiaYqUEt5GdVWZ4Cspod89CwZ7A6xfJCSgq8FWY",
+    "tab_id": "7000000000000000001",
+    "cap": "5000000",
+    "expiry": "1790086400",
+    "max_lifetime_seconds": 2592000,
+    "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+    "pdas": {
+      "config": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+      "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+      "escrow": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N"
+    },
+    "rulebook": {
+      "rulebook": "CaKieqaC5CRd2yecb5yApRLcP8xsHHx3M4wxJG32bifT",
+      "rules_config": "9oF2sbPaKwZMCjdkrrMraYaHTBqw5EMZpByQygEmuHaY",
+      "rules_program": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5"
+    },
+    "instructions": {
+      "open_tab": {
+        "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+        "keys": [
+          {
+            "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+            "is_signer": true,
+            "is_writable": true
+          },
+          {
+            "pubkey": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "11111111111111111111111111111111",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "7aDF2XF8J5N3rfZ7eXfPivo9w6KXvsHuJ1eFbVxaHsbR",
+            "is_signer": false,
+            "is_writable": false
+          }
+        ],
+        "data_base64": "TDsLO9o6HjsBALyT6f4kYUBLTAAAAAAAAI2yagAAAACMlpfuWCIlcFuuhqzq+n8tbh8VeBLBR+4OISx3ktJk4Q==",
+        "data_hex": "4c3b0b3bda3a1e3b0100bc93e9fe2461404b4c0000000000008db26a000000008c9697ee582225705bae86aceafa7f2d6e1f157812c147ee0e212c7792d264e1"
+      },
+      "open_tab_with_rulebook": {
+        "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+        "keys": [
+          {
+            "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+            "is_signer": true,
+            "is_writable": true
+          },
+          {
+            "pubkey": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "CaKieqaC5CRd2yecb5yApRLcP8xsHHx3M4wxJG32bifT",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "11111111111111111111111111111111",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9oF2sbPaKwZMCjdkrrMraYaHTBqw5EMZpByQygEmuHaY",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "7aDF2XF8J5N3rfZ7eXfPivo9w6KXvsHuJ1eFbVxaHsbR",
+            "is_signer": false,
+            "is_writable": false
+          }
+        ],
+        "data_base64": "TDsLO9o6HjsBALyT6f4kYUBLTAAAAAAAAI2yagAAAACMlpfuWCIlcFuuhqzq+n8tbh8VeBLBR+4OISx3ktJk4Q==",
+        "data_hex": "4c3b0b3bda3a1e3b0100bc93e9fe2461404b4c0000000000008db26a000000008c9697ee582225705bae86aceafa7f2d6e1f157812c147ee0e212c7792d264e1"
+      },
+      "top_up": {
+        "amount": "750000",
+        "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+        "keys": [
+          {
+            "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+            "is_signer": true,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "7aDF2XF8J5N3rfZ7eXfPivo9w6KXvsHuJ1eFbVxaHsbR",
+            "is_signer": false,
+            "is_writable": false
+          }
+        ],
+        "data_base64": "7OFgCTxqTdCwcQsAAAAAAA==",
+        "data_hex": "ece160093c6a4dd0b0710b0000000000"
+      },
+      "top_up_with_rulebook": {
+        "amount": "750000",
+        "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+        "keys": [
+          {
+            "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+            "is_signer": true,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "CaKieqaC5CRd2yecb5yApRLcP8xsHHx3M4wxJG32bifT",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "9oF2sbPaKwZMCjdkrrMraYaHTBqw5EMZpByQygEmuHaY",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "7aDF2XF8J5N3rfZ7eXfPivo9w6KXvsHuJ1eFbVxaHsbR",
+            "is_signer": false,
+            "is_writable": false
+          }
+        ],
+        "data_base64": "7OFgCTxqTdCwcQsAAAAAAA==",
+        "data_hex": "ece160093c6a4dd0b0710b0000000000"
+      },
+      "reclaim": {
+        "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+        "keys": [
+          {
+            "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "is_signer": false,
+            "is_writable": false
+          },
+          {
+            "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "HM16JF2DNhNMxLkYiaMJz4huCxAsgEKMfaQyK4LALyWR",
+            "is_signer": false,
+            "is_writable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "is_signer": false,
+            "is_writable": false
+          }
+        ],
+        "data_base64": "LLHs+ZFto7o=",
+        "data_hex": "2cb1ecf9916da3ba"
+      },
+      "close": {
+        "cumulative_used": "1250000",
+        "seq": "2",
+        "instructions": [
+          {
+            "program_id": "Ed25519SigVerify111111111111111111111111111",
+            "keys": [],
+            "data_base64": "AQAwAP//EAD//3AAbgD//4yWl+5YIiVwW66GrOr6fy1uHxV4EsFH7g4hLHeS0mThGAoF59ItzJl//jjSLArHcoW9oFCbndxUPWhMc5JbjQP85TFax93Hkn1qI1Fxclpf/3Uq/Qcy7V4cN4grvUPIAHRyZWxsaXM6dGFiOnZvdWNoZXI6djF/QhqOPFTuxFHNSWyVuO7b/WsyA6qzcn29no/DKnclqYAuFwGMlIFg6XnjWTY1s0lulA4S06oJmJJFnlVckw3XgDuxagAAAADQEhMAAAAAAAIAAAAAAAAA",
+            "data_hex": "01003000ffff1000ffff70006e00ffff8c9697ee582225705bae86aceafa7f2d6e1f157812c147ee0e212c7792d264e1180a05e7d22dcc997ffe38d22c0ac77285bda0509b9ddc543d684c73925b8d03fce5315ac7ddc7927d6a235171725a5fff752afd0732ed5e1c37882bbd43c8007472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000d0121300000000000200000000000000"
+          },
+          {
+            "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "keys": [
+              {
+                "pubkey": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+                "is_signer": true,
+                "is_writable": false
+              },
+              {
+                "pubkey": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "9GCbuLgAAPFpibCnTmdbVQxyomjwVr6pHsD8o56CeRwW",
+                "is_signer": false,
+                "is_writable": false
+              },
+              {
+                "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "is_signer": false,
+                "is_writable": false
+              },
+              {
+                "pubkey": "HFTqphXP5yLpWRSiZab5AA1LG9JQEzUaRrRWpDexMF1N",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "HM16JF2DNhNMxLkYiaMJz4huCxAsgEKMfaQyK4LALyWR",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "Sysvar1nstructions1111111111111111111111111",
+                "is_signer": false,
+                "is_writable": false
+              },
+              {
+                "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "is_signer": false,
+                "is_writable": false
+              }
+            ],
+            "data_base64": "YqXJsWxBzmDQEhMAAAAAAAIAAAAAAAAA",
+            "data_hex": "62a5c9b16c41ce60d0121300000000000200000000000000"
+          }
+        ]
+      },
+      "post_voucher": {
+        "cumulative_used": "1250000",
+        "seq": "2",
+        "instructions": [
+          {
+            "program_id": "Ed25519SigVerify111111111111111111111111111",
+            "keys": [],
+            "data_base64": "AQAwAP//EAD//3AAbgD//4yWl+5YIiVwW66GrOr6fy1uHxV4EsFH7g4hLHeS0mThGAoF59ItzJl//jjSLArHcoW9oFCbndxUPWhMc5JbjQP85TFax93Hkn1qI1Fxclpf/3Uq/Qcy7V4cN4grvUPIAHRyZWxsaXM6dGFiOnZvdWNoZXI6djF/QhqOPFTuxFHNSWyVuO7b/WsyA6qzcn29no/DKnclqYAuFwGMlIFg6XnjWTY1s0lulA4S06oJmJJFnlVckw3XgDuxagAAAADQEhMAAAAAAAIAAAAAAAAA",
+            "data_hex": "01003000ffff1000ffff70006e00ffff8c9697ee582225705bae86aceafa7f2d6e1f157812c147ee0e212c7792d264e1180a05e7d22dcc997ffe38d22c0ac77285bda0509b9ddc543d684c73925b8d03fce5315ac7ddc7927d6a235171725a5fff752afd0732ed5e1c37882bbd43c8007472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000d0121300000000000200000000000000"
+          },
+          {
+            "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+            "keys": [
+              {
+                "pubkey": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+                "is_signer": true,
+                "is_writable": false
+              },
+              {
+                "pubkey": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+                "is_signer": false,
+                "is_writable": true
+              },
+              {
+                "pubkey": "Sysvar1nstructions1111111111111111111111111",
+                "is_signer": false,
+                "is_writable": false
+              }
+            ],
+            "data_base64": "3e1aTmFThCbQEhMAAAAAAAIAAAAAAAAA",
+            "data_hex": "dded5a4e61538426d0121300000000000200000000000000"
+          }
+        ]
+      }
+    },
+    "tab_account": {
+      "data_base64": "wvIoNdapCazmrMQaOCuD8riodjuUeIOZ/Bxltdn0K0S4SU4lqZsVUzHmocYOA2VCHfXAuFa2QErL41RdxEG7d2qRAz8/EuwXjJaX7lgiJXBbroas6vp/LW4fFXgSwUfuDiEsd5LSZOHG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQEAvJPp/iRhQEtMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI2yagAAAACAO7FqAAAAAAD+/Q==",
+      "created_at": "1790000000",
+      "cap": "5000000",
+      "expiry": "1790086400",
+      "posted_used": "0",
+      "posted_seq": "0",
+      "rulebook": null
+    },
+    "voucher": {
+      "domain": "trellis:tab:voucher:v1",
+      "length": 110,
+      "layout": [
+        {
+          "field": "domain",
+          "offset": 0,
+          "length": 22
+        },
+        {
+          "field": "program_id",
+          "offset": 22,
+          "length": 32
+        },
+        {
+          "field": "tab",
+          "offset": 54,
+          "length": 32
+        },
+        {
+          "field": "created_at",
+          "offset": 86,
+          "length": 8,
+          "encoding": "i64 LE"
+        },
+        {
+          "field": "cumulative_used",
+          "offset": 94,
+          "length": 8,
+          "encoding": "u64 LE"
+        },
+        {
+          "field": "seq",
+          "offset": 102,
+          "length": 8,
+          "encoding": "u64 LE"
+        }
+      ],
+      "cases": [
+        {
+          "cumulative_used": "20000",
+          "seq": "1",
+          "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+          "created_at": "1790000000",
+          "message_hex": "7472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000204e0000000000000100000000000000",
+          "message_base64": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAACBOAAAAAAAAAQAAAAAAAAA=",
+          "signature_base58": "3aPDXhH18ihj53pNapga7m6s1jKMsw9NF9YcU7urpXJkv7yweh2BwBebCvYyUwALNN9FfaAYQCgVAP72u6qQsk7W",
+          "signature_base64": "gNJ/jg1nxDAjYKz3nx05yjRrarigRcBgYj490LOlOdd7Qk0/QJP2rNu+z+LrUBQFxZOLH51SpqzcO7+XZwhrBQ==",
+          "headers": {
+            "X-Trellis-Tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "X-Trellis-Tab-Voucher": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAACBOAAAAAAAAAQAAAAAAAAA=.gNJ/jg1nxDAjYKz3nx05yjRrarigRcBgYj490LOlOdd7Qk0/QJP2rNu+z+LrUBQFxZOLH51SpqzcO7+XZwhrBQ=="
+          },
+          "wire": {
+            "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "cumulative_used": "20000",
+            "seq": "1",
+            "signature": "3aPDXhH18ihj53pNapga7m6s1jKMsw9NF9YcU7urpXJkv7yweh2BwBebCvYyUwALNN9FfaAYQCgVAP72u6qQsk7W"
+          }
+        },
+        {
+          "cumulative_used": "1250000",
+          "seq": "2",
+          "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+          "created_at": "1790000000",
+          "message_hex": "7472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000d0121300000000000200000000000000",
+          "message_base64": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAANASEwAAAAAAAgAAAAAAAAA=",
+          "signature_base58": "UsofRm9MhyGdeVhN7WPkWTV2MjAWqSwkBSCa476kcRxT2hS5AGKNUsWpt7PKTHBCa8EXntCnqkB2CypNVZFr3Cs",
+          "signature_base64": "GAoF59ItzJl//jjSLArHcoW9oFCbndxUPWhMc5JbjQP85TFax93Hkn1qI1Fxclpf/3Uq/Qcy7V4cN4grvUPIAA==",
+          "headers": {
+            "X-Trellis-Tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "X-Trellis-Tab-Voucher": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAANASEwAAAAAAAgAAAAAAAAA=.GAoF59ItzJl//jjSLArHcoW9oFCbndxUPWhMc5JbjQP85TFax93Hkn1qI1Fxclpf/3Uq/Qcy7V4cN4grvUPIAA=="
+          },
+          "wire": {
+            "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "cumulative_used": "1250000",
+            "seq": "2",
+            "signature": "UsofRm9MhyGdeVhN7WPkWTV2MjAWqSwkBSCa476kcRxT2hS5AGKNUsWpt7PKTHBCa8EXntCnqkB2CypNVZFr3Cs"
+          }
+        },
+        {
+          "cumulative_used": "5000000",
+          "seq": "18446744073709551614",
+          "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+          "created_at": "1790000000",
+          "message_hex": "7472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000404b4c0000000000feffffffffffffff",
+          "message_base64": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAAEBLTAAAAAAA/v////////8=",
+          "signature_base58": "5rBZuXBvQQFc8wU7LpVxeYUmCnDKpLHrRjhEhBeGiY4hw9gqHktEowJvjsy7j49ZGqb1rCE1WWbEi4es7HLjArw6",
+          "signature_base64": "8nsZHdDNGE+FFHF8cgQp4YI33lVYzR4G5r29jlCCPwMrv20ER7aBhl8PwQCuZA2xgaTD3ueG+C9Ddr8SQ9lWDQ==",
+          "headers": {
+            "X-Trellis-Tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "X-Trellis-Tab-Voucher": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAAEBLTAAAAAAA/v////////8=.8nsZHdDNGE+FFHF8cgQp4YI33lVYzR4G5r29jlCCPwMrv20ER7aBhl8PwQCuZA2xgaTD3ueG+C9Ddr8SQ9lWDQ=="
+          },
+          "wire": {
+            "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "cumulative_used": "5000000",
+            "seq": "18446744073709551614",
+            "signature": "5rBZuXBvQQFc8wU7LpVxeYUmCnDKpLHrRjhEhBeGiY4hw9gqHktEowJvjsy7j49ZGqb1rCE1WWbEi4es7HLjArw6"
+          }
+        }
+      ],
+      "not_for_this_tab": {
+        "reopened_later": {
+          "cumulative_used": "20000",
+          "seq": "1",
+          "program_id": "9ZmEvfrQrZuVXGc4PovskV83KNxVvpFpvSu3K6R9a9tL",
+          "created_at": "1790003600",
+          "message_hex": "7472656c6c69733a7461623a766f75636865723a76317f421a8e3c54eec451cd496c95b8eedbfd6b3203aab3727dbd9e8fc32a7725a9802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd79049b16a00000000204e0000000000000100000000000000",
+          "message_base64": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeQSbFqAAAAACBOAAAAAAAAAQAAAAAAAAA=",
+          "signature_base58": "5oGmXUgVhZ752RxmqAShyai3qgN9gdHC9zSUNjNYhJ37at9j1jQkMqYApjfW6azDGmAhEMuXYh2xY1quxYHXfwnj",
+          "signature_base64": "7/iZGv7dKNjhc4DCMeD5mQeLYIkhpZVqvbOP2F4RktqgmPGuFs2c/5xDzzvLUuVgFTKG68wNCIW1nt5KtivTBA==",
+          "headers": {
+            "X-Trellis-Tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "X-Trellis-Tab-Voucher": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MX9CGo48VO7EUc1JbJW47tv9azIDqrNyfb2ej8MqdyWpgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeQSbFqAAAAACBOAAAAAAAAAQAAAAAAAAA=.7/iZGv7dKNjhc4DCMeD5mQeLYIkhpZVqvbOP2F4RktqgmPGuFs2c/5xDzzvLUuVgFTKG68wNCIW1nt5KtivTBA=="
+          },
+          "wire": {
+            "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "cumulative_used": "20000",
+            "seq": "1",
+            "signature": "5oGmXUgVhZ752RxmqAShyai3qgN9gdHC9zSUNjNYhJ37at9j1jQkMqYApjfW6azDGmAhEMuXYh2xY1quxYHXfwnj"
+          }
+        },
+        "another_program": {
+          "cumulative_used": "20000",
+          "seq": "1",
+          "program_id": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5",
+          "created_at": "1790000000",
+          "message_hex": "7472656c6c69733a7461623a766f75636865723a7631e166579f1f9259e7e93077f9ff3e7824d96d8248b210ada3c22ea315236ba564802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7803bb16a00000000204e0000000000000100000000000000",
+          "message_base64": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MeFmV58fklnn6TB3+f8+eCTZbYJIshCto8IuoxUja6VkgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAACBOAAAAAAAAAQAAAAAAAAA=",
+          "signature_base58": "4Fy6Zo5VW4tonnKyCWA2BXBf4i9TUVgn4Sh5naDuRLmfcKXY5wSHM1DJ6Ckxw2WiMzvPiBSuhHv9tAaDGFPEkqgc",
+          "signature_base64": "ovVHFHBLuYLQ74NtZzcUPgTYad0r1BFZ5C2khJvSsZ1HoPOhsmpdU9NLs0KmExlKgcAXZmAZPh6CrrYZDqehAQ==",
+          "headers": {
+            "X-Trellis-Tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "X-Trellis-Tab-Voucher": "dHJlbGxpczp0YWI6dm91Y2hlcjp2MeFmV58fklnn6TB3+f8+eCTZbYJIshCto8IuoxUja6VkgC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdeAO7FqAAAAACBOAAAAAAAAAQAAAAAAAAA=.ovVHFHBLuYLQ74NtZzcUPgTYad0r1BFZ5C2khJvSsZ1HoPOhsmpdU9NLs0KmExlKgcAXZmAZPh6CrrYZDqehAQ=="
+          },
+          "wire": {
+            "tab": "9dMwx99L9Ua2ukceWwsYLeWB8DZWrLpuuyLu95pnxASa",
+            "cumulative_used": "20000",
+            "seq": "1",
+            "signature": "4Fy6Zo5VW4tonnKyCWA2BXBf4i9TUVgn4Sh5naDuRLmfcKXY5wSHM1DJ6Ckxw2WiMzvPiBSuhHv9tAaDGFPEkqgc"
+          }
+        },
+        "retired_48_byte_form": {
+          "message_hex": "802e17018c948160e979e3593635b3496e940e12d3aa099892459e555c930dd7204e0000000000000100000000000000",
+          "message_base64": "gC4XAYyUgWDpeeNZNjWzSW6UDhLTqgmYkkWeVVyTDdcgTgAAAAAAAAEAAAAAAAAA",
+          "signature_base58": "55f5H28EtoPc3RS5Qqw9Efm9wyTsphV8MREZ3mEneFSYcCyu4nKZ2fNoDyvqrntDFhDuiRjGzbNCCMf4RQQ6b44u",
+          "signature_base64": "zBVid1A3D+LCtG9AkyWUlj8Siahesq/XTFm2LkJWnWknGb7t6mQyTadsVh5RyArWvK+mbpp5gecyYxT0+vtXDg=="
+        }
+      }
+    }
+  },
+  "x402": {
+    "about": "x402 `exact` on Solana. The payer builds a legacy transaction with the router's fee payer as account 0 (signature slot left empty) and signs it. The router's fee payer co-signs only what is inside `limits`: at most one SetComputeUnitLimit and one SetComputeUnitPrice within the caps (and their product within max_priority_fee_lamports), at most one idempotent creation of payTo's associated token account funded by the PAYER (never by the fee payer), exactly one TransferChecked, exactly two signatures, and the fee payer named by no instruction. `accepted` are transactions the router's verifier (src/solana/x402.ts inspectExactTransaction) accepts; `refused` are ones it refuses, with its reason.",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "recent_blockhash": "GfVcyD5RTBBWkMqHpVdPQ5NRTXxXW4KaLx3fx1p8HfJ3",
+    "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+    "fee_payer": "3VYZYUMKTqYTwMSDiwBsLCHNAFnqBWyWEZJvgttHjF2G",
+    "source": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+    "destination": "HM16JF2DNhNMxLkYiaMJz4huCxAsgEKMfaQyK4LALyWR",
+    "requirement": {
+      "scheme": "exact",
+      "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "maxAmountRequired": "12345",
+      "resource": "https://router.example/api/v1/chat/completions",
+      "description": "fixture call",
+      "mimeType": "application/json",
+      "payTo": "4Mnx4EWH5poWCEV6qbz21mFBNBmUzMKCs1Vsz2Z4tjwC",
+      "maxTimeoutSeconds": 60,
+      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "extra": {
+        "feePayer": "3VYZYUMKTqYTwMSDiwBsLCHNAFnqBWyWEZJvgttHjF2G",
+        "decimals": 6
+      }
+    },
+    "limits": {
+      "max_compute_unit_limit": 200000,
+      "max_compute_unit_price_micro_lamports": "5000000",
+      "max_priority_fee_lamports": "10000",
+      "allow_ata_creation": true
+    },
+    "accepted": [
+      {
+        "name": "transfer_only",
+        "about": "The default: one TransferChecked, no compute-budget instruction (no priority fee).",
+        "options": {},
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACeRHutxqdIXZjAPvn2hQk8xZQla+NvlPX6VO0sWFX3Fn+Nx2P+mRqFksBvrDdRp7bJbMyvcumJPpKqLKMJpd4KAgECBiUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKnG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYei7vE1SikWjI98kSA6id816S+PBnqWoH3wkm4EbtG0EAQQEAgUDAQoMOTAAAAAAAAAG",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoic29sYW5hOkV0V1RSQUJaYVlxNmlNZmVZS291UnUxNjZWVTJ4cWExIiwicGF5bG9hZCI6eyJ0cmFuc2FjdGlvbiI6IkFnQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ2VSSHV0eHFkSVhaakFQdm4yaFFrOHhaUWxhK052bFBYNlZPMHNXRlgzRm4rTngyUCttUnFGa3NCdnJEZFJwN2JKYk15dmN1bUpQcEtxTEtNSnBkNEtBZ0VDQmlVSFVwNmt0Y1huRXJUNjZiTEFiQmtaSjduWkduQTg0bmV6emRMSm1PSHg1cXpFR2pncmcvSzRxSFk3bEhpRG1md2NaYlhaOUN0RXVFbE9KYW1iRlZNZFo2NXkzOHg5SThSbDNTTVVraTVSWkYwZ0N1T3BrUmlvb2t4dXB5ZHEyL0xhdGRSeE1pS2cwQXljcUF1Q3granloSFFVWTd6S0UxUjdZVERuZkhteUJ0MzI0ZGRsb1pQWnkrRkd6dXQ1ckJ5MGhlMWZXemVST296MWhYNy9BS25HK25yenZ0dXRPajFsODJxcnlYUXhzYnZrd3RMMjRPUjhwZ0lEUlM5ZFllaTd2RTFTaWtXakk5OGtTQTZpZDgxNlMrUEJucVdvSDN3a200RWJ0RzBFQVFRRUFnVURBUW9NT1RBQUFBQUFBQUFHIn19",
+        "priority_fee_lamports": "0"
+      },
+      {
+        "name": "with_destination_ata",
+        "about": "payTo's token account does not exist yet: the PAYER funds its idempotent creation.",
+        "options": {
+          "create_destination_ata": true
+        },
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABd5XARZ2csApnQPKJprvurFwlrFxc/dhoBVUDiMS+kIe+Mvh3W7OQhEOKKJIXwnvSA4wsAcqVuj6RpgjWI1ZMIAgAFCSUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVPy2rXUcTIioNAMnKgLgsfo8oR0FGO8yhNUe2Ew53x5sh1nrnLfzH0jxGXdIxSSLlFkXSAK46mRGKiiTG6nJ2rbjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+Fkx5qHGDgNlQh31wLhWtkBKy+NUXcRBu3dqkQM/PxLsF8b6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11hAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqei7vE1SikWjI98kSA6id816S+PBnqWoH3wkm4EbtG0EAgQGAQIFBgcIAQEIBAMGAgEKDDkwAAAAAAAABg==",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoic29sYW5hOkV0V1RSQUJaYVlxNmlNZmVZS291UnUxNjZWVTJ4cWExIiwicGF5bG9hZCI6eyJ0cmFuc2FjdGlvbiI6IkFnQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQmQ1WEFSWjJjc0FwblFQS0pwcnZ1ckZ3bHJGeGMvZGhvQlZVRGlNUytrSWUrTXZoM1c3T1FoRU9LS0pJWHdudlNBNHdzQWNxVnVqNlJwZ2pXSTFaTUlBZ0FGQ1NVSFVwNmt0Y1huRXJUNjZiTEFiQmtaSjduWkduQTg0bmV6emRMSm1PSHg1cXpFR2pncmcvSzRxSFk3bEhpRG1md2NaYlhaOUN0RXVFbE9KYW1iRlZQeTJyWFVjVElpb05BTW5LZ0xnc2ZvOG9SMEZHTzh5aE5VZTJFdzUzeDVzaDFucm5MZnpIMGp4R1hkSXhTU0xsRmtYU0FLNDZtUkdLaWlURzZuSjJyYmpKY2xqMDRraWZHN1BSQXBGSTROZ3d0YUU1bmEveENFQkk1NzJOdnArRmt4NXFIR0RnTmxRaDMxd0xoV3RrQkt5K05VWGNSQnUzZHFrUU0vUHhMc0Y4YjZldk8rMjYwNlBXWHphcXZKZERHeHUrVEMwdmJnNUh5bUFnTkZMMTFoQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUczZmJoMTJXaGs5bkw0VWJPNjNtc0hMU0Y3VjliTjVFNmpQV0ZmdjhBcWVpN3ZFMVNpa1dqSTk4a1NBNmlkODE2UytQQm5xV29IM3drbTRFYnRHMEVBZ1FHQVFJRkJnY0lBUUVJQkFNR0FnRUtERGt3QUFBQUFBQUFCZz09In19",
+        "priority_fee_lamports": "0"
+      },
+      {
+        "name": "with_compute_budget",
+        "about": "An explicit compute unit limit and price inside the caps.",
+        "options": {
+          "compute_unit_limit": 60000,
+          "compute_unit_price_micro_lamports": "100000"
+        },
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACdhS5VktTHgkZ4QeyLJJmUpWtF8opjuSpp3P2iVKiibXlc9hxI9g88mKnmcp/bU9WeRz+oeZfqPpXGZlHTu2ENAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQDBAAFAmDqAAAEAAkDoIYBAAAAAAAFBAIGAwEKDDkwAAAAAAAABg==",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoic29sYW5hOkV0V1RSQUJaYVlxNmlNZmVZS291UnUxNjZWVTJ4cWExIiwicGF5bG9hZCI6eyJ0cmFuc2FjdGlvbiI6IkFnQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ2RoUzVWa3RUSGdrWjRRZXlMSkptVXBXdEY4b3BqdVNwcDNQMmlWS2lpYlhsYzloeEk5Zzg4bUtubWNwL2JVOVdlUnorb2VaZnFQcFhHWmxIVHUyRU5BZ0VEQnlVSFVwNmt0Y1huRXJUNjZiTEFiQmtaSjduWkduQTg0bmV6emRMSm1PSHg1cXpFR2pncmcvSzRxSFk3bEhpRG1md2NaYlhaOUN0RXVFbE9KYW1iRlZNZFo2NXkzOHg5SThSbDNTTVVraTVSWkYwZ0N1T3BrUmlvb2t4dXB5ZHEyL0xhdGRSeE1pS2cwQXljcUF1Q3granloSFFVWTd6S0UxUjdZVERuZkhteUF3WkdiK1VoRnpMLzdLMjZjc09iNTd5TTVidkY5eEpyTEVPYk9rQUFBQUFHM2ZiaDEyV2hrOW5MNFViTzYzbXNITFNGN1Y5Yk41RTZqUFdGZnY4QXFjYjZldk8rMjYwNlBXWHphcXZKZERHeHUrVEMwdmJnNUh5bUFnTkZMMTFoNkx1OFRWS0tSYU1qM3lSSURxSjN6WHBMNDhHZXBhZ2ZmQ1NiZ1J1MGJRUURCQUFGQW1EcUFBQUVBQWtEb0lZQkFBQUFBQUFGQkFJR0F3RUtERGt3QUFBQUFBQUFCZz09In19",
+        "priority_fee_lamports": "6000"
+      },
+      {
+        "name": "at_the_caps",
+        "about": "The largest limit, and the largest price whose fee stays within the priority-fee cap at that limit.",
+        "options": {
+          "compute_unit_limit": 200000,
+          "compute_unit_price_micro_lamports": "50000"
+        },
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtBpqfWbPZxQo/ikAPaGsb6NvXlS0ovoaJ7azOyeMJgEc/y9hjrTgSqL730cE11xxmor6Ypj3dMzJh8LwMFkNAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQDBAAFAkANAwAEAAkDUMMAAAAAAAAFBAIGAwEKDDkwAAAAAAAABg==",
+        "payment_header": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoic29sYW5hOkV0V1RSQUJaYVlxNmlNZmVZS291UnUxNjZWVTJ4cWExIiwicGF5bG9hZCI6eyJ0cmFuc2FjdGlvbiI6IkFnQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ010QnBxZldiUFp4UW8vaWtBUGFHc2I2TnZYbFMwb3ZvYUo3YXpPeWVNSmdFYy95OWhqclRnU3FMNzMwY0UxMXh4bW9yNllwajNkTXpKaDhMd01Ga05BZ0VEQnlVSFVwNmt0Y1huRXJUNjZiTEFiQmtaSjduWkduQTg0bmV6emRMSm1PSHg1cXpFR2pncmcvSzRxSFk3bEhpRG1md2NaYlhaOUN0RXVFbE9KYW1iRlZNZFo2NXkzOHg5SThSbDNTTVVraTVSWkYwZ0N1T3BrUmlvb2t4dXB5ZHEyL0xhdGRSeE1pS2cwQXljcUF1Q3granloSFFVWTd6S0UxUjdZVERuZkhteUF3WkdiK1VoRnpMLzdLMjZjc09iNTd5TTVidkY5eEpyTEVPYk9rQUFBQUFHM2ZiaDEyV2hrOW5MNFViTzYzbXNITFNGN1Y5Yk41RTZqUFdGZnY4QXFjYjZldk8rMjYwNlBXWHphcXZKZERHeHUrVEMwdmJnNUh5bUFnTkZMMTFoNkx1OFRWS0tSYU1qM3lSSURxSjN6WHBMNDhHZXBhZ2ZmQ1NiZ1J1MGJRUURCQUFGQWtBTkF3QUVBQWtEVU1NQUFBQUFBQUFGQkFJR0F3RUtERGt3QUFBQUFBQUFCZz09In19",
+        "priority_fee_lamports": "10000"
+      }
+    ],
+    "refused": [
+      {
+        "name": "ata_funded_by_fee_payer",
+        "about": "The fee payer would pay the rent of payTo's token account.",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA024og8VLurW+cGnu/z8fx3JXJSrh3QpMXhjpaE7eqbuW86hGNFZevAfzag/oqd1ux2u5TdpwR7Q3iC7XEr5gHAgEFCSUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVPy2rXUcTIioNAMnKgLgsfo8oR0FGO8yhNUe2Ew53x5sh1nrnLfzH0jxGXdIxSSLlFkXSAK46mRGKiiTG6nJ2rbjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+Fkx5qHGDgNlQh31wLhWtkBKy+NUXcRBu3dqkQM/PxLsF8b6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11hAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqei7vE1SikWjI98kSA6id816S+PBnqWoH3wkm4EbtG0EAgQGAAIFBgcIAQEIBAMGAgEKDDkwAAAAAAAABg==",
+        "reason": "invalid_exact_svm_payload_transaction_fee_payer_included_in_instruction_accounts"
+      },
+      {
+        "name": "compute_limit_above_cap",
+        "about": "SetComputeUnitLimit above the cap.",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdnZ9+Reo7UblGNrMXRh/JBESydgsnTnFacRvAF3kCdBtugV9ZEPBkXRzokwbBVzpuSGIGzxCuvbpmsxI04hoPAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQCBAAFAkENAwAFBAIGAwEKDDkwAAAAAAAABg==",
+        "reason": "invalid_exact_svm_payload_transaction_instructions_compute_limit_instruction"
+      },
+      {
+        "name": "compute_price_above_cap",
+        "about": "SetComputeUnitPrice above the cap.",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACjmlmUVrYrqTXzX11rb37cb7o2UAIgjh/A/qpk3zNUoIA9Y2C8ml+a2upNX54cpadqvIaLE4kpTo9wfKwAoycCAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQDBAAFAugDAAAEAAkDQUtMAAAAAAAFBAIGAwEKDDkwAAAAAAAABg==",
+        "reason": "invalid_exact_svm_payload_transaction_instructions_compute_price_instruction_too_high"
+      },
+      {
+        "name": "priority_fee_above_cap",
+        "about": "Limit and price each within its cap, their product above the priority-fee cap.",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADC6OL/8Z0qi3NgqP9hqz+OI7AEgEi39G9vGXhzeH2qjuA5rCp1JhtSIOeuN6TgsXdEKwv09QfpS4TempY4IpcHAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQDBAAFAkANAwAEAAkDQEtMAAAAAAAFBAIGAwEKDDkwAAAAAAAABg==",
+        "reason": "invalid_exact_svm_payload_transaction_instructions_compute_price_instruction_too_high"
+      },
+      {
+        "name": "price_without_limit_above_cap",
+        "about": "A price with no explicit limit is charged on the runtime's default budget (200,000 units per instruction).",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABiW70H0UZ81f/HyxF292yHkDSGxcGOUMweqJ2wFK5BrswMAv9CHlHIMAbvhOjj1H7Q8FNXmbUBxAB/10mdZlwBAgEDByUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8Aqcb6evO+2606PWXzaqvJdDGxu+TC0vbg5HymAgNFL11h6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQCBAAJA0BLTAAAAAAABQQCBgMBCgw5MAAAAAAAAAY=",
+        "reason": "invalid_exact_svm_payload_transaction_instructions_compute_price_instruction_too_high"
+      },
+      {
+        "name": "two_transfers",
+        "about": "More than one transfer.",
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMw1Nq8YCMXAuUiwcbgEBVzZKl5Q4GpNfhbJrSh2dDKn7FEdYw3+lVqou6bGncZ84x2xzrVZ8NSx1e3TWQkDgGAgECBiUHUp6ktcXnErT66bLAbBkZJ7nZGnA84nezzdLJmOHx5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2/LatdRxMiKg0AycqAuCx+jyhHQUY7zKE1R7YTDnfHmyBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKnG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYei7vE1SikWjI98kSA6id816S+PBnqWoH3wkm4EbtG0EAgQEAgUDAQoMOTAAAAAAAAAGBAQCBQMBCgw5MAAAAAAAAAY=",
+        "reason": "invalid_exact_svm_payload_transaction_instructions"
+      }
+    ],
+    "priority_fee_formula": "ceil(compute_unit_limit * micro_lamports_per_unit / 1_000_000) lamports; without SetComputeUnitLimit the limit is min(1_400_000, 200_000 * number of non-compute-budget instructions)",
+    "priority_fee_examples": [
+      {
+        "compute_unit_limit": 60000,
+        "compute_unit_price_micro_lamports": "100000",
+        "lamports": "6000"
+      },
+      {
+        "compute_unit_limit": 200000,
+        "compute_unit_price_micro_lamports": "50001",
+        "lamports": "10001"
+      }
+    ]
+  },
+  "closure": {
+    "about": "POST /api/v1/credits/close {payer} with the key itself as the bearer. A closure names NO destination: what is left returns to the wallets that deposited to the key (`refunds`), each at most what it put in, to the token account that wallet named on chain (by default the one it paid from). The API key can ask for a closure and take it back; it cannot choose or change where the money goes, and a request that carries `refund_to` is refused (`refused_with_refund_to`). The returned transaction is one close_account instruction that already carries the key's signature (the key's own ed25519 keypair, derived from the API key by the router); the payer wallet adds its signature in slot 0 as fee payer and sends it before the blockhash expires. A client must not rebuild or re-sign anything else: the key's signature has to arrive unchanged. `transaction` is null when the closure is already registered on chain.",
+    "key_hash": "be9554a9d1eac080eb504f995cc2356755a82a7cb0601482df6e0fb9e919b5bd",
+    "key_address": "4Gtvj9f1caMM9eJ4TdHro9XYTXKyBndV6hLDH41cvfgy",
+    "request": {
+      "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc"
+    },
+    "response": {
+      "id": "close_fixture",
+      "status": "queued",
+      "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "authority": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "payable_at": "2026-09-24T14:13:20.000Z",
+      "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC6N203d3MN1nnq/50gTJwkMVJYDiykp/hm4MPwVCONL1dH3PqHVLMKReb8hYwYNw9aiaYmgiHfX6jvWnq9ciMOAgEDB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFqMgc4rss7Ipbg2YSAa1K6G1qEhm8MC5iWehhMV/KMTlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJc6JXBq7cvsQtJGXNKf6T2a59b8IhYLTQk8flwNUvswhiaufGvxrzNKChjuDUeMEeBaC1BgKhUjK9lvKgnIbU6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBQYBAAYCAwQoff+VDm4iSBgRiI+khmvoR/BzQKo+ngovMcmQmMrloRM2IFm3NxoRUA==",
+      "message": "Trellis credits: close key 11888fa4… and queue its refund to the wallets that funded it",
+      "accounts": {
+        "refundRequest": "Byn9yxiKaw8rNjraDJaZJsuyzk3ymgutdj7wiWXm7VDE"
+      },
+      "expires_at_block_height": 314159265,
+      "signed_by_key": true,
+      "requested_by": "key",
+      "owner": null,
+      "refunds": [
+        {
+          "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+          "refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+          "deposited_units": "25000000",
+          "refunded_units": "0"
+        },
+        {
+          "depositor": "JAsM8j57YVbWu3hg8ah2p27JMb82HnyRhPLsNLbSPdXx",
+          "refund_to": "2v1RgDhkNQwxXsCyzUN3TLW9Uq4PXXByhbkverZxjDvx",
+          "deposited_units": "5000000",
+          "refunded_units": "0"
+        }
+      ],
+      "note": "The transaction already carries the key's signature. Sign it with the payer wallet (any wallet; it pays the fee and a small rent) and send it before the blockhash expires. The refund is not sent to an address of your choosing: it returns to the wallets that deposited to this key (see refunds), after the dispute window and a sanctions check, never on demand. The key stops serving new calls once the closure is on chain. Until anything is paid you can take it back with POST /api/v1/credits/close/cancel: with the key once in 60 days, with the key's registered owner wallet at any time. If this key may have leaked, register an owner wallet first (POST /api/v1/credits/owner-tx) and close with as_owner."
+    },
+    "response_already_registered": {
+      "id": "close_fixture",
+      "status": "registered",
+      "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "authority": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "payable_at": "2026-09-24T14:13:20.000Z",
+      "transaction": null,
+      "refunds": [
+        {
+          "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+          "refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+          "deposited_units": "25000000",
+          "refunded_units": "0"
+        },
+        {
+          "depositor": "JAsM8j57YVbWu3hg8ah2p27JMb82HnyRhPLsNLbSPdXx",
+          "refund_to": "2v1RgDhkNQwxXsCyzUN3TLW9Uq4PXXByhbkverZxjDvx",
+          "deposited_units": "5000000",
+          "refunded_units": "0"
+        }
+      ]
+    },
+    "refused_with_refund_to": {
+      "about": "A close request that names a destination. A client never sends refund_to; one that still does is told so instead of believing it chose where the refund goes.",
+      "request": {
+        "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+        "refund_to": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW"
+      },
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "message": "A closure refund returns to the wallets that deposited to this key, to the token account each of them named; the key cannot choose or change it. Send only { payer }. A depositor changes its own destination with POST /api/v1/credits/refund-destination-tx.",
+          "type": "refund_destination_fixed"
+        }
+      }
+    },
+    "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+    "signers": [
+      "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "4Gtvj9f1caMM9eJ4TdHro9XYTXKyBndV6hLDH41cvfgy"
+    ],
+    "key_signature_index": 1,
+    "key_signature_base58": "4iwPZLapk7vgj3oq2XXVCVL4sZVsRH3NzFz2R6vcMoZFwgniA6oDrM1ocnMVpCNy7gnnwfsvppVpErbDShnqLQYu",
+    "message_base64": "AgEDB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFqMgc4rss7Ipbg2YSAa1K6G1qEhm8MC5iWehhMV/KMTlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJc6JXBq7cvsQtJGXNKf6T2a59b8IhYLTQk8flwNUvswhiaufGvxrzNKChjuDUeMEeBaC1BgKhUjK9lvKgnIbU6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBQYBAAYCAwQoff+VDm4iSBgRiI+khmvoR/BzQKo+ngovMcmQmMrloRM2IFm3NxoRUA==",
+    "instruction_count": 1,
+    "signed_transaction": "AsrGdKJM4xVVAb7onSNpyI4j4UcfNc/BhwQ3V/agXToy9w1sfAMzG3TOGoydUOXgCh0XdNNd6lmtFkQLoChGcwe6N203d3MN1nnq/50gTJwkMVJYDiykp/hm4MPwVCONL1dH3PqHVLMKReb8hYwYNw9aiaYmgiHfX6jvWnq9ciMOAgEDB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFqMgc4rss7Ipbg2YSAa1K6G1qEhm8MC5iWehhMV/KMTlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJc6JXBq7cvsQtJGXNKf6T2a59b8IhYLTQk8flwNUvswhiaufGvxrzNKChjuDUeMEeBaC1BgKhUjK9lvKgnIbU6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBQYBAAYCAwQoff+VDm4iSBgRiI+khmvoR/BzQKo+ngovMcmQmMrloRM2IFm3NxoRUA==",
+    "payer_signature_base58": "5495eUin34zuXw4F2qwAkh2cNG4gfgGtgspbcK7afHQxc3yaYB7hCPsdWkhceLZgBo8TotR8HN8baHuw5tGDq374",
+    "deposit": {
+      "about": "POST /api/v1/credits/deposit-tx {amount, payer}: unsigned, for the payer's wallet. `refund_to` is the token account a closure refund of this deposit returns to (the one it is paid from) and `accounts.share` the on-chain record of what this wallet put into the key.",
+      "request": {
+        "amount": "25",
+        "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc"
+      },
+      "response": {
+        "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAUK5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMdZ65y38x9I8Rl3SMUki5RZF0gCuOpkRiookxupydq2yNH8daMtFkYPg60rx/yPVvUeMFu/+43CdL/TRX5g+XtQ1gj8kHn1KpPxro4/Xirf9QCTb+UN26IffyZlRob1BamRHPiE1dPZsdw1eraxqxWGgHsmMBKMfMklqpteZnoMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACXOiVwau3L7ELSRlzSn+k9mufW/CIWC00JPH5cDVL7PG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpCGJq58a/GvM0oKGO4NR4wR4FoLUGAqFSMr2W8qCchtTou7xNUopFoyPfJEgOonfNekvjwZ6lqB98JJuBG7RtBAEGCQAJAwQBAgcIBTDyI8aJUuHythGIj6SGa+hH8HNAqj6eCi8xyZCYyuWhEzYgWbc3GhFQQHh9AQAAAAA=",
+        "message": "Trellis credits: deposit 25 USDC to key 11888fa4…",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "amount_usdc": "25",
+        "amount_units": "25000000",
+        "accounts": {
+          "credit": "5XtGX96KfN8SnpF9CVdYwps1As3L1rSQUwhVSAsof7VP",
+          "vault": "3Niu4jWFzsDUEQ6uk5ucXKr2URYwTJNbSySUwSmuvHnt",
+          "depositorToken": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+          "share": "CC3DdPsMibJqbYbSkKSYGqErTpPGtKea3e9vWCNtkEmX"
+        },
+        "refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+        "expires_at_block_height": 314159265,
+        "key_hash": "11888fa4866be847f07340aa3e9e0a2f31c99098cae5a113362059b7371a1150",
+        "note": "If this key's credits are ever closed, what is left of this deposit is refunded to the token account it is paid from (refund_to). Only the paying wallet can change that, with POST /api/v1/credits/refund-destination-tx; the API key cannot."
+      }
+    },
+    "cancel": {
+      "about": "POST /api/v1/credits/close/cancel {payer} with the key itself as the bearer: takes a closure back while nothing has been paid. The transaction is one cancel_close instruction already signed by the key; the payer adds its signature in slot 0 and sends it, exactly as for the closure. Once it lands the key is open again with its balance. Who may cancel: whoever asked for the closure, or the key's registered owner wallet (as_owner: true returns the transaction unsigned for that wallet). The key itself only for a closure the key asked for, and once in 60 days. A depositor has no say over a closure.",
+      "request": {
+        "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc"
+      },
+      "response": {
+        "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDTOd00/hrjGU1/voOhS8mBmTwVvr2KCdCv7o2TgPsKqub611hwyiO63v6jLYQJPP6cgx0+9+p0fCqYB2XHXsDAgECB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFlBzHD76eoQ7CsIkAf8AeyQwkEMj+h9vFLAKq5l4hhFaoyBziuyzsiluDZhIBrUrobWoSGbwwLmJZ6GExX8oxOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlzolcGrty+xC0kZc0p/pPZrn1vwiFgtNCTx+XA1S+z6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBgcBAAIEAAMFKLQS+q98ffIVEYiPpIZr6Efwc0CqPp4KLzHJkJjK5aETNiBZtzcaEVA=",
+        "message": "Trellis credits: take back the closure of key 11888fa4…",
+        "accounts": {
+          "refundRequest": "Byn9yxiKaw8rNjraDJaZJsuyzk3ymgutdj7wiWXm7VDE"
+        },
+        "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+        "expires_at_block_height": 314159265,
+        "signed_by_key": true,
+        "note": "Sign with the payer wallet and send before the blockhash expires. Once it lands the key is open again with its balance and serves calls as before. The key can take a closure back once in 60 days; after this one, a further closure can only be taken back by the key's registered owner wallet."
+      },
+      "payer": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+      "signers": [
+        "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+        "4Gtvj9f1caMM9eJ4TdHro9XYTXKyBndV6hLDH41cvfgy"
+      ],
+      "key_signature_index": 1,
+      "key_signature_base58": "4uUM4BRD1piFbkU5RKvHMctATheF3m4k7mx1CdodRNVE5MSZ2qRtYEGmLT6dCppzMKKzGXcthVEsuQQKnjeJLgdx",
+      "message_base64": "AgECB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFlBzHD76eoQ7CsIkAf8AeyQwkEMj+h9vFLAKq5l4hhFaoyBziuyzsiluDZhIBrUrobWoSGbwwLmJZ6GExX8oxOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlzolcGrty+xC0kZc0p/pPZrn1vwiFgtNCTx+XA1S+z6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBgcBAAIEAAMFKLQS+q98ffIVEYiPpIZr6Efwc0CqPp4KLzHJkJjK5aETNiBZtzcaEVA=",
+      "instruction_count": 1,
+      "signed_transaction": "Ave5C1f6cGFj+MX/NTpcUjilSX7KWK5fZi2QJlwW3yKn4Qj9pbo3nlRT7pnybNqO0ULryulnCVdKdhDWykpOMg7DTOd00/hrjGU1/voOhS8mBmTwVvr2KCdCv7o2TgPsKqub611hwyiO63v6jLYQJPP6cgx0+9+p0fCqYB2XHXsDAgECB+asxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTMKV8d0wM6fGlyzjwipB6tLsV5l+FNMZI2bLNKX9VDJ5DWCPyQefUqk/Gujj9eKt/1AJNv5Q3boh9/JmVGhvUFlBzHD76eoQ7CsIkAf8AeyQwkEMj+h9vFLAKq5l4hhFaoyBziuyzsiluDZhIBrUrobWoSGbwwLmJZ6GExX8oxOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlzolcGrty+xC0kZc0p/pPZrn1vwiFgtNCTx+XA1S+z6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQBBgcBAAIEAAMFKLQS+q98ffIVEYiPpIZr6Efwc0CqPp4KLzHJkJjK5aETNiBZtzcaEVA=",
+      "payer_signature_base58": "5xG8QdNxNgXc3tZLojawA59BzeAAc9dveFhn8A8HpyTkH55zjnWR2rrrWZmNo5vx1SNo292Jif3defsgyDjUnhx1",
+      "errors": {
+        "nothing_to_cancel": {
+          "about": "No closure of this key is on chain.",
+          "status": 400,
+          "body": {
+            "error": {
+              "code": 400,
+              "message": "This key has no closure on chain to cancel.",
+              "type": "nothing_to_cancel"
+            }
+          }
+        },
+        "refund_in_progress": {
+          "about": "A refund payment has already been sent: the closure can no longer be taken back.",
+          "status": 409,
+          "body": {
+            "error": {
+              "code": 409,
+              "message": "This closure has already been paid in part or in full and can no longer be cancelled.",
+              "type": "refund_in_progress"
+            }
+          }
+        },
+        "cancel_cooldown": {
+          "about": "The key used its one cancel of the period; error.metadata.retry_at says when it may cancel again. The owner wallet is not bound by this.",
+          "status": 409,
+          "body": {
+            "error": {
+              "code": 409,
+              "message": "This key has already taken a closure back in the last 60 days and cannot do so again yet. The key's registered owner wallet can (as_owner).",
+              "type": "cancel_cooldown"
+            }
+          }
+        },
+        "not_requester": {
+          "about": "A closure the owner wallet asked for cannot be cancelled with the API key.",
+          "status": 403,
+          "body": {
+            "error": {
+              "code": 403,
+              "message": "This closure was asked for by the key's owner wallet: only that wallet can take it back (send as_owner with payer = the owner wallet).",
+              "type": "not_requester"
+            }
+          }
+        }
+      }
+    },
+    "release": {
+      "about": "POST /api/v1/credits/close/release {key} by an owner or admin of the account (`key` is the key's hash, not the key). A closure is not paid while its key is disabled: disabling a key (DELETE /api/v1/keys/{hash}) puts a closure it started on hold, and this lets it go ahead on purpose. The refund still only returns to the wallets that paid in.",
+      "request": {
+        "key": "be9554a9d1eac080eb504f995cc2356755a82a7cb0601482df6e0fb9e919b5bd"
+      },
+      "response": [
+        {
+          "id": "close_fixture",
+          "status": "registered",
+          "released": true,
+          "payable_at": "2026-09-24T14:13:20.000Z"
+        }
+      ],
+      "key_disabled_response": {
+        "deleted": true,
+        "data": {
+          "hash": "be9554a9d1eac080eb504f995cc2356755a82a7cb0601482df6e0fb9e919b5bd",
+          "deleted": true,
+          "closure_held": {
+            "id": "close_fixture",
+            "reason": "key_disabled",
+            "release": "POST /api/v1/credits/close/release"
+          }
+        }
+      },
+      "errors": {
+        "not_found": {
+          "about": "The key has no queued or registered closure.",
+          "status": 404,
+          "body": {
+            "error": {
+              "code": 404,
+              "message": "That key has no open closure.",
+              "type": "not_found"
+            }
+          }
+        }
+      }
+    },
+    "refund_destination": {
+      "about": "POST /api/v1/credits/refund-destination-tx {depositor, refund_to}: an UNSIGNED set_refund_destination transaction. Only the depositor's own wallet can sign it (it is the fee payer and the only signer; the API key signs nothing and is not in the transaction). From then on that wallet's share of a closure refund goes to `refund_to`'s USDC token account (`accounts.refundToToken`). It moves nothing now.",
+      "request": {
+        "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+        "refund_to": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW"
+      },
+      "response": {
+        "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAcK5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMcb/NsA9umjvh6ZAvgcH/7ZXN4zvTWzH6IsvQwxk+oqaZEc+ITV09mx3DV6trGrFYaAeyYwEox8ySWqm15megyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMlyWPTiSJ8bs9ECkUjg2DC1oTmdr/EIQEjnvY2+n4WaB+WnmjNdGouwZ3LJR6Uyyg/XhTF6LBVRSRLK9se34vCXOiVwau3L7ELSRlzSn+k9mufW/CIWC00JPH5cDVL7PG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpCGJq58a/GvM0oKGO4NR4wR4FoLUGAqFSMr2W8qCchtTou7xNUopFoyPfJEgOonfNekvjwZ6lqB98JJuBG7RtBAIEBgABBQcDCAEBBgQACQIBKNJzstKXhcl6EYiPpIZr6Efwc0CqPp4KLzHJkJjK5aETNiBZtzcaEVA=",
+        "message": "Trellis credits: send my refunds from key 11888fa4… to BoVyoB…",
+        "accounts": {
+          "share": "CC3DdPsMibJqbYbSkKSYGqErTpPGtKea3e9vWCNtkEmX",
+          "refundToToken": "2v1RgDhkNQwxXsCyzUN3TLW9Uq4PXXByhbkverZxjDvx"
+        },
+        "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+        "refund_to": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+        "current_refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+        "expires_at_block_height": 314159265,
+        "note": "Only the depositor's own wallet can sign this. It changes where that wallet's deposits to this key are refunded; it moves nothing now."
+      },
+      "signers": [
+        "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc"
+      ],
+      "message_base64": "AQAHCuasxBo4K4PyuKh2O5R4g5n8HGW12fQrRLhJTiWpmxVTHG/zbAPbpo74emQL4HB/+2VzeM701sx+iLL0MMZPqKmmRHPiE1dPZsdw1eraxqxWGgHsmMBKMfMklqpteZnoMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+Fmgflp5ozXRqLsGdyyUelMsoP14UxeiwVUUkSyvbHt+LwlzolcGrty+xC0kZc0p/pPZrn1vwiFgtNCTx+XA1S+zxvp6877brTo9ZfNqq8l0MbG75MLS9uDkfKYCA0UvXWEG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqQhiaufGvxrzNKChjuDUeMEeBaC1BgKhUjK9lvKgnIbU6Lu8TVKKRaMj3yRIDqJ3zXpL48GepagffCSbgRu0bQQCBAYAAQUHAwgBAQYEAAkCASjSc7LSl4XJehGIj6SGa+hH8HNAqj6eCi8xyZCYyuWhEzYgWbc3GhFQ",
+      "instruction_count": 2,
+      "signed_transaction": "AYWlZCwxleZMWJPg46VteeUGV+7GVLUV2wBRH7D6ryuAC5WDNuKRoxAi8PlwrvH1jSLmhP7h0/TSmzrKrjwclgkBAAcK5qzEGjgrg/K4qHY7lHiDmfwcZbXZ9CtEuElOJambFVMcb/NsA9umjvh6ZAvgcH/7ZXN4zvTWzH6IsvQwxk+oqaZEc+ITV09mx3DV6trGrFYaAeyYwEox8ySWqm15megyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMlyWPTiSJ8bs9ECkUjg2DC1oTmdr/EIQEjnvY2+n4WaB+WnmjNdGouwZ3LJR6Uyyg/XhTF6LBVRSRLK9se34vCXOiVwau3L7ELSRlzSn+k9mufW/CIWC00JPH5cDVL7PG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpCGJq58a/GvM0oKGO4NR4wR4FoLUGAqFSMr2W8qCchtTou7xNUopFoyPfJEgOonfNekvjwZ6lqB98JJuBG7RtBAIEBgABBQcDCAEBBgQACQIBKNJzstKXhcl6EYiPpIZr6Efwc0CqPp4KLzHJkJjK5aETNiBZtzcaEVA=",
+      "depositor_signature_base58": "3fyem8gWrMHWknm1kxieXVL1i6RJz3fsx1Xqpw2jJvURAPKNpJnZcLKWNy362Pyqd8rm8rCWfPzSsXRxQka2tu4c",
+      "errors": {
+        "not_found": {
+          "about": "The wallet never deposited to this key, so it has no refund destination to move.",
+          "request": {
+            "depositor": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+            "refund_to": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW"
+          },
+          "status": 404,
+          "body": {
+            "error": {
+              "code": 404,
+              "message": "That wallet has not deposited to this key.",
+              "type": "not_found"
+            }
+          }
+        }
+      }
+    },
+    "list": {
+      "about": "GET /api/v1/credits/close: this key's closures, newest first. `refunds` is the payment plan once it exists (one row per depositor: where it is paid, the wallet that owns that token account, how much, and whether it was sent); `refund_to` is the wallets paid so far, comma-separated, or null. A row with status queued or registered and a `reason` is waiting, not failed: `key_disabled` is held until an owner releases it.",
+      "statuses": [
+        "queued",
+        "registered",
+        "paid",
+        "refused",
+        "failed",
+        "cancelled"
+      ],
+      "reasons": [
+        "key_disabled",
+        "refund_rate_limited",
+        "refund_destination_unavailable",
+        "depositors_unknown",
+        "cancelled_on_chain",
+        "sanctioned_address",
+        "submission_failed",
+        "refund_work_capped",
+        "request_gone_refund_debited"
+      ],
+      "refund_statuses": [
+        "planned",
+        "paid",
+        "refused",
+        "reversed"
+      ],
+      "response": [
+        {
+          "id": "close_fixture_4",
+          "status": "registered",
+          "reason": "key_disabled",
+          "refund_to": null,
+          "refunds": [],
+          "amount_units": null,
+          "requested_at": "2026-09-21T14:13:20.000Z",
+          "payable_at": "2026-09-24T14:13:20.000Z",
+          "paid_at": null,
+          "register_tx": "2m7UJYQWS3A8Dku2mc2A85jMiiGaypFLNcmC3KBoGLk7jW4A8xo9HA6Wdjd3yuWe8vzQtC5EGPUpbdgkLSYVyfqi",
+          "pay_tx": null,
+          "cancel_tx": null,
+          "released_at": null
+        },
+        {
+          "id": "close_fixture_3",
+          "status": "registered",
+          "reason": "refund_rate_limited",
+          "refund_to": null,
+          "refunds": [
+            {
+              "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+              "refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+              "owner": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+              "amount_units": "20000000",
+              "status": "paid",
+              "reason": null,
+              "tx": "3ypQdE37MwKSaX2Kh7SQve4eneZ17U8AXG4eyNrfkE4hxJVjjHHjfkqomjmeQaXt8remx4sskvxSgVbPL2QoakbS"
+            },
+            {
+              "depositor": "JAsM8j57YVbWu3hg8ah2p27JMb82HnyRhPLsNLbSPdXx",
+              "refund_to": "2v1RgDhkNQwxXsCyzUN3TLW9Uq4PXXByhbkverZxjDvx",
+              "owner": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+              "amount_units": "4000000",
+              "status": "planned",
+              "reason": "refund_rate_limited",
+              "tx": null
+            }
+          ],
+          "amount_units": "24000000",
+          "requested_at": "2026-09-21T14:13:20.000Z",
+          "payable_at": "2026-09-24T14:13:20.000Z",
+          "paid_at": null,
+          "register_tx": "qxTtRVcrjNF7DH5pdfKZ7aG6uCQ7CS9TtPjJtUGtBot1EehbVMRSZxNSEhEv8od4a26M6KM3U4uAvza2w5jXXqS",
+          "pay_tx": "3ypQdE37MwKSaX2Kh7SQve4eneZ17U8AXG4eyNrfkE4hxJVjjHHjfkqomjmeQaXt8remx4sskvxSgVbPL2QoakbS",
+          "cancel_tx": null,
+          "released_at": "2026-09-24T15:13:20.000Z"
+        },
+        {
+          "id": "close_fixture_2",
+          "status": "cancelled",
+          "reason": "cancelled_on_chain",
+          "refund_to": null,
+          "refunds": [],
+          "amount_units": null,
+          "requested_at": "2026-09-21T14:13:20.000Z",
+          "payable_at": "2026-09-24T14:13:20.000Z",
+          "paid_at": null,
+          "register_tx": "KGnx2Djtt5Ec7LJzpHPyjLqmiFFzNEAVsS8AiX9Htc13i6WYsC6nRJXHNFdkv7BqmAhABpr8rgtEp5BDwKJRGs2",
+          "pay_tx": null,
+          "cancel_tx": "4fWwQuHGNuPRCwzvTv75zQAWDpoPvJnpqQePfWABrp24P3VzyJrcgh6hFAk8o3j33CDYsyadihm7u7yYTkRXPF13",
+          "released_at": null
+        },
+        {
+          "id": "close_fixture_1",
+          "status": "paid",
+          "reason": null,
+          "refund_to": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc,BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+          "refunds": [
+            {
+              "depositor": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+              "refund_to": "2ynX92NNnMitvdyFgkE1PW4Wa7nTirUHuMEapMS82ZWJ",
+              "owner": "GXTZont2hnAMvcQ9CuQRzihrczgwNZNC9JGoEcpsohHc",
+              "amount_units": "20000000",
+              "status": "paid",
+              "reason": null,
+              "tx": "51EnCfBCXmvN9yS2mx2gzbn6AE5AqmZ8wWobgSiu7nhG3zjmWVsP4uC95AzFosq7JLb441MBKfRLJHi5KvWTbWWH"
+            },
+            {
+              "depositor": "JAsM8j57YVbWu3hg8ah2p27JMb82HnyRhPLsNLbSPdXx",
+              "refund_to": "2v1RgDhkNQwxXsCyzUN3TLW9Uq4PXXByhbkverZxjDvx",
+              "owner": "BoVyoBax4CPDvP3omDuWdsiLhqQKveKUfzfwE6ujhqnW",
+              "amount_units": "4000000",
+              "status": "paid",
+              "reason": null,
+              "tx": "3ckgXppvXonZEhH9Yh91Ph9L6tQsudeUwToaYL1VaSjzixmadkMSVdg9Fn11gq7WxuTM5CQUy8fv7Z7sADoNqoiq"
+            }
+          ],
+          "amount_units": "24000000",
+          "requested_at": "2026-09-21T14:13:20.000Z",
+          "payable_at": "2026-09-24T14:13:20.000Z",
+          "paid_at": "2026-09-24T15:13:20.000Z",
+          "register_tx": "T6krRexkFyU5BdndSEC5c1VY5aBqmhhiFKZXUfEFUPoMML6QdxEgfqXeWcXARSbpQ9KoHVquQJasmFqUx22aPHq",
+          "pay_tx": "3ckgXppvXonZEhH9Yh91Ph9L6tQsudeUwToaYL1VaSjzixmadkMSVdg9Fn11gq7WxuTM5CQUy8fv7Z7sADoNqoiq",
+          "cancel_tx": null,
+          "released_at": null
+        }
+      ]
+    }
+  },
+  "errors": {
+    "about": "Error envelopes as the router sends them (src/lib/errors.ts ApiError.toJSON).",
+    "credits_closing": {
+      "about": "Any call that would start new spending on a key whose closure is registered: the key is frozen until the refund is paid. Not retryable; use another key.",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": 409,
+          "message": "This key's credits are being closed and refunded; it cannot start new calls.",
+          "type": "credits_closing",
+          "metadata": {
+            "closure": "close_fixture"
+          }
+        }
+      }
+    },
+    "payment_not_bound_to_caller": {
+      "about": "A bare transaction signature in X-PAYMENT without X-Wallet-Auth from the wallet that paid (security review TR-07).",
+      "status": 401,
+      "body": {
+        "error": {
+          "code": 401,
+          "message": "A transaction signature in X-PAYMENT is accepted only together with X-Wallet-Auth signed by the wallet that paid: a landed payment is public, so the signature alone does not show who is asking. Send X-Wallet-Auth, or pay with a signed x402 payload.",
+          "type": "payment_not_bound_to_caller",
+          "metadata": {
+            "tx": "5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555"
+          }
+        }
+      }
+    }
+  }
+}
