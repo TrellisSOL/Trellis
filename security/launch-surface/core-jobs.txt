@@ -1,0 +1,18 @@
+# Background jobs registered by a LAUNCH_SURFACE=core router. Checked by test/launch-surface.test.ts.
+alert-notifier
+attestor
+catalog-refresh
+chain-indexer
+health-flush
+health-probes
+holds-expire
+job-watchdog
+low-balance-alerts
+provider-reconcile
+provider-registry
+receipt-key-rotation
+receipts-anchor
+sanctions-refresh
+settlement
+tab-close
+x402-recovery-expire
