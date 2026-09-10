@@ -1,0 +1,77 @@
+# sidecar.yaml for a dstack cloud example. docker-compose.yml carries a verbatim copy of this file in the
+# sidecar's SIDECAR_CONFIG_YAML variable, because a dstack CVM receives the compose file and nothing else; keep the
+# two identical (README.md shows how to check). ${DSTACK_APP_ID} and ${DSTACK_GATEWAY_DOMAIN} are filled in by the
+# platform when it interpolates the compose file.
+
+server:
+  host: 0.0.0.0
+  port: 8443
+  tls: self_signed
+  # The TLS-passthrough name the dstack gateway routes to this port, so a client that pins the certificate can
+  # also check the host name.
+  hostnames: ["${DSTACK_APP_ID}-8443s.${DSTACK_GATEWAY_DOMAIN}"]
+  cert_validity_days: 30
+
+upstream:
+  base_url: http://llama:8080
+  timeout_ms: 180000
+  stream_idle_timeout_ms: 60000
+  max_request_bytes: 65536
+  max_response_bytes: 1048576
+
+model:
+  # The GGUF file llama.cpp serves, mounted read-only. It is hashed at boot.
+  path: /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  served_name: qwen2.5-0.5b-instruct
+
+allowlist:
+  # bun src/main.ts digest qwen2.5-0.5b-instruct-q4_k_m.gguf
+  model_digests: ["sha256:72aecf18a62308d47df2d6073bc8e1c1760dedec2c9043c623ea398100c31af1"]
+
+# The image the sidecar process runs in (oven/bun:1.3.14, pinned by the same digest in the compose file). The
+# sidecar source is not part of an image here: it is the public commit's tarball, pinned by its sha256 in the
+# compose file, so the measured compose hash covers it.
+image_digest: "sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4"
+
+# Enable SHA-256 bindings v2 after updating the compose source pin to a release containing v2.
+# This hashes the retained, pinned archive at boot; engine image and model ID are declarations.
+bindings:
+  version: 2
+  source_archive: /opt/trellis/src.tar.gz
+  source_hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000"  # <to-be-published>
+  engine:
+    name: llama.cpp
+    image_digest: "sha256:f9115c95639e60abc09d4ea83b26fd4d56c66aa1174594393335a514da00c283"
+  model_id: qwen2.5-0.5b-instruct
+
+attestation:
+  provider: dstack
+  dstack:
+    endpoint: /var/run/dstack.sock
+  fresh_quotes_per_minute: 10
+
+# One key, for the router that sends this provider its traffic. Only its SHA-256 is here; the key itself goes to the
+# router when the provider is approved. For your own deployment, make a key with `openssl rand -hex 32` and put the
+# SHA-256 of that text here (`printf %s <key> | sha256sum`).
+auth:
+  keys:
+    - id: router
+      sha256: "eb78debff11d668b1939c83c974ffd8397319d460989b6e7fce095ed12402c27"
+      quota:
+        requests_per_minute: 120
+        burst: 30
+        tokens_per_minute: 120000
+        token_burst: 120000
+
+quota:
+  default:
+    requests_per_minute: 30
+    burst: 10
+  global:
+    requests_per_minute: 150
+    burst: 40
+    tokens_per_minute: 150000
+    token_burst: 150000
+
+receipts:
+  queue_capacity: 10000
