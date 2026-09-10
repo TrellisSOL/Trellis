@@ -1,0 +1,402 @@
+import { parseSourceBindings, type SourceBindingsConfig } from "./source-bindings.ts";
+import { existsSync, readFileSync } from "node:fs";
+import type { AttestationKind } from "./attestation/types.ts";
+import type { GpuConfig } from "./attestation/gpu.ts";
+import type { BucketConfig } from "./quota.ts";
+import { CATEGORY_ID_RE, MINIMUM_CATEGORIES, RESERVED_LABELS, type Category } from "./classifier.ts";
+import { isForbiddenForwardHeader } from "./headers.ts";
+import type { StatsConfig } from "./stats.ts";
+import { SidecarError, isSolanaPublicKey, SOLANA_PUBLIC_KEY_MESSAGE } from "./util.ts";
+
+// sidecar.yaml loader. Unknown keys are rejected so a typo in a security setting cannot silently do nothing.
+// A handful of environment variables override the file (listed in README.md) so a container can start from
+// environment alone.
+
+export type KeyPolicy = { id: string; sha256: string; quota?: BucketConfig };
+
+export type SidecarConfig = {
+  server: { host: string; port: number; hostnames: string[]; tls: "self_signed" | "off"; certValidityDays: number };
+  upstream: {
+    baseUrl: string;
+    /** Name of the environment variable that holds the upstream's own API key, if it needs one. */
+    apiKeyEnv: string;
+    timeoutMs: number;
+    streamIdleTimeoutMs: number;
+    maxRequestBytes: number;
+    maxResponseBytes: number;
+    /** Extra request headers to forward. Network identifiers are refused here. */
+    forwardHeaders: string[];
+  };
+  model: { path?: string; digest?: string; exclude: string[]; servedName?: string };
+  allowlist: {
+    modelDigests: string[];
+    modelDigestsFile?: string;
+    composeHashes: string[];
+    composeHashesFile?: string;
+    /** Digests the in-enclave classifier's weights may have. Kept apart from modelDigests on purpose. */
+    classifierDigests: string[];
+    classifierDigestsFile?: string;
+  };
+  bindings?: SourceBindingsConfig;
+  image: { digest?: string };
+  compose: { file?: string; hash?: string };
+  attestation: { provider: AttestationKind; dstackEndpoint?: string; tdxTsmPath?: string; freshQuotesPerMinute: number };
+  router: { url?: string; providerId?: string; apiKeyEnv: string; failClosed: boolean };
+  auth: { keys: KeyPolicy[]; allowAnonymous: boolean };
+  quota: { default: BucketConfig; global: BucketConfig };
+  classifier: {
+    enabled: boolean;
+    kind: "openai_chat";
+    baseUrl?: string;
+    apiKeyEnv: string;
+    timeoutMs: number;
+    model: { path?: string; digest?: string; exclude: string[]; servedName?: string };
+    /** Additions to the built-in minimum set (MINIMUM_CATEGORIES), which is always enforced. */
+    categories: Category[];
+    checkResponse: boolean;
+    nonTextInput: "refuse" | "allow";
+    chunkChars: number;
+    overlapChars: number;
+    maxChunks: number;
+    concurrency: number;
+  };
+  hpke: { enabled: boolean; clockSkewSeconds: number };
+  /** NVIDIA confidential-GPU attestation. With ccMode "on" the sidecar refuses to start unless the GPUs attest. */
+  gpu: GpuConfig;
+  royalty: { recipient?: string };
+  receipts: { queueCapacity: number };
+  anchor: { tokenEnv: string };
+  /** Differentially private hourly counters, the sidecar's only telemetry (no per-request logs). */
+  stats: StatsConfig;
+};
+
+type Obj = Record<string, unknown>;
+const bad = (path: string, msg: string): never => {
+  throw new SidecarError("BAD_CONFIG", `sidecar.yaml: ${path}: ${msg}`);
+};
+
+function obj(v: unknown, path: string): Obj {
+  if (v === undefined || v === null) return {};
+  if (typeof v !== "object" || Array.isArray(v)) return bad(path, "expected a mapping");
+  return v as Obj;
+}
+function known(o: Obj, keys: string[], path: string) {
+  for (const k of Object.keys(o)) if (!keys.includes(k)) bad(`${path}.${k}`, `unknown setting (expected one of: ${keys.join(", ")})`);
+}
+function str(o: Obj, k: string, path: string): string | undefined {
+  const v = o[k];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "string" || !v.trim()) return bad(`${path}.${k}`, "expected a non-empty string (put hex values in quotes so YAML does not read them as numbers)");
+  return v.trim();
+}
+function num(o: Obj, k: string, path: string, min: number, max: number): number | undefined {
+  const v = o[k];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max) return bad(`${path}.${k}`, `expected a number between ${min} and ${max}`);
+  return v;
+}
+function int(o: Obj, k: string, path: string, min: number, max: number): number | undefined {
+  const v = num(o, k, path, min, max);
+  if (v !== undefined && !Number.isInteger(v)) bad(`${path}.${k}`, "expected an integer");
+  return v;
+}
+function bool(o: Obj, k: string, path: string): boolean | undefined {
+  const v = o[k];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "boolean") return bad(`${path}.${k}`, "expected true or false");
+  return v;
+}
+function strList(o: Obj, k: string, path: string): string[] {
+  const v = o[k];
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || !x.trim())) return bad(`${path}.${k}`, "expected a list of strings (put hex values in quotes so YAML does not read them as numbers)");
+  return (v as string[]).map((x) => x.trim());
+}
+
+function bucket(raw: unknown, path: string): BucketConfig {
+  const o = obj(raw, path);
+  known(o, ["requests_per_minute", "burst", "tokens_per_minute", "token_burst"], path);
+  return {
+    requestsPerMinute: num(o, "requests_per_minute", path, 0.001, 1e9),
+    burst: num(o, "burst", path, 1, 1e9),
+    tokensPerMinute: num(o, "tokens_per_minute", path, 1, 1e12),
+    tokenBurst: num(o, "token_burst", path, 1, 1e12),
+  };
+}
+
+function categoryList(raw: unknown, path: string): Category[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) return bad(path, "expected a list of {id, description}");
+  const builtIn = new Set(MINIMUM_CATEGORIES.map((c) => c.id));
+  const seen = new Set<string>();
+  return raw.map((c, i) => {
+    const p = `${path}[${i}]`;
+    const o = obj(c, p);
+    known(o, ["id", "description"], p);
+    const id = str(o, "id", p) ?? bad(p, "id is required");
+    if (!CATEGORY_ID_RE.test(id)) bad(`${p}.id`, "expected 3 to 40 characters: a lowercase letter, then lowercase letters, digits or _");
+    if (RESERVED_LABELS.has(id)) bad(`${p}.id`, `"${id}" is reserved`);
+    if (builtIn.has(id)) bad(`${p}.id`, `"${id}" is built in and always enforced; it cannot be redefined`);
+    if (seen.has(id)) bad(`${p}.id`, `duplicate category "${id}"`);
+    seen.add(id);
+    const description = str(o, "description", p) ?? bad(p, "description is required");
+    if (description.length > 240 || /[\u0000-\u001f\u007f]/.test(description)) bad(`${p}.description`, "expected one line of at most 240 characters");
+    return { id, description };
+  });
+}
+
+function httpOrigin(value: string, path: string): string {
+  const clean = value.replace(/\/+$/, "").replace(/\/v1$/, "");
+  try {
+    const u = new URL(clean);
+    if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("scheme");
+    if (u.username || u.password || u.search || u.hash) throw new Error("parts");
+  } catch {
+    bad(path, "expected an http(s) URL without credentials, query or fragment");
+  }
+  return clean;
+}
+
+const PROVIDERS: AttestationKind[] = ["dstack", "tdx", "dev"];
+
+export function parseConfig(raw: unknown, env: Record<string, string | undefined> = {}): SidecarConfig {
+  const root = obj(raw, "(root)");
+  known(root, ["bindings", "server", "upstream", "model", "allowlist", "image_digest", "compose", "attestation", "router", "auth", "quota", "classifier", "hpke", "gpu", "royalty", "receipts", "anchor", "stats"], "");
+
+  const server = obj(root.server, "server");
+  known(server, ["host", "port", "hostnames", "tls", "cert_validity_days"], "server");
+  const up = obj(root.upstream, "upstream");
+  known(up, ["base_url", "api_key_env", "timeout_ms", "stream_idle_timeout_ms", "max_request_bytes", "max_response_bytes", "forward_headers"], "upstream");
+  const model = obj(root.model, "model");
+  known(model, ["path", "digest", "exclude", "served_name"], "model");
+  const allow = obj(root.allowlist, "allowlist");
+  known(allow, ["model_digests", "model_digests_file", "compose_hashes", "compose_hashes_file", "classifier_digests", "classifier_digests_file"], "allowlist");
+  const compose = obj(root.compose, "compose");
+  known(compose, ["file", "hash"], "compose");
+  const att = obj(root.attestation, "attestation");
+  known(att, ["provider", "dstack", "tdx", "fresh_quotes_per_minute"], "attestation");
+  const dstack = obj(att.dstack, "attestation.dstack");
+  known(dstack, ["endpoint"], "attestation.dstack");
+  const tdx = obj(att.tdx, "attestation.tdx");
+  known(tdx, ["tsm_path"], "attestation.tdx");
+  const router = obj(root.router, "router");
+  known(router, ["url", "provider_id", "api_key_env", "fail_closed"], "router");
+  const auth = obj(root.auth, "auth");
+  known(auth, ["keys", "allow_anonymous"], "auth");
+  const quota = obj(root.quota, "quota");
+  known(quota, ["default", "global"], "quota");
+  const classifier = obj(root.classifier, "classifier");
+  known(classifier, ["enabled", "kind", "base_url", "api_key_env", "timeout_ms", "model", "categories", "check_response", "non_text_input", "chunk_chars", "overlap_chars", "max_chunks", "concurrency"], "classifier");
+  const classifierModel = obj(classifier.model, "classifier.model");
+  known(classifierModel, ["path", "digest", "exclude", "served_name"], "classifier.model");
+  const hpke = obj(root.hpke, "hpke");
+  known(hpke, ["enabled", "clock_skew_seconds"], "hpke");
+  const gpu = obj(root.gpu, "gpu");
+  known(gpu, ["cc_mode", "allowed_models", "nras_url", "nras_api_key_env", "min_driver_version", "min_vbios_version", "refresh_seconds", "max_age_seconds", "timeout_ms", "nvattest_path", "nvidia_smi_path"], "gpu");
+  const royalty = obj(root.royalty, "royalty");
+  known(royalty, ["recipient"], "royalty");
+  const receipts = obj(root.receipts, "receipts");
+  known(receipts, ["queue_capacity"], "receipts");
+  const anchor = obj(root.anchor, "anchor");
+  known(anchor, ["token_env"], "anchor");
+  const stats = obj(root.stats, "stats");
+  known(stats, ["epsilon", "retention_hours", "daily_epsilon_cap"], "stats");
+  const statsEps = obj(stats.epsilon, "stats.epsilon");
+  known(statsEps, ["requests", "blocked", "latency", "tokens"], "stats.epsilon");
+
+  const provider = (env.SIDECAR_ATTESTATION ?? str(att, "provider", "attestation") ?? "dstack") as AttestationKind;
+  if (!PROVIDERS.includes(provider)) bad("attestation.provider", `expected one of ${PROVIDERS.join(", ")}`);
+
+  const keysRaw = auth.keys;
+  if (keysRaw !== undefined && keysRaw !== null && !Array.isArray(keysRaw)) bad("auth.keys", "expected a list");
+  const keys: KeyPolicy[] = ((keysRaw as unknown[]) ?? []).map((k, i) => {
+    const p = `auth.keys[${i}]`;
+    const o = obj(k, p);
+    known(o, ["id", "sha256", "quota"], p);
+    const id = str(o, "id", p) ?? bad(p, "id is required");
+    const sha = (str(o, "sha256", p) ?? bad(p, "sha256 is required (the hex SHA-256 of the API key)")).toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(sha)) bad(`${p}.sha256`, "expected 64 hex characters");
+    return { id, sha256: sha, quota: o.quota === undefined ? undefined : bucket(o.quota, `${p}.quota`) };
+  });
+  const ids = new Set<string>();
+  for (const k of keys) {
+    if (ids.has(k.id)) bad("auth.keys", `duplicate id "${k.id}"`);
+    ids.add(k.id);
+  }
+
+  const forwardHeaders = strList(up, "forward_headers", "upstream").map((h) => h.toLowerCase());
+  for (const h of forwardHeaders) {
+    if (isForbiddenForwardHeader(h)) bad("upstream.forward_headers", `"${h}" can never be forwarded`);
+  }
+
+  const tlsMode = str(server, "tls", "server") ?? "self_signed";
+  if (tlsMode !== "self_signed" && tlsMode !== "off") bad("server.tls", 'expected "self_signed" or "off"');
+
+  const recipient = str(royalty, "recipient", "royalty");
+  if (recipient && !isSolanaPublicKey(recipient)) bad("royalty.recipient", SOLANA_PUBLIC_KEY_MESSAGE);
+
+  const routerUrl = str(router, "url", "router");
+  const routerProvider = str(router, "provider_id", "router");
+  if (Boolean(routerUrl) !== Boolean(routerProvider)) bad("router", "url and provider_id must be set together");
+
+  const envPort = env.SIDECAR_PORT ? Number(env.SIDECAR_PORT) : undefined;
+  if (envPort !== undefined && (!Number.isInteger(envPort) || envPort < 0 || envPort > 65535)) bad("SIDECAR_PORT", "expected a port number");
+
+  const baseUrl = (env.SIDECAR_UPSTREAM_URL ?? str(up, "base_url", "upstream") ?? "http://127.0.0.1:8000").replace(/\/+$/, "").replace(/\/v1$/, "");
+  try {
+    const u = new URL(baseUrl);
+    if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("scheme");
+    if (u.username || u.password || u.search || u.hash) throw new Error("parts");
+  } catch {
+    bad("upstream.base_url", "expected an http(s) URL without credentials, query or fragment");
+  }
+  if (keys.length === 0 && !(bool(auth, "allow_anonymous", "auth") ?? false)) {
+    bad("auth.keys", "no API keys are configured; list keys (with the SHA-256 of each) or set auth.allow_anonymous: true to serve without authentication");
+  }
+
+  const classifierEnabled = bool(classifier, "enabled", "classifier") ?? false;
+  const classifierKind = str(classifier, "kind", "classifier") ?? "openai_chat";
+  if (classifierKind !== "openai_chat") bad("classifier.kind", 'expected "openai_chat"');
+  const nonText = str(classifier, "non_text_input", "classifier") ?? "refuse";
+  if (nonText !== "refuse" && nonText !== "allow") bad("classifier.non_text_input", 'expected "refuse" or "allow"');
+  const chunkChars = int(classifier, "chunk_chars", "classifier", 200, 100_000) ?? 6000;
+  const overlapChars = int(classifier, "overlap_chars", "classifier", 0, 50_000) ?? 200;
+  if (overlapChars >= chunkChars) bad("classifier.overlap_chars", "must be smaller than chunk_chars");
+  const classifierUrlRaw = env.SIDECAR_CLASSIFIER_URL ?? str(classifier, "base_url", "classifier");
+  const classifierUrl = classifierUrlRaw ? httpOrigin(classifierUrlRaw, "classifier.base_url") : undefined;
+  if (classifierEnabled) {
+    if (!classifierUrl) bad("classifier.base_url", "required when classifier.enabled is true (the second model server, inside the same VM)");
+    if (!str(classifierModel, "served_name", "classifier.model")) bad("classifier.model.served_name", "required when classifier.enabled is true (the model name to send to the classifier server)");
+    if (!(env.SIDECAR_CLASSIFIER_MODEL_PATH ?? str(classifierModel, "path", "classifier.model")) && !(env.SIDECAR_CLASSIFIER_MODEL_DIGEST ?? str(classifierModel, "digest", "classifier.model"))) {
+      bad("classifier.model", "set classifier.model.path (the classifier weights to hash) or classifier.model.digest (a precomputed digest)");
+    }
+  }
+
+  // A bare `on` is a boolean to YAML 1.1 readers, so true/false are taken as on/off rather than rejected.
+  const ccRaw = gpu.cc_mode === true ? "on" : gpu.cc_mode === false ? "off" : (str(gpu, "cc_mode", "gpu") ?? "off");
+  if (ccRaw !== "on" && ccRaw !== "off") bad("gpu.cc_mode", 'expected "on" or "off"');
+  const gpuModels = strList(gpu, "allowed_models", "gpu");
+  if (gpuModels.some((m) => !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/.test(m))) bad("gpu.allowed_models", 'expected hardware model names as NRAS reports them in hwmodel, for example "GH100"');
+  if (ccRaw === "on" && gpuModels.length === 0) bad("gpu.allowed_models", 'required when gpu.cc_mode is "on": list the GPU hardware models (NRAS hwmodel, for example "GH100") this endpoint may run on');
+  const nrasUrl = httpOrigin(str(gpu, "nras_url", "gpu") ?? "https://nras.attestation.nvidia.com", "gpu.nras_url");
+  if (!nrasUrl.startsWith("https://")) bad("gpu.nras_url", "expected an https URL");
+  const dotted = (k: string, re: RegExp) => {
+    const v = str(gpu, k, "gpu");
+    if (v !== undefined && !re.test(v)) bad(`gpu.${k}`, "expected a dotted version, in quotes");
+    return v;
+  };
+  const gpuRefresh = int(gpu, "refresh_seconds", "gpu", 60, 86_400) ?? 1800;
+  const gpuMaxAge = int(gpu, "max_age_seconds", "gpu", 60, 172_800) ?? Math.max(3600, gpuRefresh);
+  if (gpuMaxAge < gpuRefresh) bad("gpu.max_age_seconds", "must not be smaller than gpu.refresh_seconds");
+
+  const cfg: SidecarConfig = {
+    server: {
+      host: env.SIDECAR_HOST ?? str(server, "host", "server") ?? "0.0.0.0",
+      port: envPort ?? int(server, "port", "server", 0, 65535) ?? 8443,
+      hostnames: strList(server, "hostnames", "server"),
+      tls: tlsMode as "self_signed" | "off",
+      certValidityDays: int(server, "cert_validity_days", "server", 1, 800) ?? 90,
+    },
+    upstream: {
+      baseUrl,
+      apiKeyEnv: str(up, "api_key_env", "upstream") ?? "SIDECAR_UPSTREAM_API_KEY",
+      timeoutMs: int(up, "timeout_ms", "upstream", 1000, 3_600_000) ?? 600_000,
+      streamIdleTimeoutMs: int(up, "stream_idle_timeout_ms", "upstream", 1000, 3_600_000) ?? 120_000,
+      maxRequestBytes: int(up, "max_request_bytes", "upstream", 1024, 1 << 30) ?? 8 * 1024 * 1024,
+      maxResponseBytes: int(up, "max_response_bytes", "upstream", 1024, 1 << 30) ?? 64 * 1024 * 1024,
+      forwardHeaders,
+    },
+    model: {
+      path: env.SIDECAR_MODEL_PATH ?? str(model, "path", "model"),
+      digest: env.SIDECAR_MODEL_DIGEST ?? str(model, "digest", "model"),
+      exclude: strList(model, "exclude", "model"),
+      servedName: str(model, "served_name", "model"),
+    },
+    allowlist: {
+      modelDigests: strList(allow, "model_digests", "allowlist"),
+      modelDigestsFile: str(allow, "model_digests_file", "allowlist"),
+      composeHashes: strList(allow, "compose_hashes", "allowlist"),
+      composeHashesFile: str(allow, "compose_hashes_file", "allowlist"),
+      classifierDigests: strList(allow, "classifier_digests", "allowlist"),
+      classifierDigestsFile: str(allow, "classifier_digests_file", "allowlist"),
+    },
+    image: { digest: env.SIDECAR_IMAGE_DIGEST ?? str(root, "image_digest", "") },
+    compose: { file: env.SIDECAR_COMPOSE_FILE ?? str(compose, "file", "compose"), hash: env.SIDECAR_COMPOSE_HASH ?? str(compose, "hash", "compose") },
+    attestation: {
+      provider,
+      dstackEndpoint: env.SIDECAR_DSTACK_ENDPOINT ?? str(dstack, "endpoint", "attestation.dstack"),
+      tdxTsmPath: str(tdx, "tsm_path", "attestation.tdx"),
+      freshQuotesPerMinute: int(att, "fresh_quotes_per_minute", "attestation", 1, 600) ?? 30,
+    },
+    router: { url: routerUrl, providerId: routerProvider, apiKeyEnv: str(router, "api_key_env", "router") ?? "SIDECAR_ROUTER_API_KEY", failClosed: bool(router, "fail_closed", "router") ?? true },
+    auth: { keys, allowAnonymous: bool(auth, "allow_anonymous", "auth") ?? false },
+    quota: { default: bucket(quota.default, "quota.default"), global: bucket(quota.global, "quota.global") },
+    classifier: {
+      enabled: classifierEnabled,
+      kind: classifierKind as "openai_chat",
+      baseUrl: classifierUrl,
+      apiKeyEnv: str(classifier, "api_key_env", "classifier") ?? "SIDECAR_CLASSIFIER_API_KEY",
+      timeoutMs: int(classifier, "timeout_ms", "classifier", 500, 300_000) ?? 10_000,
+      model: {
+        path: env.SIDECAR_CLASSIFIER_MODEL_PATH ?? str(classifierModel, "path", "classifier.model"),
+        digest: env.SIDECAR_CLASSIFIER_MODEL_DIGEST ?? str(classifierModel, "digest", "classifier.model"),
+        exclude: strList(classifierModel, "exclude", "classifier.model"),
+        servedName: str(classifierModel, "served_name", "classifier.model"),
+      },
+      categories: categoryList(classifier.categories, "classifier.categories"),
+      checkResponse: bool(classifier, "check_response", "classifier") ?? false,
+      nonTextInput: nonText as "refuse" | "allow",
+      chunkChars,
+      overlapChars,
+      maxChunks: int(classifier, "max_chunks", "classifier", 1, 1000) ?? 32,
+      concurrency: int(classifier, "concurrency", "classifier", 1, 32) ?? 4,
+    },
+    hpke: { enabled: bool(hpke, "enabled", "hpke") ?? false, clockSkewSeconds: int(hpke, "clock_skew_seconds", "hpke", 1, 3600) ?? 300 },
+    gpu: {
+      ccMode: ccRaw as "on" | "off",
+      allowedModels: gpuModels,
+      nrasUrl,
+      nrasApiKeyEnv: str(gpu, "nras_api_key_env", "gpu") ?? "NV_ATTESTATION_SERVICE_KEY",
+      minDriverVersion: dotted("min_driver_version", /^[0-9]+(\.[0-9]+)*$/),
+      minVbiosVersion: dotted("min_vbios_version", /^[0-9A-Fa-f]+(\.[0-9A-Fa-f]+)*$/),
+      refreshSeconds: gpuRefresh,
+      maxAgeSeconds: gpuMaxAge,
+      timeoutMs: int(gpu, "timeout_ms", "gpu", 1000, 600_000) ?? 60_000,
+      nvattestPath: str(gpu, "nvattest_path", "gpu") ?? "nvattest",
+      nvidiaSmiPath: str(gpu, "nvidia_smi_path", "gpu") ?? "nvidia-smi",
+    },
+    royalty: { recipient },
+    receipts: { queueCapacity: int(receipts, "queue_capacity", "receipts", 1, 10_000_000) ?? 100_000 },
+    anchor: { tokenEnv: str(anchor, "token_env", "anchor") ?? "SIDECAR_ANCHOR_TOKEN" },
+    stats: {
+      epsilon: {
+        requests: num(statsEps, "requests", "stats.epsilon", 0.01, 10) ?? 1,
+        blocked: num(statsEps, "blocked", "stats.epsilon", 0.01, 10) ?? 1,
+        latency: num(statsEps, "latency", "stats.epsilon", 0.01, 10) ?? 1,
+        tokens: num(statsEps, "tokens", "stats.epsilon", 0.01, 10) ?? 1,
+      },
+      retentionHours: int(stats, "retention_hours", "stats", 1, 24 * 14) ?? 48,
+      dailyEpsilonCap: num(stats, "daily_epsilon_cap", "stats", 0.01, 10_000) ?? null,
+    },
+  };
+  cfg.bindings = parseSourceBindings(root.bindings, cfg.model.servedName);
+  if (!cfg.model.path && !cfg.model.digest) bad("model", "set model.path (the weights directory to hash) or model.digest (a precomputed digest)");
+  return cfg;
+}
+
+/** Read sidecar.yaml. A missing default file is fine (environment only); a missing explicit file is an error. */
+export function loadConfig(env: Record<string, string | undefined> = process.env, explicitPath?: string): SidecarConfig {
+  const path = explicitPath ?? env.SIDECAR_CONFIG;
+  const file = path ?? "sidecar.yaml";
+  let raw: unknown = {};
+  if (existsSync(file)) {
+    try {
+      raw = Bun.YAML.parse(readFileSync(file, "utf8"));
+    } catch (e) {
+      throw new SidecarError("BAD_CONFIG", `cannot parse ${file}: ${(e as Error).message}`);
+    }
+  } else if (path) {
+    throw new SidecarError("BAD_CONFIG", `config file ${path} does not exist`);
+  }
+  return parseConfig(raw, env);
+}
