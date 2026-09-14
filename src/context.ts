@@ -1,0 +1,45 @@
+import type { Catalog } from "./catalog/catalog.ts";
+import type { Config } from "./config.ts";
+import type { Db } from "./db/client.ts";
+import type { RateLimiter } from "./lib/ratelimit.ts";
+import type { ReceiptSigner } from "./receipts/signer.ts";
+import type { HealthTracker } from "./services/health.ts";
+import type { ChainService } from "./solana/chain-service.ts";
+import type { ResponseCache } from "./gateway/cache.ts";
+import type { Telemetry } from "./gateway/otel.ts";
+import type { TracingExporter } from "./services/tracing.ts";
+import type { Jobs } from "./services/jobs.ts";
+import type { BlindIssuer } from "./blind/issuer.ts";
+import type { OhttpKeys } from "./ohttp/keys.ts";
+import type { TransparencyLog } from "./tlog/log.ts";
+import type { Surface } from "./surface/surface.ts";
+
+export type Ctx = {
+  cfg: Config;
+  db: Db;
+  dbKind: "pglite" | "postgres";
+  catalog: Catalog;
+  health: HealthTracker;
+  signer: ReceiptSigner;
+  limiter: RateLimiter;
+  chain: ChainService;
+  cache: ResponseCache;
+  telemetry: Telemetry;
+  /** Customer trace export: spans of public-lane calls sent to the destination a key's owner configured. */
+  tracing: TracingExporter;
+  jobs: Jobs;
+  /** Set only when TELEGRAM_BOT_TOKEN is configured; stopped before the jobs on shutdown. */
+  telegram?: { stop(): Promise<void> };
+  /** Set only when TRELLIS_FEATURE_BLIND is on: the blind-token issuer keys and verifier. */
+  blind?: BlindIssuer;
+  /** The fetch used for Hugging Face API calls (day-zero discovery, creator claims); the global fetch when unset. Tests inject one. */
+  hfFetch?: typeof fetch;
+  /** Set only when OHTTP_ENABLED is on: the Oblivious HTTP gateway keys. */
+  ohttp?: OhttpKeys;
+  /** Set only when TLOG_ENABLED is on: the transparency log of keys and configurations. */
+  tlog?: TransparencyLog;
+  /** The launch surface this process registered (src/surface/surface.ts); set by createApp before any route is mounted. */
+  surface?: Surface;
+  /** Test hook: deterministic provider shuffle. */
+  rand?: () => number;
+};
