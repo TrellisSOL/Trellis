@@ -1,0 +1,936 @@
+import { approveAndAllowBodyReader } from "./approve-and-allow.ts"; // B118
+import { modelAlternativesReader } from "./model-alternatives.ts"; // B121
+import { lowBalanceReader } from "./low-balance.ts"; // B119
+import { anonymousRateFamily, hardeningAddresses, hardeningBodies } from "./hardening.ts"; // HD1
+import { weeklySummaryReader } from "./weekly-summary.ts"; // B120
+import { fastCreditLogRecords } from "./fast-credit.ts";
+import { depositProgressReader } from "./deposit-progress.ts"; // V97B
+import { rushStores } from "./rush.ts"; // ON3
+import { toolsBodyReader, toolsRateFamilies, toolsStores } from "./tools.ts"; // v6 T: paid tool market.
+import { agentPayBodyReader, agentPayRateFamily } from "./agent-pay.ts"; // Pay another agent
+import { feedbackLimit, hostIdentityLimit, identityBodyReader, identityStores } from "./identity.ts"; // v6 I
+import { provisioningBodyReader, inferenceModelReader } from "./provisioning.ts"; // ZK6
+import { structuredOutputReader } from "./structured-output.ts"; // V83
+import { statementStores } from "./statements.ts"; // V87
+import { proofPackLimit, proofPackStores } from "./proof-pack.ts"; // U100
+import { laneReportLimit, laneReportStores } from "./lane-report.ts"; // Lane report
+import { insightsStores } from "./insights.ts"; // V88: read-only aggregates.
+import { dataToolStores } from "./data-tools.ts"; // B: market-data tools and decision tags.
+import { webhookBodyReader, webhookStores } from "./webhooks.ts"; // V86: event delivery.
+import { makegoodStores } from "./makegood.ts"; // V6 R: make-good refunds.
+import { inboxStores } from "./inbox.ts"; // U78: account inbox inventory.
+import { activityStores } from "./activity.ts";
+import { profileBodyReader } from "./profiles.ts";
+import { holderBodyReader, holderVoteLimit } from "./holders.ts";
+import { bushelBuyLimit, supplyBodyReaders } from "./supply.ts"; // Prepaid capacity purchases; supply and auto-listing operator routes.
+import { sealedBodyReaders, sealedOtherStores } from "./sealed.ts";
+import { telegramLinkRate, telegramLinkReader } from "./telegram-linking.ts";
+import type { Evidence, ExternalDoc, RedisFamily, Touchpoint } from "./types.ts";
+import { networkJoinStores } from "./network-join.ts";
+import { networkStatsStores } from "./network-stats.ts";
+import { x402RecoveryFamily, x402RecoveryReader } from "./x402-recovery.ts";
+import { shadowRedisFamilies, verifiableStores } from "./tables/verifiable.ts"; // Shadow re-execution queue.
+import { facilitatorBodyReader } from "./facilitator.ts"; // x402 facilitator verify/settle
+
+// Everything the router keeps, or touches, outside Postgres: Redis keys (with their lifetimes and whether they contain a network
+// address), the application log, telemetry, backups and the places in the code that read a request's body or a caller's address.
+//
+// Every statement carries evidence: a file and a line of code that shows it. test/data-inventory.test.ts checks that the file
+// exists and still contains that text, and scans the source so a new limiter key, a new log field that reads a request, a new
+// reader of a caller's address or a new route that reads a body fails until it is described here.
+
+const ev = (file: string, contains: string, note?: string): Evidence => ({ file, contains, ...(note ? { note } : {}) });
+
+/** Redis key lifetime for a rate-limit window: the window plus one second (RedisRateLimiter.take). */
+export const windowTtl = (seconds: number) => `${(seconds + 1).toLocaleString("en-US")} seconds (the ${seconds.toLocaleString("en-US")}-second window plus one second)`;
+
+const RL_KEY = ev("src/lib/ratelimit.ts", "const k = `rl:${key}:${start}`;", "The stored key is rl:<limiter key>:<window start in ms>.");
+const RL_TTL = ev("src/lib/ratelimit.ts", "await this.redis.pexpire(k, windowMs + 1000);", "The key expires one second after its window ends.");
+
+const RB_KEY = ev("src/lib/ratelimit.ts", "const k = `rb:${key}`;", "The stored key is rb:<budget key>; its value is the level left and the time it was last touched.");
+const RB_TTL = ev("src/lib/ratelimit.ts", 'call("SET", KEYS[1], tostring(level) .. ":" .. tostring(now), "PX", window + 1000)', "The key expires one second after one full window without use, by when the budget is full again.");
+
+/** A continuously refilled budget (RateLimiter.spend): one key, no window in its name. */
+function budget(o: { prefix: string; shape: string; purpose: string; holds: RedisFamily["holds"]; seconds: number; evidence: Evidence[] }): RedisFamily {
+  return {
+    key: `rb:${o.shape}`,
+    purpose: o.purpose,
+    holds: o.holds,
+    limiterPrefix: o.prefix,
+    windowSeconds: o.seconds,
+    ttl: windowTtl(o.seconds),
+    evidence: [...o.evidence, RB_KEY, RB_TTL],
+  };
+}
+
+function limit(o: { prefix: string; shape: string; purpose: string; holds: RedisFamily["holds"]; seconds: number; evidence: Evidence[] }): RedisFamily {
+  return {
+    key: `rl:${o.shape}:<window start>`,
+    purpose: o.purpose,
+    holds: o.holds,
+    limiterPrefix: o.prefix,
+    windowSeconds: o.seconds,
+    ttl: windowTtl(o.seconds),
+    evidence: [...o.evidence, RL_KEY, RL_TTL],
+  };
+}
+
+const ADDRESS_NOTE = "The caller's network address is part of the key. Over Tor the address is replaced by the word onion, so no address is used.";
+
+const redisFamilies: RedisFamily[] = [
+  anonymousRateFamily, // HD1
+  ...toolsRateFamilies, // v6 T
+  agentPayRateFamily, // Pay another agent
+  limit({ prefix: "agent-certificate:", shape: "agent-certificate:<account id>", purpose: "Record-certificate and track-record issuance attempts: five per minute per account, shared across standalone, profile and track-record issuance, its keys and router replicas. Contains only the account id and a counter; no certificate pseudonym, claims or stats.", holds: "account", seconds: 60, evidence: [ev("src/api/agent-certificates.ts", "await ctx.limiter.take(`agent-certificate:${key.accountId}`"), ev("src/agents/profiles.ts", "await ctx.limiter.take(`agent-certificate:${key.accountId}`"), ev("src/identity/track-record.ts", "await ctx.limiter.take(`agent-certificate:${key.accountId}`")] }),
+  limit({ prefix: "agent-replay:", shape: "agent-replay:<caller key hash>", purpose: "Rulebook replays (POST /api/v1/agents/:key_hash/replay), ten per minute per calling key. Contains only the caller's key hash and a counter; no draft, call or result.", holds: "key-hash", seconds: 60, evidence: [ev("src/api/agents.ts", "await ctx.limiter.take(`agent-replay:${caller.keyHash}`")] }),
+  feedbackLimit, // v6 I
+  hostIdentityLimit, // v6 I: wallet-signed host identity requests
+  proofPackLimit, // U100
+  laneReportLimit, // Lane report
+  holderVoteLimit, // $TRLS holder polls
+  bushelBuyLimit, // prepaid capacity purchases
+  telegramLinkRate,
+  limit({ prefix: "network-host-wallet:", shape: "network-host-wallet:<operator wallet>", purpose: "Wallet-authenticated host signup and credential updates, three per minute per wallet. Links attempts by the public operator wallet.", holds: "wallet", seconds: 60, evidence: [ev("src/api/network-hosts.ts", "await ctx.limiter.take(`network-host-wallet:${auth.wallet}`")] }),
+  limit({ prefix: "network-host-address:", shape: "network-host-address:<caller address or onion>", purpose: "Host signup and credential attempts, ten per minute per network address, with the existing scaled shared onion bucket. The raw address is temporarily part of the Redis key.", holds: "address", seconds: 60, evidence: [ev("src/api/network-hosts.ts", "await ctx.limiter.take(`network-host-address:${from.id}`")] }),
+  // Sponsored network fees (security review round 3, R3-01 and R3-17): the router key on the per-call x402 path and the
+  // relay of the hosted facilitator. src/solana/sponsor.ts.
+  limit({ prefix: "sponsor-payer:", shape: "sponsor-payer:<x402 or relay>:<payer wallet>", purpose: "Sponsored x402 payments one payer may have a fee payer sign per minute (X402_PAYER_PER_MIN on the per-call path, FACILITATOR_PAYER_PER_MIN on the hosted relay), counted before anything is signed. Links attempts by the public paying wallet.", holds: "wallet", seconds: 60, evidence: [ev("src/solana/sponsor.ts", "await ctx.limiter.take(`sponsor-payer:${o.scope}:${o.payer}`")] }),
+  limit({ prefix: "sponsor-seller:", shape: "sponsor-seller:<seller payTo wallet>", purpose: "Hosted x402 facilitator: settlements for one seller (payTo) the relay signs per minute (FACILITATOR_SELLER_PER_MIN), counted before the relay signs. Links settle attempts by the public seller wallet.", holds: "wallet", seconds: 60, evidence: [ev("src/solana/sponsor.ts", "await ctx.limiter.take(`sponsor-seller:${o.seller}`")] }),
+  limit({ prefix: "sponsor-source:", shape: "sponsor-source:<caller address or onion>", purpose: `Sponsored x402 payments per minute from one network address (X402_SOURCE_PER_MIN), on the per-call path and on the hosted relay's settle route. ${ADDRESS_NOTE}`, holds: "address", seconds: 60, evidence: [ev("src/solana/percall.ts", "await ctx.limiter.take(`sponsor-source:${from.id}`"), ev("src/solana/facilitator.ts", "await ctx.limiter.take(`sponsor-source:${from.id}`")] }),
+  budget({ prefix: "sponsor-payer-lamports:", shape: "sponsor-payer-lamports:<x402 or relay>:<payer wallet>", purpose: "Lamports of sponsored network fees one payer may cause over any 24 hours (X402_PAYER_LAMPORTS_PER_DAY): a continuously refilled budget, counted at what each payment can cost before anything is signed and handed back when nothing was sent. Links by the public paying wallet; holds a level and a time.", holds: "wallet", seconds: 86_400, evidence: [ev("src/solana/sponsor.ts", "await ctx.limiter.spend(`sponsor-payer-lamports:${o.scope}:${o.payer}`")] }),
+  budget({ prefix: "sponsor-budget-minute:", shape: "sponsor-budget-minute:<x402 or relay>", purpose: "What a fee payer may spend on sponsored network fees over any minute, whoever asks (X402_SPONSOR_LAMPORTS_PER_MIN for the router key, FACILITATOR_RELAY_LAMPORTS_PER_MIN for the relay). One key per fee payer; it names no caller.", holds: "nothing-personal", seconds: 60, evidence: [ev("src/solana/sponsor.ts", "await ctx.limiter.spend(`sponsor-budget-minute:${o.scope}`")] }),
+  budget({ prefix: "sponsor-budget-day:", shape: "sponsor-budget-day:<x402 or relay>", purpose: "What a fee payer may spend on sponsored network fees over any 24 hours, whoever asks (X402_SPONSOR_LAMPORTS_PER_DAY, FACILITATOR_RELAY_LAMPORTS_PER_DAY). One key per fee payer; it names no caller.", holds: "nothing-personal", seconds: 86_400, evidence: [ev("src/solana/sponsor.ts", "await ctx.limiter.spend(`sponsor-budget-day:${o.scope}`")] }),
+  // POST /api/v1/receipts/verify takes no key: its chain lookups are counted per caller address and in total (R3-29).
+  limit({ prefix: "receipts-verify-chain:", shape: "receipts-verify-chain:<caller address or onion>", purpose: `Chain lookups per minute that one network address may cause through the unauthenticated receipt verify route; past it the answer says the chain was not consulted. ${ADDRESS_NOTE}`, holds: "address", seconds: 60, evidence: [ev("src/api/generation.ts", "await ctx.limiter.take(`receipts-verify-chain:${from.id}`")] }),
+  limit({ prefix: "receipts-verify-all", shape: "receipts-verify-all", purpose: "Chain lookups per minute the receipt verify route may cause in total. One fixed key; it names no caller.", holds: "nothing-personal", seconds: 60, evidence: [ev("src/api/generation.ts", 'await ctx.limiter.take("receipts-verify-all"')] }),
+  limit({ prefix: "network-waitlist:", shape: "network-waitlist:<minute-keyed address digest or onion>", purpose: "Waitlist POST and DELETE requests, ten per minute per address; onion requests share the existing scaled onion bucket. A secret-keyed HMAC rotates every minute; no raw IP or user agent is stored. The digest still links requests within that minute.", holds: "digest", seconds: 60, evidence: [ev("src/network/waitlist.ts", "await ctx.limiter.take(`network-waitlist:${bucket}`")] }),
+  limit({
+    prefix: "ip:",
+    shape: "ip:<caller address>",
+    purpose: `Requests per minute for a call that carries no API key. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `ip:${from.id}`"), ev("src/api/embeddings.ts", "await ctx.limiter.take(`ip:${from.id}`"), ev("src/api/rerank.ts", "await ctx.limiter.take(`ip:${from.id}`")],
+  }),
+  limit({
+    prefix: "blind-ip:",
+    shape: "blind-ip:<caller address>",
+    purpose: `Requests per minute for a call paid with a blind token. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `blind-ip:${from.id}`"), ev("src/api/embeddings.ts", "await ctx.limiter.take(`blind-ip:${from.id}`"), ev("src/api/rerank.ts", "await ctx.limiter.take(`blind-ip:${from.id}`")],
+  }),
+  limit({
+    prefix: "newkey:",
+    shape: "newkey:<caller address>",
+    purpose: `New API keys per hour. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 3600,
+    evidence: [ev("src/api/keys.ts", "await ctx.limiter.take(`newkey:${from.id}`")],
+  }),
+  limit({
+    prefix: "deposits-read:",
+    shape: "deposits-read:<account id>",
+    purpose: "Reads of an account's deposit status per minute (GET /api/v1/credits/deposits), so a key cannot make the router's RPC look signatures up without bound.",
+    holds: "account",
+    seconds: 60,
+    evidence: [ev("src/api/deposits.ts", "await ctx.limiter.take(`deposits-read:${id}`")],
+  }),
+  limit({
+    prefix: "deposit-status-rpc",
+    shape: "deposit-status-rpc",
+    purpose: "Deposit-status lookups all accounts together may send to the Solana RPC per minute. One shared counter; it names nobody.",
+    holds: "nothing-personal",
+    seconds: 60,
+    evidence: [ev("src/solana/deposit-progress.ts", "await ctx.limiter.take(\"deposit-status-rpc\"")],
+  }),
+  limit({
+    prefix: "wallet-login:",
+    shape: "wallet-login:<caller address>",
+    purpose: `Wallet sign-in challenges per minute. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/api/keys.ts", "await ctx.limiter.take(`wallet-login:${from.id}`")],
+  }),
+  limit({
+    prefix: "team-auth:",
+    shape: "team-auth:<caller address>",
+    purpose: `Team join and sign-in attempts per minute (passkey or wallet), which need no API key. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/api/teams.ts", "await ctx.limiter.take(`team-auth:${from.id}`")],
+  }),
+  limit({
+    prefix: "ohttp-gw:ip:",
+    shape: "ohttp-gw:ip:<caller address>",
+    purpose: `Oblivious HTTP gateway requests per minute from a client that did not come through an authenticated relay. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/ohttp/gateway.ts", "`ohttp-gw:ip:${from.id}`")],
+  }),
+  limit({
+    prefix: "ohttp-gw:relay:",
+    shape: "ohttp-gw:relay:<relay key id>",
+    purpose: "Oblivious HTTP gateway requests per minute for one authenticated relay. It names the relay, not the clients behind it.",
+    holds: "nothing-personal",
+    seconds: 60,
+    evidence: [ev("src/ohttp/gateway.ts", "`ohttp-gw:relay:${relay.keyId}`")],
+  }),
+  limit({
+    prefix: "tlog-cosign:",
+    shape: "tlog-cosign:<caller address>",
+    purpose: `Transparency-log cosignature submissions per minute. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 60,
+    evidence: [ev("src/tlog/routes.ts", "await ctx.limiter.take(`tlog-cosign:${from.id}`")],
+  }),
+  limit({
+    prefix: "claim-issue-ip:",
+    shape: "claim-issue-ip:<caller address>",
+    purpose: `Creator claim challenges per hour. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 3600,
+    evidence: [ev("src/services/creators.ts", "await ctx.limiter.take(`claim-issue-ip:${from.id}`")],
+  }),
+  limit({
+    prefix: "claim-verify-ip:",
+    shape: "claim-verify-ip:<caller address>",
+    purpose: `Creator claim verifications per hour. ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 3600,
+    evidence: [ev("src/services/creators.ts", "await ctx.limiter.take(`claim-verify-ip:${from.id}`")],
+  }),
+  limit({
+    prefix: "k:",
+    shape: "k:<key hash>",
+    purpose: "Requests per minute for one API key. Keyed by the SHA-256 of the key; no address is read for a call that carries a key.",
+    holds: "key-hash",
+    seconds: 60,
+    evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `k:${key.keyHash}`"), ev("src/api/embeddings.ts", "await ctx.limiter.take(`k:${key.keyHash}`"), ev("src/api/rerank.ts", "await ctx.limiter.take(`k:${key.keyHash}`")],
+  }),
+  limit({
+    prefix: "acct:",
+    shape: "acct:<account id>",
+    purpose: "Inference requests per minute for one account, over all of its keys (ACCOUNT_RPM; security review R5-05): sub-keys each have their own limit, so the per-key count alone bounds no account. Keyed by the account id; no address is read for a call that carries a key.",
+    holds: "account",
+    seconds: 60,
+    evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `acct:${key.accountId}`"), ev("src/api/embeddings.ts", "await ctx.limiter.take(`acct:${key.accountId}`")],
+  }),
+  limit({
+    prefix: "slow-k:",
+    shape: "slow-k:<first 32 hex characters of the SHA-256 of the presented key>",
+    purpose: "Inference calls of one API key that the router had to cut off (its timeout, an answer above the size it reads) inside ten minutes (SLOW_CALLS_PER_10MIN; security review R5-04); past the limit further calls of that key are refused until the window ends. A count; nothing of the calls themselves.",
+    holds: "key-hash",
+    seconds: 600,
+    evidence: [ev("src/api/admission.ts", "await ctx.limiter.take(`slow-k:${sha256(secret).slice(0, 32)}`, 0, slow - 1, 600_000)")],
+  }),
+  limit({
+    prefix: "slow-ip:",
+    shape: "slow-ip:<caller address>",
+    purpose: `The same count for calls that carry no API key (a per-call payment). ${ADDRESS_NOTE}`,
+    holds: "address",
+    seconds: 600,
+    evidence: [ev("src/api/admission.ts", "await ctx.limiter.take(`slow-ip:${from.id}`, 0, slow - 1, 600_000)")],
+  }),
+  limit({
+    prefix: "kc:",
+    shape: "kc:<key hash>",
+    purpose: "Requests per minute for one API key on the Anthropic-compatible endpoint.",
+    holds: "key-hash",
+    seconds: 60,
+    evidence: [ev("src/api/anthropic.ts", "await ctx.limiter.take(`kc:${key.keyHash}`")],
+  }),
+  limit({
+    prefix: "kt:",
+    shape: "kt:<key hash>",
+    purpose: "Tokens per minute for one API key: a running count of prompt tokens, not their text.",
+    holds: "key-hash",
+    seconds: 60,
+    evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `kt:${billing.key.keyHash}`"), ev("src/api/council.ts", "tk.limitOrThrow(ctx, `kt:${billing.key.keyHash}`")],
+  }),
+  limit({
+    prefix: "skills-import:",
+    shape: "skills-import:<key hash>",
+    purpose: "Skill imports per hour for one API key (each import may fetch a repository and runs the scanner).",
+    holds: "key-hash",
+    seconds: 3600,
+    evidence: [ev("src/api/skills.ts", "await ctx.limiter.take(`skills-import:${key.keyHash}`")],
+  }),
+  limit({
+    prefix: "blind:buy:",
+    shape: "blind:buy:<key hash>",
+    purpose: "Blind-token purchases per minute for one API key.",
+    holds: "key-hash",
+    seconds: 60,
+    evidence: [ev("src/blind/purchase.ts", "await ctx.limiter.take(`blind:buy:${caller.keyHash}`")],
+  }),
+  limit({
+    prefix: "provider-applications",
+    shape: "provider-applications",
+    purpose: "Provider applications per minute, counted across all callers in one key. There is no per-caller part.",
+    holds: "nothing-personal",
+    seconds: 60,
+    evidence: [ev("src/providers/application.ts", 'await ctx.limiter.take("provider-applications"')],
+  }),
+  limit({
+    prefix: "claim:",
+    shape: "claim:<model id>",
+    purpose: "Creator claims per hour for one model.",
+    holds: "model",
+    seconds: 3600,
+    evidence: [ev("src/api/public.ts", "await ctx.limiter.take(`claim:${v.model}`")],
+  }),
+  limit({
+    prefix: "claim-issue:",
+    shape: "claim-issue:<model id>",
+    purpose: "Claim challenges per hour for one model.",
+    holds: "model",
+    seconds: 3600,
+    evidence: [ev("src/services/creators.ts", "await ctx.limiter.take(`claim-issue:${modelId}`")],
+  }),
+  limit({
+    prefix: "claim-verify:",
+    shape: "claim-verify:<claim id>",
+    purpose: "Claim verifications per hour for one claim.",
+    holds: "nothing-personal",
+    seconds: 3600,
+    evidence: [ev("src/services/creators.ts", "await ctx.limiter.take(`claim-verify:${id}`")],
+  }),
+  limit({
+    prefix: "telegram:",
+    shape: "telegram:<Telegram user id>",
+    purpose: "Telegram bot messages per minute for one Telegram user. The user id is a number Telegram assigns; the message text is not part of the key.",
+    holds: "telegram-user",
+    seconds: 60,
+    evidence: [ev("src/services/telegram.ts", "await this.ctx.limiter.take(`telegram:${uid}`")],
+  }),
+  limit({
+    prefix: "readiness",
+    shape: "readiness",
+    purpose: "The readiness probe checks the limiter works by taking zero from a fixed key.",
+    holds: "nothing-personal",
+    seconds: 60,
+    evidence: [ev("src/services/readiness.ts", 'ctx.limiter.take("readiness", 0, 1, 60_000)')],
+  }),
+  {
+    key: "cache:<sha256>",
+    purpose:
+      "The opt-in response cache (a request that sends cache.mode or the X-Trellis-Cache header). It holds the answer to a request, so for as long as it lives this is a place answer text is kept: sealed with AES-256-GCM under a key derived from the router's APP_SECRET and the caller's own scope, so only that caller's identical request can read it back. The Redis key is a SHA-256 of the scope and the request, not the request.",
+    holds: "digest",
+    requestText: "answer-text",
+    ttl: "It is kept for the time-to-live the request asked for in cache.ttl: at most CACHE_TTL_S, which is 3,600 seconds unless the operator changed it, and also the default when the request names none.",
+    evidence: [
+      ev("src/gateway/cache.ts", "await this.redis.set(`cache:${key}`, JSON.stringify({ payload, upstream: upstream.toString() }), \"PX\", ttlS * 1000);"),
+      ev("src/gateway/cache.ts", "const payload = this.encrypt(scope, response);"),
+      ev("src/api/chat.ts", "validateCacheTtl(body, ctx.cfg.gateway.cacheTtlS);"),
+      ev("src/api/chat.ts", "billing?.mode !== \"blind\"", "Never used for a blind-token call, a call with a disclosure ceiling, a restricted model variant or a stream."),
+    ],
+  },
+  {
+    key: "walletauth:<sha256>",
+    purpose: "Replay protection for wallet-signed requests: a marker that a signature was already used. The key is a SHA-256 of the wallet address, the timestamp and the request's hash.",
+    holds: "wallet",
+    ttl: "600 seconds",
+    evidence: [ev("src/api/auth.ts", "`walletauth:${id}`, \"1\", \"PX\", 600_000, \"NX\"")],
+  },
+  {
+    key: "batch:<batch id>:in and batch:<batch id>:out",
+    purpose:
+      "The Batch API (POST /api/v1/batches). A batch's requests (:in) and its answers (:out), one field per line, each sealed with AES-256-GCM under a key derived from the router's APP_SECRET, the batch id and the hash of the key that sent it, so only that key's batch can read them back. They are kept here, never in the database, so the worker can run the lines and the key can fetch the results.",
+    holds: "nothing-personal",
+    requestText: "request-and-answer-text",
+    ttl: "The sealed requests are deleted when the batch finishes; the sealed answers BATCH_RESULTS_TTL after that (86,400 seconds, 24 hours, unless the operator changed it). A batch that never finishes ends when its 24-hour completion window closes, so nothing outlives the window plus that time.",
+    evidence: [
+      ev("src/services/batches.ts", "saveInputs = (b: BatchRow, lines: LineInput[], ttlMs: number) => this.hset(`batch:${b.id}:in`"),
+      ev("src/services/batches.ts", "private encryptLine = (b: Pick<BatchRow, \"id\" | \"keyHash\">, v: unknown) => encrypt(this.scope(b), JSON.stringify(v));"),
+      ev("src/services/batches.ts", "await this.del(`batch:${b.id}:in`);"),
+      ev("src/services/batches.ts", "await batchStore(ctx).purge(b);"),
+    ],
+  },
+  {
+    key: "bull:trellis-jobs-<group>:*",
+    purpose: "The background job queue (BullMQ) that makes exactly one replica run each recurring job. The job data is empty ({}), so no request or user data is in it; a finished job's result or failure message is kept for the last 100 completed and 100 failed jobs.",
+    holds: "nothing-personal",
+    ttl: "Recurring job schedules stay while the router runs; only the most recent 100 completed and 100 failed jobs are kept.",
+    evidence: [ev("src/services/jobs.ts", "removeOnComplete: 100, removeOnFail: 100"), ev("src/services/jobs.ts", "upsertJobScheduler(j.name, { every: j.everyMs }, { name: j.name")],
+  },
+  x402RecoveryFamily,
+  ...shadowRedisFamilies,
+];
+
+const addressReaders: Touchpoint[] = [
+  ...hardeningAddresses, // HD1
+  { file: "src/solana/percall.ts", reads: "The caller address bucket of a keyless request that carries a sponsored x402 payment; a request from the Oblivious HTTP gateway has none, and over Tor the shared onion bucket is used.", then: "Counts sponsored payments per address through the existing limiter (sponsor-source), so one source cannot have the router key sign without bound.", kept: "Raw address in the limiter key for 61 seconds in Redis, or until the memory limiter sweeps; never in a settlement row, a receipt or the application log.", evidence: [ev("src/solana/percall.ts", "const from = gatewayOrigin(c.req.raw) ? null : addressBucket(c, ctx.cfg);")] },
+  { file: "src/solana/facilitator.ts", reads: "The caller address bucket on POST /facilitator/settle.", then: "Counts settlements per address through the existing limiter (sponsor-source) before the relay signs.", kept: "Raw address in the limiter key for 61 seconds in Redis, or until the memory limiter sweeps; never in the settlement row or the application log.", evidence: [ev("src/solana/facilitator.ts", "const from = addressBucket(c, ctx.cfg);")] },
+  { file: "src/api/public.ts", reads: "The caller address bucket on POST /api/v1/receipts/verify, which takes no key.", then: "Passed to the verifier so that chain lookups are counted per address (receipts-verify-chain); past the limit the answer says the chain was not consulted.", kept: "Raw address in the limiter key for 61 seconds in Redis, or until the memory limiter sweeps; never stored with a receipt or logged.", evidence: [ev("src/api/public.ts", "const source = addressBucket(c, ctx.cfg).id;")] },
+  { file: "src/api/network-hosts.ts", reads: "The caller address bucket on host signup and credential writes.", then: "Counts attempts through the existing per-address limiter; trusted proxy and onion rules apply.", kept: "Raw address in the limiter key for 61 seconds in Redis, or until the memory limiter sweeps; never in the host row or application log.", evidence: [ev("src/api/network-hosts.ts", "const from = addressBucket(c, ctx.cfg);")] },
+  { file: "src/network/waitlist.ts", reads: "Address bucket for a waitlist POST or DELETE; onion requests use the shared onion bucket.", then: "A secret-keyed HMAC of the address and current minute is passed to the existing limiter; onion stays the word onion.", kept: "Only a minute-specific keyed digest and counter: 61 seconds in Redis, or up to six minutes without Redis until the memory limiter sweeps old windows. No raw IP or user agent, and no address-derived value in the waitlist table.", evidence: [ev("src/network/waitlist.ts", "const from = addressBucket(c, ctx.cfg);")] },
+  { file: "src/api/e2ee.ts", reads: "The address only for encrypted calls without a key outside the Oblivious HTTP gateway; over Tor the fixed onion bucket is used.", then: "Uses the existing blind-ip rate-limit family.", kept: "Only the counter key, for 61 seconds; no address in a generation, receipt or log.", evidence: [ev("src/api/e2ee.ts", "const from = addressBucket(c, ctx.cfg);")] },
+  {
+    file: "src/api/common.ts",
+    reads: "The selected client address from the shared ingress helper: socket by default, the trusted hop counted from the right when TRUST_PROXY is on, or CF-Connecting-IP when the enabled origin lock secret is valid.",
+    then: "Returned to a caller as the key of a per-address rate limit. Requests that arrived over Tor get the fixed word onion instead of an address (addressBucket).",
+    kept: "Not written to Postgres and not logged. It exists in Redis only as part of the rate-limit keys listed above, for at most an hour.",
+    evidence: [ev("src/api/common.ts", "export function clientIp(c: Context, trustProxy = false)"), ev("src/api/common.ts", "return { id: \"onion\", onion: true")],
+  },
+  {
+    file: "src/api/chat.ts",
+    reads: "The caller's address, only for a call that carries no API key and did not arrive through the Oblivious HTTP gateway.",
+    then: "Counted against ip:<address> (or blind-ip:<address> for a blind token).",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/api/chat.ts", "const from = addressBucket(c, ctx.cfg);")],
+  },
+  {
+    file: "src/api/embeddings.ts",
+    reads: "The caller's address, only for a call without an API key.",
+    then: "Counted against ip:<address> or blind-ip:<address>.",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/api/embeddings.ts", "const from = addressBucket(c, ctx.cfg);")],
+  },
+  {
+    file: "src/api/rerank.ts",
+    reads: "The caller's address, only for a call without an API key.",
+    then: "Counted against ip:<address> or blind-ip:<address>.",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/api/rerank.ts", "const from = addressBucket(c, ctx.cfg);")],
+  },
+  {
+    file: "src/api/lane.ts",
+    reads: "The caller's address on an operator route (ADMIN_TOKEN), in LAUNCH_SURFACE=core and wherever ADMIN_ALLOWED_SOURCES is set.",
+    then: "Compared with loopback and with the configured source addresses; a caller at any other address is refused.",
+    kept: "Not kept: compared in memory and discarded.",
+    evidence: [ev("src/api/lane.ts", "const source = clientIp(c, ctx.cfg.trustProxy)")],
+  },
+  {
+    file: "src/api/admission.ts",
+    reads: "The caller's address for an inference call (chat, completions, embeddings) that carries no API key, before its body is read.",
+    then: "Counted, in this process's memory, towards the calls that address has open at one time (INFLIGHT_PER_SOURCE), and against slow-ip:<address> when the router had to cut one of its calls off. A call that carries a key is counted by a digest of the key instead.",
+    kept: "The in-flight count lives only while the calls are open. The slow-ip: key is a Redis rate-limit key, for ten minutes.",
+    evidence: [ev("src/api/admission.ts", "const who: Who = secret ? { key: sha256(secret).slice(0, 32) } : { address: from.id };"), ev("src/api/admission.ts", "await ctx.limiter.take(`slow-ip:${from.id}`, 0, slow - 1, 600_000)")],
+  },
+  {
+    file: "src/api/keys.ts",
+    reads: "The caller's address when a key is created and when a wallet sign-in challenge is requested.",
+    then: "Counted against newkey:<address> and wallet-login:<address>.",
+    kept: "Only as the Redis rate-limit keys.",
+    evidence: [ev("src/api/keys.ts", "await ctx.limiter.take(`newkey:${from.id}`"), ev("src/api/keys.ts", "await ctx.limiter.take(`wallet-login:${from.id}`")],
+  },
+  {
+    file: "src/api/teams.ts",
+    reads: "The caller's address when joining a team or signing in to one with a passkey or wallet (no API key yet).",
+    then: "Counted against team-auth:<address>.",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/api/teams.ts", "await ctx.limiter.take(`team-auth:${from.id}`")],
+  },
+  {
+    file: "src/ohttp/gateway.ts",
+    reads: "The caller's address, only for a request that did not come through an authenticated relay. A request through a relay is counted by the relay's key id instead.",
+    then: "Counted against ohttp-gw:ip:<address>.",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/ohttp/gateway.ts", "const from = addressBucket(c, ctx.cfg);")],
+  },
+  {
+    file: "src/tlog/routes.ts",
+    reads: "The submitter's address when a witness posts a cosignature.",
+    then: "Counted against tlog-cosign:<address>.",
+    kept: "Only as the Redis rate-limit key.",
+    evidence: [ev("src/tlog/routes.ts", "const from = addressBucket(c, ctx.cfg);")],
+  },
+  {
+    file: "src/api/creator-claims.ts",
+    reads: "The caller's address when a creator claim is issued or verified.",
+    then: "Handed to services/creators.ts as an address bucket.",
+    kept: "Only as the Redis rate-limit keys.",
+    evidence: [ev("src/api/creator-claims.ts", "addressBucket(c, ctx.cfg)")],
+  },
+  {
+    file: "src/services/creators.ts",
+    reads: "The address bucket it was given.",
+    then: "Counted against claim-issue-ip:<address> and claim-verify-ip:<address>.",
+    kept: "Only as the Redis rate-limit keys.",
+    evidence: [ev("src/services/creators.ts", "await ctx.limiter.take(`claim-issue-ip:${from.id}`")],
+  },
+  {
+    file: "src/api/responses.ts",
+    reads: "The caller's address, so the internal chat call it makes on the caller's behalf is limited exactly as the caller's own call would be.",
+    then: "Passed to the chat route as an in-process value (requestIP) and then handled as in src/api/chat.ts.",
+    kept: "Nothing beyond what src/api/chat.ts keeps.",
+    evidence: [ev("src/api/responses.ts", "const from = clientIp(c, ctx.cfg.trustProxy);"), ev("src/api/responses.ts", "{ requestIP: () => ({ address: from }) }")],
+  },
+  {
+    file: "src/ollama/routes.ts",
+    reads: "The caller's address, so the internal chat or embeddings call it makes on the caller's behalf is limited exactly as the caller's own call would be.",
+    then: "Passed to the chat or embeddings route as an in-process value (requestIP) and then handled as in src/api/chat.ts.",
+    kept: "Nothing beyond what src/api/chat.ts keeps.",
+    evidence: [ev("src/ollama/routes.ts", "const from = clientIp(c, ctx.cfg.trustProxy);"), ev("src/ollama/routes.ts", "{ requestIP: () => ({ address: from }) }")],
+  },
+  {
+    file: "src/onion/ingress.ts",
+    reads: "Nothing. It deletes every header that names a client address (X-Forwarded-For, X-Real-IP, CF-Connecting-IP and others) from requests that arrived over Tor, before any route runs.",
+    then: "Requests over Tor therefore carry no client address for a route, a limiter or a log line to use.",
+    kept: "Not applicable.",
+    evidence: [ev("src/onion/ingress.ts", "headers.delete(name);")],
+  },
+  {
+    file: "relay/src/relay.ts",
+    reads: "The separate Oblivious HTTP relay (run by relay operators, not by the router) forwards a request's body to a gateway without any header, address or cookie of the client.",
+    then: "The forwarded request is built from configuration and the body only. The relay's automated checks fail if its source logs a request or reads a client address.",
+    kept: "The relay keeps counters only: totals and fixed reason labels.",
+    evidence: [ev("relay/src/relay.ts", "The forwarded request is built from nothing but the configured pieces and the body")],
+  },
+  {
+    file: "sidecar/src/headers.ts",
+    reads: "The model-server sidecar inside a provider's enclave forwards only allow-listed headers, so a proxy header cannot carry a client address to the model server.",
+    then: "Forwarded by allow-list, not deny-list; a header that names a network address is refused even in configuration.",
+    kept: "Not applicable.",
+    evidence: [ev("sidecar/src/headers.ts", "Requests are forwarded by allow-list, not by deny-list")],
+  },
+];
+
+const bodyReaders: ExternalDoc["bodyReaders"] = [
+  weeklySummaryReader, // B120
+  modelAlternativesReader, // B121
+  lowBalanceReader, // B119
+  ...hardeningBodies, // HD1
+  { file: "src/api/guard.ts", carries: "settings", reads: "A strict bounded action name, optional target label and order digest, decimal amount and approval identifier, or a reported outcome.", then: "Authenticates the deciding key and serializes checks and reports with the account lock. Action and target are readable caller-chosen labels; targets can name a wallet or host. No full order details are accepted. When DECISION_TAGS_ENABLED is on and an order digest is given, the decision also reads the same agent's calls from the preceding 24 hours whose stored receipt carries that digest as decision_tag and returns their ids, model, provider and time as informed_by; GET /api/v1/guard/decisions reads decisions by digest or receipt id within the Activity scope. Neither stores anything new.", kept: "Decision metadata and reported outcomes in agent_action_decisions, with action decisions and outcomes on agent_policy_events and action approval projections in agent_approvals. Reported amounts are not verified execution.", evidence: [ev("src/api/guard.ts", "guardDecideInput.parse(await readJson(c))")] }, // V98
+  depositProgressReader, // V97B
+  toolsBodyReader, // v6 T
+  agentPayBodyReader, // Pay another agent
+  approveAndAllowBodyReader, // B118
+  provisioningBodyReader, inferenceModelReader, // ZK6
+  structuredOutputReader, // V83
+  webhookBodyReader, // V86.
+  profileBodyReader,
+  holderBodyReader,
+  ...supplyBodyReaders,
+  x402RecoveryReader,
+  facilitatorBodyReader,
+  identityBodyReader, // v6 I
+  ...sealedBodyReaders,
+  telegramLinkReader,
+  { file: "src/api/agent-certificates.ts", carries: "settings", reads: "Bounded record claim identifiers for issuance; a signed certificate supplied by body or query for public verification.", then: "Checks retained generation counts and rulebook events, signs true claims with a fresh random pseudonym, or checks certificate signature and expiry. The router knows the authenticated issuing key.", kept: "No certificate, pseudonym, claims, query or body is persisted. Only an account issuance limiter counter and the reused public receipt signing key log entry are kept; no prompt fields are accepted.", evidence: [ev("src/api/agent-certificates.ts", "bodySchema.parse(await readJson(c))")] },
+  { file: "src/api/playbooks.ts", carries: "settings", reads: "A playbook name of at most 100 characters with a strict bounded rulebook and an optional team id, or a playbook id (or null) for a key to follow.", then: "Requires the same owner/admin permissions as editing a key's rulebook; account-wide playbooks change only with a management key. A rules change is copied to every following key under the account lock.", kept: "The playbook in playbooks, each change with its digest and rules in playbook_changes, the following keys' copies in agent_policies with policy_set events in agent_policy_events, and team audit entries. No prompt or answer fields are accepted.", evidence: [ev("src/api/playbooks.ts", "createBody.parse(await readJson(c))")] }, // U115
+  { file: "src/api/agents.ts", carries: "settings", reads: "A strict bounded rulebook, a kill reason, a metadata-only Intent for a dry run, or a draft rulebook and a number of days (1 to 7) to replay.", then: "Requires the same owner/admin permissions as editing the target key. Evaluates dry runs deterministically without event writes or kill changes. A replay reads that key's recorded calls (model, lane, cost, tokens and time from generations, plus the linked rulebook events) and its Agent Guard checks in a read-only transaction, and evaluates the draft against them.", kept: "Current rulebooks and optional principal-written kill reasons in agent_policies; decision metadata and changes in agent_policy_events. Dry runs and replays keep nothing. No prompt or answer fields are accepted.", evidence: [ev("src/api/agents.ts", "agentPolicySchema.parse(await readJson(c))")] },
+  { file: "src/agents/enforce.ts", carries: "settings", reads: "Declared tool and function names from the inference body already parsed by the router.", then: "Projects only identifiers into the rulebook Intent, alongside the resolved model, lane, token bound and cost reservation.", kept: "Only Intent metadata and fixed decision reasons in agent_policy_events. Never arguments, descriptions, prompt or answer text; no new Redis key family or log field.", evidence: [ev("src/agents/enforce.ts", "export function declaredTools")] },
+  { file: "src/api/network-hosts.ts", carries: "settings", reads: "Up to 8 KiB of host signup JSON or an operator-generated sidecar credential, with an existing wallet signature over the canonical JSON hash.", then: "Strictly validates signup fields, verifies the wallet and performs attestation, policy and sanctions checks. Credentials are accepted only for the recovered operator wallet.", kept: "Provider name, endpoint, operator and payout wallets, requested model IDs, optional contact, status and refusal reasons. Credential stored only in existing AES-GCM api_key_enc. The router sees it in memory. No whole-body log or signature column.", evidence: [ev("src/api/network-hosts.ts", "const reader = c.req.raw.body?.getReader();")] },
+  { file: "src/network/waitlist.ts", carries: "settings", reads: "At most 4 KiB of JSON: waitlist fields or a deletion code.", then: "Validated strictly; a filled honeypot is discarded. The deletion code is hashed for an atomic delete.", kept: "Only sign-up fields, optional contact, id, deletion digest and time in network_waitlist. No raw deletion code, body log, IP or user agent. Free text is readable by the owner; public stats return counts only.", evidence: [ev("src/network/waitlist.ts", "const reader = c.req.raw.body?.getReader();")] },
+  {
+    file: "src/admin/trpc.ts", carries: "settings",
+    reads: "For network.publishPolicy, the operator's policy document decoded by the tRPC transport and validated by hostPolicySchema. No prompt fields are accepted.",
+    then: "Checked for consecutive version and issue time, canonically encoded, signed with the log key, and committed with its transparency-log entry and checkpoint.",
+    kept: "The public canonical policy, hash, signature, public verifier key, version and timestamps in host_policies, and a host_policy hash entry in tlog_entries. No caller address, operator token or request headers are retained by this publication path.",
+    evidence: [ev("src/admin/trpc.ts", "publishPolicy: operator.input(hostPolicySchema)"), ev("src/network/publication.ts", "await log.append([hostPolicyEntry(policy.version, sha256)]);")],
+  },
+  { file: "src/api/e2ee.ts", carries: "prompt-or-answer", reads: "A bounded encrypted JSON envelope and encrypted SSE or JSON response; model, roles, lengths, public keys, timestamp, nonce and clear usage remain visible. A caller must actually encrypt content; framing checks cannot prove encryption.", then: "Validates a strict text envelope, forwards the original bytes without decryption, hashes wire bytes, observes usage and completion for billing. No tools, files, search, cache, alias or content transformations.", kept: "Only hashes, counts or reservation bounds, charge and timing in generations and the ledger. The signed receipt adds end_to_end_encrypted, e2ee version/suite/gateway_attested/complete/billing_basis/input_byte_bound/max_tokens/request_bytes/response_bytes and gateway_receipt (id, keyset digest, response-hash/request-hash/upstream check states and upstream session id and GPU claim). Existing retention and deletion apply. No envelope, response ciphertext, public key, replay nonce, timestamp or credential is persisted; no new log fields or Redis families.", evidence: [ev("src/api/e2ee.ts", "const reader = c.req.raw.body?.getReader();"), ev("src/api/e2ee.ts", "end_to_end_encrypted: true")] },
+  {
+    file: "src/api/chat.ts",
+    carries: "prompt-or-answer",
+    reads: "The whole JSON body of a chat or text completion: the messages, the model and the parameters (readJson).",
+    then: "Read in memory to route the call on every lane: validated, checked against guardrails, priced, then sent to the provider chosen. The request is hashed (request_sha256) and the answer is hashed (response_sha256). Streaming answers are passed through chunk by chunk.",
+    kept: "Not stored. Kept in memory for the length of the call. The opt-in response cache and batch content are kept sealed outside the database (see the Redis section), and a failed provider attempt can keep up to 200 characters of that provider's own error message.",
+    evidence: [ev("src/api/chat.ts", "const body = await readJson(c);"), ev("src/api/chat.ts", "const bodySha = requestHash(body);"), ev("src/api/chat.ts", "response_sha256: sha256(p.responseText),")],
+  },
+  {
+    file: "src/api/batches.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of a batch: up to BATCH_MAX_LINES chat or embeddings requests (requests or input_jsonl).",
+    then: "Checked line by line, then sealed at once and kept in Redis (or memory) for the worker, which runs each line through the chat or embeddings handler as the key that sent the batch.",
+    kept: "Not in the database: the database gets counts, statuses, costs and generation ids. The sealed requests are deleted when the batch finishes and the sealed answers when its results expire (see the Redis section).",
+    evidence: [ev("src/api/batches.ts", "const body = await readJson(c);"), ev("src/services/batches.ts", "await batchStore(ctx).saveInputs(row, lines, storeTtl(ctx, row));")],
+  },
+  {
+    file: "src/api/embeddings.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of an embeddings call: the input text.",
+    then: "Sent to the provider chosen and the vectors returned.",
+    kept: "Not stored; a generation row and receipt with hashes and counts are written.",
+    evidence: [ev("src/api/embeddings.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/api/rerank.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of a rerank call: the query and the documents.",
+    then: "Sent to the provider chosen; its scores are checked and returned, with the documents' own text when asked.",
+    kept: "Not stored; a generation row and receipt with hashes and counts are written.",
+    evidence: [ev("src/api/rerank.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/api/anthropic.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of an Anthropic-format messages call and free onion count requests. The router reads code, prompts and tools in memory.",
+    then: "Converted to a chat request and sent through the router's own chat route, so it is handled and kept exactly as a chat call is.",
+    kept: "Nothing beyond what src/api/chat.ts keeps; token counts alone create no payment or request record.",
+    evidence: [ev("src/api/anthropic.ts", "const raw = await readJson(c);")],
+  },
+  {
+    file: "src/api/responses.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of a Responses-format call.",
+    then: "Converted to a chat request and sent through the router's own chat route.",
+    kept: "Nothing beyond what src/api/chat.ts keeps.",
+    evidence: [ev("src/api/responses.ts", "chatRequestFrom(await readJson(c))")],
+  },
+  {
+    file: "src/ollama/routes.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of an Ollama-format chat, generate or embed call.",
+    then: "Converted to a chat or embeddings request and sent through the router's own route, so it is handled and kept exactly as that call is.",
+    kept: "Nothing beyond what src/api/chat.ts and src/api/embeddings.ts keep.",
+    evidence: [ev("src/ollama/routes.ts", "const raw = await readJson(c);")],
+  },
+  {
+    file: "src/api/mcp.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON-RPC body of a tool call for the MCP endpoint, which can include a prompt.",
+    then: "Chat is forwarded to the router's own chat route. Rulebook tools forward caller authentication and prompt-free intent identifiers to the existing agents routes; token estimates use catalog prices. Reading and checking rules does not create policy events.",
+    kept: "Nothing beyond what src/api/chat.ts and its existing policy enforcement keep. Rulebook reads and dry runs add no stored data.",
+    evidence: [ev("src/api/mcp.ts", "msg = JSON.parse(await c.req.text())")],
+  },
+  {
+    file: "src/api/rag.ts",
+    carries: "prompt-or-answer",
+    reads: "The documents and the question of a retrieval call.",
+    then: "Cut into chunks and embedded through the router's own embeddings route, ranked in memory, and the best chunks sent to the router's chat route.",
+    kept: "Nothing of the documents, question or answer is kept; the chunks and vectors are dropped when the request ends. The response cache is never used.",
+    evidence: [ev("src/api/rag.ts", "const raw = await readJson(c);"), ev("src/api/rag.ts", "What is kept: nothing of the documents, the question or the answer.")],
+  },
+  {
+    file: "src/ohttp/gateway.ts",
+    carries: "prompt-or-answer",
+    reads: "An encapsulated request (Oblivious HTTP). The gateway opens it with its own private key, in memory.",
+    then: "Dispatched to the router's own routes as an ordinary request without a client address.",
+    kept: "Nothing beyond what the route it reaches keeps. The private key for an epoch is destroyed when its window ends.",
+    evidence: [ev("src/ohttp/gateway.ts", "const body = await readCapped(raw.body, cfg.maxRequestBytes);")],
+  },
+  {
+    file: "src/services/telegram.ts",
+    carries: "prompt-or-answer",
+    reads: "A Telegram message a user sent to the bot (fetched from Telegram by long polling).",
+    then: "Sent to the router's own chat route with the user's own API key, so limits, billing and receipts apply.",
+    kept: "The message text is not stored or logged; only the user's sealed key and chosen model are (kv table).",
+    evidence: [ev("src/services/telegram.ts", "Never logged: keys, message text, the bot token")],
+  },
+  {
+    file: "src/gateway/cache.ts",
+    carries: "prompt-or-answer",
+    reads: "The request and the answer, only when the caller opted in.",
+    then: "Encrypted and stored with a time-to-live (memory and, when configured, Redis). A hit is served without asking a provider.",
+    kept: "The sealed answer, for the time-to-live the caller asked for (at most CACHE_TTL_S). A semantic cache also keeps, in memory only, a 1,024-number hashed word vector of the prompt so near-duplicates can match.",
+    evidence: [ev("src/gateway/cache.ts", "Never written to Postgres: entries live in memory (or Redis with a TTL)"), ev("src/gateway/cache.ts", "vector: mode === \"semantic\" ? lexicalVector(textOf(body)) : undefined,")],
+  },
+  {
+    file: "src/api/common.ts",
+    carries: "settings",
+    reads: "The shared JSON body reader used by the routes below: it reads the text, checks its size (16 MB at most) and parses it.",
+    then: "Returned to the route.",
+    kept: "Nothing.",
+    evidence: [ev("src/api/common.ts", "const text = await c.req.text();")],
+  },
+  {
+    file: "src/api/keys.ts",
+    carries: "settings",
+    reads: "Key settings (name, budget, limits, allowed models, tracing destination, scope, include_byok_in_limit and the auto top-up amounts), amounts, BYOK provider keys, team roles and wallet sign-in challenges.",
+    then: "Validated and written to the keys, byok_keys, teams and kv tables as described above.",
+    kept: "The settings and, for a BYOK key or a tracing destination, the key or the destination URL and credentials encrypted under APP_SECRET.",
+    evidence: [ev("src/api/keys.ts", "const spec = keySpec.parse(rawSpec);")],
+  },
+  {
+    file: "src/api/saved-routes.ts",
+    carries: "settings",
+    reads: "A saved route: fallback models, provider preferences and sampling controls.",
+    then: "Validated against a strict schema with no field for message text, then stored.",
+    kept: "The route in saved_routes.",
+    evidence: [ev("src/api/saved-routes.ts", "routeCreateSchema.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/skills.ts",
+    carries: "public-data",
+    reads:
+      "A skill to publish: a repository URL, ref and folder, or an uploaded .tar.gz, .tar or .zip of a skill folder (SKILL.md, scripts and resources), and an optional price; an author's new price; an operator's revocation reason.",
+    then: "The archive is read in memory under size, file-count and path limits (nothing is extracted to disk), normalised into one canonical tar, hashed and scanned; a repository is fetched at depth 1 and its tree read without a checkout.",
+    kept: "The published skill, its hash and scan report in skills; installs in skill_installs.",
+    evidence: [ev("src/api/skills.ts", "importSchema.parse(await readJson(c))"), ev("src/api/skills.ts", "new Uint8Array(await c.req.arrayBuffer())"), ev("src/skills/archive.ts", "Nothing is extracted to disk")],
+  },
+  {
+    file: "src/api/presets.ts",
+    carries: "settings",
+    reads: "A preset: fallback models, provider preferences, sampling controls and the owner's own system prompt, response_format and tool definitions.",
+    then: "Validated against a strict schema with size caps, then stored as a new version.",
+    kept: "The preset's versions in preset_versions.",
+    evidence: [ev("src/api/presets.ts", "presetDocSchema.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/characters.ts",
+    carries: "prompt-or-answer",
+    reads:
+      "A character card (JSON or PNG) or, for a private card, only its ciphertext and hash; and on POST /api/v1/characters/:id/chat a chat request with the conversation, the memory the client decrypted and, for a private card, the decrypted card.",
+    then: "A public or unlisted card is normalized and stored. A chat is assembled into a prompt in memory and sent through the chat route (src/api/chat.ts), like any other call; a private card sent with it is checked against its stored hash and used for that call only.",
+    kept: "Public and unlisted cards in characters; for a private card only the ciphertext and hash. Nothing of a chat, its memory or a decrypted private card; public characters add one to a daily call and cost counter (character_usage).",
+    evidence: [ev("src/api/characters.ts", "const v = bodySchema.parse(await readJson(c));"), ev("src/characters/registry.ts", "for (const k of EXTRA_FIELDS) delete body[k]; // never forwarded to a provider")],
+  },
+  {
+    file: "src/api/memory.ts",
+    carries: "settings",
+    reads: "A memory blob the client sealed (ciphertext), its opaque scope, kind and key fingerprint, and an embedding vector only when the client opts in.",
+    then: "Checked to be in sealed form (plaintext is refused), then stored.",
+    kept: "The ciphertext and its labels in character_memory, and the vector when the client opted in.",
+    evidence: [ev("src/api/memory.ts", "plaintext is refused")],
+  },
+  {
+    file: "src/api/teams.ts",
+    carries: "payment-or-signature",
+    reads:
+      "Team settings (a name, an org budget, a role), invites, and the proofs members sign in with: a passkey registration or assertion (WebAuthn clientDataJSON, authenticator data, signature) or a wallet signature over a one-time message.",
+    then: "Settings are validated and stored; passkey and wallet proofs are verified and only the passkey's public key or the wallet address is kept. Each change is appended to the team's audit log.",
+    kept: "The team, team_members, team_principals and team_audit tables; nothing of the proofs themselves.",
+    evidence: [ev("src/api/teams.ts", "verifyRegistration(v.passkey.response, passkeyPolicy(ctx, ch.challenge!))")],
+  },
+  {
+    file: "src/api/spend.ts",
+    carries: "settings",
+    reads: "A spend alert rule.",
+    then: "Validated and stored.",
+    kept: "The rule in spend_alerts.",
+    evidence: [ev("src/api/spend.ts", "createBody.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/agent-sessions.ts",
+    carries: "settings",
+    reads: "An agent session: name, budget, lifetime and labels.",
+    then: "Validated and stored.",
+    kept: "The session in agent_sessions.",
+    evidence: [ev("src/api/agent-sessions.ts", "createSession(ctx, caller, await readJson(c))")],
+  },
+  {
+    file: "src/api/lane.ts",
+    carries: "settings",
+    reads: "An operator's description of a model for the model lane: variant, status, licence and weights source.",
+    then: "Checked for an operator token, validated and stored.",
+    kept: "models_lane.",
+    evidence: [ev("src/api/lane.ts", "laneInput.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/status.ts",
+    carries: "settings",
+    reads: "An operator's incident notice for the status page: title, affected lanes and surfaces, impact, status and update text.",
+    then: "Checked for an operator token, validated against a strict schema with size caps and stored.",
+    kept: "status_incidents.",
+    evidence: [ev("src/api/status.ts", "createSchema.parse(await readJson(c))"), ev("src/api/status.ts", "updateSchema.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/disclosure.ts",
+    carries: "settings",
+    reads: "A provider disclosure profile written by an operator.",
+    then: "Validated and stored.",
+    kept: "provider_disclosure.",
+    evidence: [ev("src/api/disclosure.ts", "disclosureInput.parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/dayzero.ts",
+    carries: "settings",
+    reads: "An operator's request to evaluate or approve a day-zero candidate.",
+    then: "Validated and stored.",
+    kept: "The lane tables.",
+    evidence: [ev("src/api/dayzero.ts", "parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/creator-claims.ts",
+    carries: "settings",
+    reads: "A creator claim: model, wallet address and Hugging Face handle.",
+    then: "Validated and stored.",
+    kept: "lane_claims.",
+    evidence: [ev("src/api/creator-claims.ts", "parse(await readJson(c))")],
+  },
+  {
+    file: "src/api/host-anchor.ts",
+    carries: "public-data",
+    reads: "A request for an inclusion proof: a receipt envelope from an attested host (hashes and counts, no text) or a leaf hash.",
+    then: "Looked up in host_anchor_leaves and answered.",
+    kept: "Nothing.",
+    evidence: [ev("src/api/host-anchor.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/api/ipx.ts",
+    carries: "settings",
+    reads: "An operator's switch that halts or resumes the index-price oracle.",
+    then: "Checked for an operator token and stored.",
+    kept: "The halt flag in the kv table.",
+    evidence: [ev("src/api/ipx.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/api/public.ts",
+    carries: "payment-or-signature",
+    reads: "Receipt verification requests, pay-with authorisations, provider applications and creator claim challenges.",
+    then: "Verified and, for a provider application or a pay-with authorisation, stored.",
+    kept: "The provider and pay-with tables described above.",
+    evidence: [ev("src/api/public.ts", "const raw = await readJson(c);")],
+  },
+  {
+    file: "src/blind/routes.ts",
+    carries: "payment-or-signature",
+    reads: "A blinded token request.",
+    then: "Signed by the issuer.",
+    kept: "Nothing that links the buyer to the token.",
+    evidence: [ev("src/blind/routes.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/tlog/routes.ts",
+    carries: "public-data",
+    reads: "A signed checkpoint note from a witness (16 KB at most).",
+    then: "Verified and stored as a cosignature.",
+    kept: "tlog_cosignatures.",
+    evidence: [ev("src/tlog/routes.ts", "const body = c.req.raw.body;")],
+  },
+];
+
+const noLog = (item: string, file: string, contains: string): { item: string; evidence: Evidence[] } => ({ item, evidence: [ev(file, contains)] });
+
+export const EXTERNAL: ExternalDoc = {
+  redis: {
+    summary:
+      "Redis holds rate-limit counters, the opt-in response cache, the sealed answers of x402 calls kept 24 hours for payment recovery, replay markers and the job queue. It is optional in development and required in production. Every key expires; the rate-limit keys below are the only place a caller's network address is used, and only for calls without an API key.",
+    families: redisFamilies,
+    memoryFallback: {
+      purpose: "Without Redis (development) the same rate-limit counters live in the router process's memory and are removed once their window started more than five minutes ago (checked every minute). Nothing is written to disk.",
+      ttl: "About five minutes after the window started.",
+      evidence: [ev("src/lib/ratelimit.ts", "const cutoff = Date.now() - 5 * 60_000;"), ev("src/config.ts", "Production requires authenticated Redis.")],
+    },
+  },
+  logs: {
+    summary:
+      "The router writes one JSON line per event to standard output (standard error for warnings and errors). A line is a time, a level, a fixed message and a few fields chosen at each call site. No call site writes a request or response body, a header, a client address, a query string or a prompt.",
+    format: "JSON lines: { t, level, msg, ...fields }.",
+    records: [
+      ...fastCreditLogRecords,
+      "The time, the level and a message written in the code.",
+      "Anonymous limiter failure: fixed warning that a request was allowed; no exception, address, header, key or body.",
+      "Host slash dry-run intent: provider id, evidence commitment root, proposeSlash function name, whole-bond USDC amount, numeric contract reason, contract and chain id, bytes32 host id and delist flag. Logged once per evidence root; no signed bytes, key, raw quote or receipt envelope.",
+      "Sanctions refresh counts (distinct EVM entries, ignored formats and digital currency entries), publication date and source hash; screening skip/refusal reasons and provider ids. Freshness exceptions for previously paid addresses and refresh failures use fixed reason codes. No payout wallet or identity fields are added to these logs.",
+      "Identifiers and counts: provider ids, model ids, job names, hold and generation ids, epochs, block numbers, transaction hashes, hashed key ids and, on rare settlement and escrow events, an account id.",
+      "Wallet addresses of payers on pay-per-call and pay-with events (public on chain).",
+      "For an unhandled error: the path of the request without its query string, the error message and the first five lines of the stack.",
+      "Error messages from libraries and upstream services, each cut to 200 characters where a call site truncates them. Configured private chain RPC URLs, including paths and queries on the same host, are redacted before log emission; chain transport failures are redacted before callers truncate them.",
+    ],
+    neverRecords: [
+      noLog("Client network addresses. No log call passes one; addresses are used for rate limits and direct private-network ingress checks.", "src/api/common.ts", "return { id: clientIp(c, cfg.trustProxy), onion: false"),
+      noLog("Request or response bodies and prompts. The unhandled-error line takes the path and the error, not the body.", "src/app.ts", "log.error(\"unhandled error\", { path: new URL(c.req.url).pathname"),
+      noLog("Request headers, cookies and API keys. The Telegram bot states the same rule for its own lines.", "src/services/telegram.ts", "Never logged: keys, message text, the bot token"),
+      noLog("Query strings: only the pathname of a failing request is logged.", "src/app.ts", ".pathname, error: (err as Error)?.message"),
+    ],
+    caveats: [
+      "The text of an unexpected exception is logged as the library wrote it (src/app.ts unhandled error, src/lib/process-guard.ts uncaught exception, job failures). No code path puts request text into an error message on purpose, but only configured private chain RPC URLs are filtered, and a library error could quote a fragment of what it was parsing.",
+      "The hosting platform's own network layer sees connection addresses and may keep its own access logs. This inventory covers what the router's code records; it cannot describe the platform's logs.",
+    ],
+    retention: "The router does not rotate or store its logs: it writes them to standard output and the hosting platform keeps them under its own retention. No log retention is set in this repository.",
+    evidence: [ev("src/lib/util.ts", "(level === \"error\" || level === \"warn\" ? console.error : console.log)(line);"), ev("src/lib/util.ts", "const line = JSON.stringify(redactRpcFields({ t: new Date().toISOString(), level, msg, ...fields })")],
+  },
+  otherStores: [
+    ...verifiableStores,
+    ...rushStores, // ON3
+    ...toolsStores, // v6 T
+    ...webhookStores, // V86.
+    ...makegoodStores, // V6 R.
+    ...identityStores, // v6 I
+    ...activityStores,
+    ...statementStores, // V87
+    ...proofPackStores, // U100
+    ...laneReportStores, // Lane report
+    ...insightsStores, // V88: spend insights.
+    ...dataToolStores, // B
+    ...inboxStores,
+    { id: "network-routing-evidence", name: "Network host routing evidence in memory", purpose: "When NETWORK_HOSTS_ENABLED is on, routing uses existing signed generation records, health probes and attestation outcomes to limit admitted hosts during probation and exclude unavailable hosts.", holds: "Provider ids, probation deadlines, aggregate attested success and recent outcome counts, fresh canonical active bond base units matched to the host id and operator wallet, probe availability and median latency, the latest attestation failure flag and refresh time. No request text or caller address. Successful network probes also record latency in the existing health table.", ttl: "Rebuilt by health refreshes, including idle flushes; evidence older than 120 seconds is refused. Failed refreshes clear the evidence. Lost when the router instance is released or exits.", requestText: "none", evidence: [ev("src/network/routing.ts", "const states = new WeakMap<HealthView, State>();"), ev("src/network/routing.ts", "state.evidence = new Map();"), ev("src/network/weight-config.ts", "evidenceMaxAgeMs: 120_000")] },
+    ...networkJoinStores,
+    ...networkStatsStores,
+    ...sealedOtherStores,
+    {
+      id: "messages-proxy-prices",
+      name: "Messages proxy prices on the caller's computer",
+      purpose: "The local proxy estimates a Messages budget using model prices fetched over Tor. The request text, code, tool schemas and results are read in memory to count tokens, then forwarded over Tor; count_tokens is answered locally without any network request.",
+      holds: "The public unlinkable model directory in memory. The existing local tokens.json file atomically moves every selected bearer token to unconfirmed before sending; uncertainty keeps all members there, while a definite unserved refusal returns them. No request or answer text is written to that file or logged.",
+      ttl: "Model prices are refreshed after one minute and lost on process exit. Local token credentials remain until expiry filtering, successful settlement or removal by the caller; uncertain sent sets are never automatically reused.",
+      requestText: "none",
+      evidence: [ev("packages/private/src/messages.ts", "cached = { until: Date.now() + 60_000, rows: json.data }"), ev("packages/private/src/store.ts", "leaseBudget(budget: bigint"), ev("packages/private/src/proxy.ts", "countMessageTokens(JSON.parse")],
+    },
+    {
+      id: "batch-memory",
+      name: "Batch requests and answers in the router's memory, without Redis",
+      purpose: "Without Redis (a single router in development), the Batch API keeps the same sealed requests and answers in the router process's memory instead.",
+      holds: "The same sealed requests and answers as the Redis keys batch:<batch id>:in and :out.",
+      ttl: "The sealed requests are deleted when the batch finishes; the sealed answers BATCH_RESULTS_TTL after that (86,400 seconds, 24 hours, unless the operator changed it). A batch that never finishes ends when its 24-hour completion window closes, so nothing outlives the window plus that time. A restart loses them.",
+      requestText: "request-and-answer-text",
+      evidence: [ev("src/services/batches.ts", "private mem = new Map<string, { fields: Map<string, string>; expires: number }>();")],
+    },
+    {
+      id: "response-cache-memory",
+      name: "Response cache in the router's memory",
+      purpose: "The opt-in response cache also keeps each entry in the router process's memory (up to 5,000 entries), whether or not Redis is configured.",
+      holds: "The same sealed answer as the Redis entry, and for the semantic mode a hashed word vector of the prompt.",
+      ttl: "An entry is not served after its time-to-live, but it stays in memory until newer entries push it out (oldest first, at 5,000) or the process restarts.",
+      requestText: "answer-text",
+      evidence: [ev("src/gateway/cache.ts", "constructor(private secret: string, private maxEntries = 5_000"), ev("src/app.ts", "cache: new ResponseCache(cfg.appSecret, 5_000, redis)")],
+    },
+    {
+      id: "replay-memory",
+      name: "Replay guards in memory",
+      purpose: "Two small in-memory sets stop replays: a used wallet signature (when Redis is not configured) and an Oblivious HTTP encapsulated request prefix.",
+      holds: "SHA-256 digests of a wallet address, timestamp and request hash, and of the first bytes of an encapsulated request. Not the request.",
+      ttl: "Ten minutes for a wallet signature (old entries are swept once the set passes 50,000); until the key's acceptance window ends for an encapsulated request, with at most 100,000 kept.",
+      requestText: "hashes",
+      evidence: [ev("src/api/auth.ts", "const seen = new Map<string, number>();"), ev("src/ohttp/replay.ts", "This remembers recent ones in")],
+    },
+    {
+      id: "private-lane-counters",
+      name: "Private-lane counters in memory",
+      purpose: "Differentially private hourly counters for the attested and unlinkable lanes: how many requests, how many were refused and why, latency and token buckets. They contain no request, no address, no key and no timestamp finer than an hour.",
+      holds: "Four families of counts for the current hour, released once with noise when the hour ends; the raw counts are then discarded.",
+      ttl: "Released hours are kept for 48 hours; the privacy-budget ledger for 30 days.",
+      requestText: "none",
+      evidence: [ev("src/lib/dpstats.ts", "What it keeps: four families of counters for the current hour, and nothing else."), ev("src/services/private-stats.ts", "The router still keeps its per-request rows for billing", "The private lanes still leave the per-request rows described under Postgres; only the published aggregates are noisy.")],
+    },
+    {
+      id: "telemetry",
+      name: "Trace export (OpenTelemetry), off unless an endpoint is set",
+      purpose: "When OTEL_EXPORTER_OTLP_ENDPOINT is set, one span per chat or text-completion call is sent to that endpoint: model, provider, token counts, cost, generation id, mode, attempt count, whether it streamed, and the trace id from a traceparent header if the caller sent one. Calls on the attested and unlinkable lanes send no span. Spans carry no prompt or completion.",
+      holds: "The attributes listed, buffered in memory for up to five seconds before export.",
+      ttl: "In memory for seconds; kept by whatever receives it, which the operator chooses.",
+      requestText: "none",
+      evidence: [
+        ev("src/api/chat.ts", "if (!privateLane) ctx.telemetry.span(\"chat \" + r.model.id"),
+        ev("src/api/chat.ts", "p.c.req.header(\"traceparent\")?.split(\"-\")[1]"),
+        ev("src/gateway/otel.ts", "Spans never carry prompt or completion content."),
+      ],
+    },
+    {
+      id: "customer-tracing",
+      name: "Trace export to a key owner's own destination, off unless the owner sets one",
+      purpose: "A key's owner can set a tracing destination on the key (their OpenTelemetry collector, Langfuse or Helicone). Each public-lane call made with that key is then sent there: model, provider, token counts, sampling settings, finish reason, latency, cost, receipt id and lane. Prompt and completion text is included only if the owner set include_content. Calls on the attested and unlinkable lanes are never sent.",
+      holds: "The listed fields of recent calls, in a bounded in-memory queue (2,000 calls at most across all keys; more are dropped and counted) until they are delivered or given up.",
+      ttl: "In memory for seconds, or until retries end; kept by the destination the key's owner chose.",
+      requestText: "answer-text",
+      evidence: [
+        ev("src/api/chat.ts", "if (billing.key?.tracing && shouldExportTrace({ lane: p.disc.lane, privateLaneRequest: privateLane, privateRoute }))"),
+        ev("src/services/tracing.ts", "export function shouldExportTrace(o: { lane: string; privateLaneRequest: boolean; privateRoute: boolean }) {"),
+        ev("src/services/tracing.ts", "if (!stored.include_content) {"),
+      ],
+    },
+    {
+      id: "backups",
+      name: "Encrypted database backups",
+      purpose: "A scheduled pg_dump (daily in the reference deployment) of the whole database, encrypted to public age recipients and uploaded to S3-compatible storage. Every table listed on this page is in it. The private key that opens it is never on the host that makes the backup.",
+      holds: "The database as it was when the backup ran.",
+      ttl: "The code writes each archive under a new key and never deletes one; how long archives last is set by the storage bucket's own rules, which are not in this repository.",
+      requestText: "none",
+      evidence: [ev("scripts/backup-offsite.ts", "The private age identity never belongs on this host"), ev("scripts/backup-offsite.ts", "pg_dump custom-format archive encrypted to public age recipients")],
+    },
+  ],
+  addressReaders,
+  bodyReaders,
+  browser: {
+    summary: "What this website keeps in your own browser. None of it is sent to us except the requests you make.",
+    items: [
+      { store: "Cache Storage", holds: "The installable Harness keeps only the static app shell, offline page, scripts, styles, fonts and icons in a browser cache named trellis-shell- followed by a build digest. Each cached file must match its exported SHA-256. Requests, replies, API responses and URLs with query strings are never cached. A new active app version removes older app caches; browser settings can clear them at any time. No additional data is stored by the router.", evidence: [ev("web/lib/harness-sw.js", "Runtime requests never populate Cache Storage."), ev("web/lib/harness-sw.js", "if (actual !== expected) throw new Error('Shell content changed');")] },
+      { store: "sessionStorage", holds: "The API key you pasted into the dashboard, for the length of the tab. It is removed when the tab closes and is never written to localStorage.", evidence: [ev("web/lib/api.js", "sessionStorage.setItem(keyStore, secret);")] },
+      { store: "localStorage", holds: "The Harness favourite models and view preferences, and the Eval Lab evaluation sets you write. Eval Lab results are kept in IndexedDB. The router never receives them; only the requests you run do.", evidence: [ev("web/components/Harness.jsx", "localStorage.setItem(k, JSON.stringify(v));"), ev("web/components/features/EvalLab.jsx", "Eval sets live in localStorage")] },
+    ],
+  },
+};
