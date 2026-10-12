@@ -1,0 +1,1740 @@
+{
+  "address": "GAsF9tHESV7vWxK7nNQy8S7nGtGxGVd4SHNBvSVCjYj5",
+  "metadata": {
+    "name": "trellis_rules",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis agent rulebooks (spend limits, allowlists, kill switch)"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "check_spend",
+      "docs": [
+        "View-like: reverts if `amount` on `day` (unix days) violates the rulebook."
+      ],
+      "discriminator": [
+        27,
+        67,
+        214,
+        184,
+        97,
+        172,
+        196,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "rulebook"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "day",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "close_rulebook",
+      "docs": [
+        "Owner: reclaim rent of an expired rulebook (a killed one stays as a tombstone)."
+      ],
+      "discriminator": [
+        199,
+        173,
+        219,
+        70,
+        96,
+        108,
+        214,
+        5
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "rulebook"
+          ]
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.rulebook_id",
+                "account": "Rulebook"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_rulebook",
+      "discriminator": [
+        254,
+        67,
+        249,
+        198,
+        221,
+        69,
+        181,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "rulebook_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "rulebook_id",
+          "type": "u64"
+        },
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "RulebookParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_config",
+      "discriminator": [
+        23,
+        235,
+        115,
+        232,
+        168,
+        96,
+        1,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Admin key (Squads 2-of-3 in production). Must be the program's upgrade authority."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "guardian",
+          "type": "pubkey"
+        },
+        {
+          "name": "enforcer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "kill_rulebook",
+      "docs": [
+        "Owner: permanent kill switch."
+      ],
+      "discriminator": [
+        156,
+        159,
+        237,
+        46,
+        185,
+        128,
+        156,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "rulebook"
+          ]
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.rulebook_id",
+                "account": "Rulebook"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "migrate_config",
+      "docs": [
+        "Grows a config created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "propose_config",
+      "docs": [
+        "Authority: record an authority / guardian / enforcer change; it can be applied after `CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        163,
+        247,
+        238,
+        160,
+        236,
+        129,
+        153,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "guardian",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "enforcer",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    },
+    {
+      "name": "record_commitment",
+      "docs": [
+        "Owner or configured enforcer (`trellis_tab`): record USDC newly escrowed under this rulebook today."
+      ],
+      "discriminator": [
+        73,
+        240,
+        201,
+        91,
+        242,
+        96,
+        145,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "enforcer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.owner",
+                "account": "Rulebook"
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.rulebook_id",
+                "account": "Rulebook"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "record_spend",
+      "docs": [
+        "Owner or configured enforcer: check and record `amount` against the day's counter."
+      ],
+      "discriminator": [
+        111,
+        102,
+        17,
+        64,
+        245,
+        202,
+        79,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "enforcer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.owner",
+                "account": "Rulebook"
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.rulebook_id",
+                "account": "Rulebook"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "day",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_config",
+      "docs": [
+        "`apply = true`: the authority installs the pending change after the timelock (a new authority must co-sign).",
+        "`apply = false`: the authority drops it (the guardian cannot); anyone may clear an expired one."
+      ],
+      "discriminator": [
+        7,
+        245,
+        77,
+        171,
+        174,
+        156,
+        145,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Applying or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "docs": [
+            "Required only when the pending change hands the authority over: the new authority must sign to take it."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_new_rulebooks_paused",
+      "docs": [
+        "Guardian or authority: pause creation of new rulebooks for `PAUSE_TTL`. Only the authority unpauses."
+      ],
+      "discriminator": [
+        107,
+        14,
+        151,
+        204,
+        254,
+        127,
+        110,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Either the guardian or the authority."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_rulebook",
+      "discriminator": [
+        190,
+        70,
+        83,
+        5,
+        124,
+        236,
+        179,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "rulebook"
+          ]
+        },
+        {
+          "name": "rulebook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  108,
+                  101,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "rulebook.rulebook_id",
+                "account": "Rulebook"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "RulebookParams"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PendingConfig",
+      "discriminator": [
+        109,
+        48,
+        178,
+        191,
+        125,
+        67,
+        26,
+        70
+      ]
+    },
+    {
+      "name": "Rulebook",
+      "discriminator": [
+        52,
+        178,
+        19,
+        148,
+        163,
+        83,
+        84,
+        225
+      ]
+    },
+    {
+      "name": "RulesConfig",
+      "discriminator": [
+        187,
+        99,
+        136,
+        70,
+        234,
+        55,
+        67,
+        212
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "CommitmentRecorded",
+      "discriminator": [
+        213,
+        116,
+        40,
+        82,
+        83,
+        169,
+        249,
+        170
+      ]
+    },
+    {
+      "name": "ConfigInitialized",
+      "discriminator": [
+        181,
+        49,
+        200,
+        156,
+        19,
+        167,
+        178,
+        91
+      ]
+    },
+    {
+      "name": "ConfigProposalResolved",
+      "discriminator": [
+        104,
+        45,
+        39,
+        27,
+        148,
+        216,
+        162,
+        80
+      ]
+    },
+    {
+      "name": "ConfigProposed",
+      "discriminator": [
+        148,
+        34,
+        23,
+        129,
+        45,
+        161,
+        66,
+        192
+      ]
+    },
+    {
+      "name": "ConfigUpdated",
+      "discriminator": [
+        40,
+        241,
+        230,
+        122,
+        11,
+        19,
+        198,
+        194
+      ]
+    },
+    {
+      "name": "NewRulebooksPausedSet",
+      "discriminator": [
+        52,
+        179,
+        227,
+        231,
+        175,
+        12,
+        68,
+        156
+      ]
+    },
+    {
+      "name": "RulebookClosed",
+      "discriminator": [
+        211,
+        11,
+        202,
+        133,
+        151,
+        48,
+        40,
+        201
+      ]
+    },
+    {
+      "name": "RulebookCreated",
+      "discriminator": [
+        140,
+        13,
+        14,
+        152,
+        0,
+        58,
+        142,
+        54
+      ]
+    },
+    {
+      "name": "RulebookKilled",
+      "discriminator": [
+        199,
+        143,
+        13,
+        160,
+        24,
+        16,
+        27,
+        124
+      ]
+    },
+    {
+      "name": "RulebookUpdated",
+      "discriminator": [
+        191,
+        71,
+        243,
+        112,
+        216,
+        114,
+        58,
+        236
+      ]
+    },
+    {
+      "name": "SpendRecorded",
+      "discriminator": [
+        126,
+        238,
+        76,
+        234,
+        130,
+        230,
+        173,
+        166
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6001,
+      "name": "NewRulebooksPaused",
+      "msg": "Creating new rulebooks is paused"
+    },
+    {
+      "code": 6002,
+      "name": "RulebookKilled",
+      "msg": "Rulebook has been killed"
+    },
+    {
+      "code": 6003,
+      "name": "RulebookExpired",
+      "msg": "Rulebook has expired"
+    },
+    {
+      "code": 6004,
+      "name": "RulebookStillActive",
+      "msg": "Rulebook is still active; kill it or wait for expiry before closing"
+    },
+    {
+      "code": 6005,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6006,
+      "name": "PerCallMaxExceeded",
+      "msg": "Amount exceeds per_call_max"
+    },
+    {
+      "code": 6007,
+      "name": "DailyMaxExceeded",
+      "msg": "Spend would exceed daily_max"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidDay",
+      "msg": "Day is not the current or previous UTC day"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidParams",
+      "msg": "Invalid rulebook parameters"
+    },
+    {
+      "code": 6010,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6011,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6012,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6013,
+      "name": "DayRegression",
+      "msg": "Spend can only be recorded for the day already being counted or a later one"
+    },
+    {
+      "code": 6014,
+      "name": "KilledRulebookIsPermanent",
+      "msg": "A killed rulebook stays on chain as a tombstone and cannot be closed"
+    },
+    {
+      "code": 6015,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6016,
+      "name": "GuardianCooldown",
+      "msg": "The guardian paused recently and must wait before pausing again; the authority can pause at any time"
+    },
+    {
+      "code": 6017,
+      "name": "AlreadyMigrated",
+      "msg": "The account already has the current layout"
+    },
+    {
+      "code": 6018,
+      "name": "NotMigratable",
+      "msg": "The account is not one this instruction migrates"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "pause_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_cooldown",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitmentRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "day",
+            "type": "i64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "spent_today",
+            "type": "u64"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "enforcer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigProposalResolved",
+      "docs": [
+        "A pending config change was applied (`applied = true`) or dropped."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "applied",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "guardian",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "enforcer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "enforcer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NewRulebooksPausedSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (0 when `paused` is false)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingConfig",
+      "docs": [
+        "An authority / guardian / enforcer change waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_config\"]`; one at a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "guardian",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "enforcer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rulebook",
+      "docs": [
+        "An agent rulebook (Backend §5.5). PDA `[\"rulebook\", owner, rulebook_id.to_le_bytes()]`.",
+        "",
+        "Amounts are USDC base units (6 decimals). `payee_allowlist_root` and",
+        "`model_allowlist_root` are sha256 Merkle roots (see trellis_anchor::merkle) the router",
+        "checks off-chain; all-zero means \"no allowlist\". `expiry` is a unix timestamp after which",
+        "`check_spend` reverts. `killed` is set once by the owner and is permanent: a killed rulebook can never be",
+        "updated or closed, so its address stays a tombstone and cannot be re-created as a fresh rulebook.",
+        "",
+        "What the limits bind (decided in security/REVIEW-2026-10.md, TR-04 / TR-10):",
+        "- `daily_max` bounds what the owner can newly commit per UTC day. `trellis_tab` records the escrowed amount of",
+        "every `open_tab` / `top_up` against it (`record_commitment`), and refuses a killed or expired rulebook.",
+        "- `per_call_max` bounds one call. Calls happen off chain; the payee checks each request against it before it",
+        "accepts the voucher (`check_spend` is the same rule for off-chain callers and other programs).",
+        "- Settlement never depends on the rulebook: once a voucher is signed, `trellis_tab::close` pays it whatever",
+        "happens to the rulebook afterwards. A rulebook can stop new commitments and new calls; it cannot take back",
+        "usage already vouched."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "rulebook_id",
+            "type": "u64"
+          },
+          {
+            "name": "per_call_max",
+            "type": "u64"
+          },
+          {
+            "name": "daily_max",
+            "type": "u64"
+          },
+          {
+            "name": "payee_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "model_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "ask_first_above",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "killed",
+            "type": "bool"
+          },
+          {
+            "name": "spent_day",
+            "docs": [
+              "UTC day number (unix_timestamp / 86400) of `spent_today`."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "spent_today",
+            "docs": [
+              "Spend recorded on `spent_day` via `record_spend`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulebookClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulebookCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "rulebook_id",
+            "type": "u64"
+          },
+          {
+            "name": "per_call_max",
+            "type": "u64"
+          },
+          {
+            "name": "daily_max",
+            "type": "u64"
+          },
+          {
+            "name": "payee_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "model_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "ask_first_above",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulebookKilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "killed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulebookParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "per_call_max",
+            "type": "u64"
+          },
+          {
+            "name": "daily_max",
+            "type": "u64"
+          },
+          {
+            "name": "payee_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "model_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "ask_first_above",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "docs": [
+              "Unix timestamp; must be in the future."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulebookUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "per_call_max",
+            "type": "u64"
+          },
+          {
+            "name": "daily_max",
+            "type": "u64"
+          },
+          {
+            "name": "payee_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "model_allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "ask_first_above",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulesConfig",
+      "docs": [
+        "Program configuration. PDA `[\"config\"]`.",
+        "",
+        "`authority` is a single pubkey for now; production uses a Squads 2-of-3 multisig.",
+        "`guardian` can only pause creation of new rulebooks. `enforcer` is the key (in production",
+        "the trellis_tab program's PDA signer) allowed to `record_spend` against any rulebook."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "enforcer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_rulebooks_paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (`PAUSE_TTL` after it was last set). The flag is in force only until then."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_ready_at",
+            "docs": [
+              "The guardian may not pause again before this time (`GUARDIAN_PAUSE_COOLDOWN` after its last pause was due to",
+              "lapse)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpendRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rulebook",
+            "type": "pubkey"
+          },
+          {
+            "name": "day",
+            "type": "i64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "spent_today",
+            "type": "u64"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "CONFIG_SEED",
+      "docs": [
+        "PDA seeds.",
+        "",
+        "| Account       | Seeds                                                  | Notes      |",
+        "|---------------|--------------------------------------------------------|------------|",
+        "| `RulesConfig` | `[\"config\"]`                                           | singleton  |",
+        "| `Rulebook`    | `[\"rulebook\", owner, rulebook_id.to_le_bytes()]`       | per owner  |"
+      ],
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "PENDING_CONFIG_SEED",
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "RULEBOOK_SEED",
+      "type": "bytes",
+      "value": "[114, 117, 108, 101, 98, 111, 111, 107]"
+    },
+    {
+      "name": "SECONDS_PER_DAY",
+      "type": "i64",
+      "value": "86400"
+    }
+  ]
+}
