@@ -1,0 +1,1210 @@
+{
+  "address": "68siMcyf6bvCae4v4TJLkqjBoeM4GfJmTmNSZp8CFRAt",
+  "metadata": {
+    "name": "trellis_fee_router",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis protocol fee collection into the treasury vault and the $TRLS inference-payment burn"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "burn_inference_payment",
+      "docs": [
+        "Authority: burn $TRLS received as inference payment."
+      ],
+      "discriminator": [
+        176,
+        176,
+        146,
+        82,
+        17,
+        95,
+        29,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "fee_config"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "trls_mint",
+          "writable": true
+        },
+        {
+          "name": "trls_vault",
+          "writable": true
+        },
+        {
+          "name": "token_2022_program",
+          "docs": [
+            "Must be the Token-2022 program ($TRLS is a Token-2022 mint)."
+          ],
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "distribute",
+      "docs": [
+        "Authority: route the fee vault for `period` per the configured split (default 0/10,000: all to the treasury)."
+      ],
+      "discriminator": [
+        191,
+        44,
+        223,
+        207,
+        164,
+        236,
+        126,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "fee_config"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "distribution",
+          "docs": [
+            "One per period; a second `distribute` for the same period fails at `init`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  105,
+                  115,
+                  116,
+                  114,
+                  105,
+                  98,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "period"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_vault",
+          "writable": true
+        },
+        {
+          "name": "workers_vault",
+          "writable": true
+        },
+        {
+          "name": "treasury_vault",
+          "writable": true
+        },
+        {
+          "name": "fee_mint"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "period",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "init_fee_config",
+      "discriminator": [
+        212,
+        138,
+        200,
+        114,
+        73,
+        176,
+        7,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Admin key (Squads 2-of-3 in production).",
+            "Pays for the accounts. Must be the program's upgrade authority, so nobody else can initialise the program",
+            "between deploy and init."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fee_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_mint",
+          "docs": [
+            "Mint fees are collected in (USDC)."
+          ]
+        },
+        {
+          "name": "trls_mint",
+          "docs": [
+            "$TRLS mint; must be a Token-2022 mint."
+          ]
+        },
+        {
+          "name": "fee_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "trls_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  108,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "workers_vault"
+        },
+        {
+          "name": "treasury_vault"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "fee_token_program"
+        },
+        {
+          "name": "token_2022_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "workers_bps",
+          "type": "u16"
+        },
+        {
+          "name": "treasury_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "propose_change",
+      "docs": [
+        "Authority: record replacement payout vaults and / or a new authority; they can be installed after",
+        "`CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        167,
+        211,
+        18,
+        222,
+        93,
+        215,
+        74,
+        159
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "fee_config"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_change",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  104,
+                  97,
+                  110,
+                  103,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_workers_vault",
+          "optional": true
+        },
+        {
+          "name": "new_treasury_vault",
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_change",
+      "docs": [
+        "Authority: `apply = true` installs the pending change after the timelock (a new authority must co-sign);",
+        "`apply = false` drops it."
+      ],
+      "discriminator": [
+        109,
+        18,
+        34,
+        100,
+        20,
+        150,
+        162,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "fee_config"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_change",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  104,
+                  97,
+                  110,
+                  103,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "docs": [
+            "Required only when the pending change hands the authority over: the new authority must sign to take it."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_fee_config",
+      "discriminator": [
+        104,
+        184,
+        103,
+        242,
+        88,
+        151,
+        107,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "fee_config"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "workers_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "treasury_bps",
+          "type": {
+            "option": "u16"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Distribution",
+      "discriminator": [
+        176,
+        85,
+        17,
+        11,
+        13,
+        194,
+        18,
+        1
+      ]
+    },
+    {
+      "name": "FeeConfig",
+      "discriminator": [
+        143,
+        52,
+        146,
+        187,
+        219,
+        123,
+        76,
+        155
+      ]
+    },
+    {
+      "name": "PendingChange",
+      "discriminator": [
+        232,
+        183,
+        176,
+        196,
+        15,
+        195,
+        115,
+        147
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "ChangeProposed",
+      "discriminator": [
+        170,
+        10,
+        10,
+        8,
+        244,
+        196,
+        146,
+        151
+      ]
+    },
+    {
+      "name": "FeeConfigInitialized",
+      "discriminator": [
+        99,
+        232,
+        112,
+        161,
+        28,
+        61,
+        171,
+        178
+      ]
+    },
+    {
+      "name": "FeeConfigUpdated",
+      "discriminator": [
+        45,
+        50,
+        42,
+        173,
+        193,
+        67,
+        52,
+        244
+      ]
+    },
+    {
+      "name": "FeesDistributed",
+      "discriminator": [
+        209,
+        24,
+        174,
+        200,
+        236,
+        90,
+        154,
+        55
+      ]
+    },
+    {
+      "name": "InferencePaymentBurned",
+      "discriminator": [
+        180,
+        196,
+        123,
+        24,
+        163,
+        253,
+        100,
+        243
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidSplit",
+      "msg": "workers_bps + treasury_bps must equal 10,000"
+    },
+    {
+      "code": 6002,
+      "name": "MintMismatch",
+      "msg": "Token account mint does not match the configured mint"
+    },
+    {
+      "code": 6003,
+      "name": "NotToken2022Mint",
+      "msg": "$TRLS mint must be owned by the Token-2022 program"
+    },
+    {
+      "code": 6004,
+      "name": "PeriodNotIncreasing",
+      "msg": "Period must be greater than the last distributed period"
+    },
+    {
+      "code": 6005,
+      "name": "NothingToDistribute",
+      "msg": "Fee vault is empty"
+    },
+    {
+      "code": 6006,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6007,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidConfigValue",
+      "msg": "Invalid configuration value"
+    },
+    {
+      "code": 6009,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6010,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6011,
+      "name": "PeriodInFuture",
+      "msg": "Period is later than the current week"
+    },
+    {
+      "code": 6012,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6013,
+      "name": "DuplicateVault",
+      "msg": "The fee vault, the workers vault and the treasury vault must be three different accounts"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChangeProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "workers_vault",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "treasury_vault",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Distribution",
+      "docs": [
+        "Record of one distribution. PDA `[\"distribution\", period.to_le_bytes()]`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "period",
+            "type": "i64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "workers_amount",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_amount",
+            "type": "u64"
+          },
+          {
+            "name": "distributed_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeConfig",
+      "docs": [
+        "Fee router configuration. PDA `[\"fee_config\"]`; also the authority of both vaults.",
+        "",
+        "The split has exactly two possible recipients, workers and treasury, and the default is no",
+        "split at all: `workers_bps = 0`, `treasury_bps = 10_000`, every protocol fee to the treasury.",
+        "Hosts are paid their list price and relay operators / canary runners flat service fees, both",
+        "off-chain from the treasury; nothing pays token holders or stakers.",
+        "",
+        "`authority` is a single pubkey for now; production authority is a Squads 2-of-3 multisig",
+        "."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_mint",
+            "docs": [
+              "Mint protocol fees are collected in (USDC)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "trls_mint",
+            "docs": [
+              "$TRLS mint (Token-2022, no extensions)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_vault",
+            "docs": [
+              "Token account PDA `[\"fee_vault\"]` that receives protocol fees."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "trls_vault",
+            "docs": [
+              "Token-2022 account PDA `[\"trls_vault\"]` that receives $TRLS inference payments."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "workers_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "workers_bps",
+            "type": "u16"
+          },
+          {
+            "name": "treasury_bps",
+            "type": "u16"
+          },
+          {
+            "name": "last_period",
+            "docs": [
+              "Last distributed period index; periods must strictly increase."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "distributed_total",
+            "type": "u64"
+          },
+          {
+            "name": "burned_total",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "fee_vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "trls_vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "trls_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "trls_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "workers_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "workers_bps",
+            "type": "u16"
+          },
+          {
+            "name": "treasury_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workers_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "workers_bps",
+            "type": "u16"
+          },
+          {
+            "name": "treasury_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeesDistributed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "period",
+            "type": "i64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "workers_amount",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_amount",
+            "type": "u64"
+          },
+          {
+            "name": "distributed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InferencePaymentBurned",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "burned_total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingChange",
+      "docs": [
+        "Replacement payout vaults and / or a new authority waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_change\"]`; one at",
+        "a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "workers_vault",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "treasury_vault",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "BPS_DENOMINATOR",
+      "type": "u16",
+      "value": "10000"
+    },
+    {
+      "name": "DEFAULT_TREASURY_BPS",
+      "type": "u16",
+      "value": "10000"
+    },
+    {
+      "name": "DEFAULT_WORKERS_BPS",
+      "docs": [
+        "No fee split: 100% of protocol fees to the treasury (workers 0 bps). No other recipients exist."
+      ],
+      "type": "u16",
+      "value": "0"
+    },
+    {
+      "name": "DISTRIBUTION_SEED",
+      "type": "bytes",
+      "value": "[100, 105, 115, 116, 114, 105, 98, 117, 116, 105, 111, 110]"
+    },
+    {
+      "name": "FEE_CONFIG_SEED",
+      "docs": [
+        "PDA seeds.",
+        "",
+        "| Account        | Seeds                                     | Notes                                   |",
+        "|----------------|-------------------------------------------|-----------------------------------------|",
+        "| `FeeConfig`    | `[\"fee_config\"]`                          | singleton; signs vault transfers/burns  |",
+        "| fee vault      | `[\"fee_vault\"]`                           | USDC token account, authority = config  |",
+        "| $TRLS vault    | `[\"trls_vault\"]`                          | Token-2022 account, authority = config  |",
+        "| `Distribution` | `[\"distribution\", period.to_le_bytes()]`  | one per period; second distribute fails |"
+      ],
+      "type": "bytes",
+      "value": "[102, 101, 101, 95, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "FEE_VAULT_SEED",
+      "type": "bytes",
+      "value": "[102, 101, 101, 95, 118, 97, 117, 108, 116]"
+    },
+    {
+      "name": "PENDING_CHANGE_SEED",
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 99, 104, 97, 110, 103, 101]"
+    },
+    {
+      "name": "SECONDS_PER_WEEK",
+      "docs": [
+        "`distribute` periods are whole weeks since the unix epoch."
+      ],
+      "type": "i64",
+      "value": "604800"
+    },
+    {
+      "name": "TRLS_VAULT_SEED",
+      "type": "bytes",
+      "value": "[116, 114, 108, 115, 95, 118, 97, 117, 108, 116]"
+    }
+  ]
+}

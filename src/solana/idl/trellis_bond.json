@@ -1,0 +1,3900 @@
+{
+  "address": "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo",
+  "metadata": {
+    "name": "trellis_bond",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis host bonds: post, unbond, slash with a public dispute window (Backend spec section 5.3)"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "cancel_unbond",
+      "discriminator": [
+        31,
+        195,
+        15,
+        13,
+        60,
+        233,
+        214,
+        208
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "signer": true,
+          "relations": [
+            "bond"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_proposal",
+      "discriminator": [
+        213,
+        178,
+        139,
+        19,
+        50,
+        191,
+        82,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "rent_payer",
+          "docs": [
+            "The account that paid the proposal's rent, and only it: a proposal closed by a stranger right after execution",
+            "would erase the record refunds are settled against (`executed_amount`)."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "bond",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          },
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.proposal_id",
+                "account": "SlashProposal"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "dispute",
+      "discriminator": [
+        216,
+        92,
+        128,
+        146,
+        202,
+        85,
+        135,
+        73
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "signer": true,
+          "relations": [
+            "bond"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          },
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.proposal_id",
+                "account": "SlashProposal"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_slash",
+      "discriminator": [
+        15,
+        240,
+        38,
+        73,
+        175,
+        55,
+        88,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "docs": [
+            "Anyone may crank execution once the proposal is executable; funds only ever move",
+            "to the configured payout accounts. Pays the slash ledger's rent if the bond has none yet.",
+            "One exception: a rate-based slash that the cumulative cap would cut today is executed by the slasher only",
+            "(`CapCutNeedsSlasher`), so the host cannot crank its own proposal at a moment when it takes nothing."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          },
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.proposal_id",
+                "account": "SlashProposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_pool",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "capacity_refund",
+          "writable": true
+        },
+        {
+          "name": "slash_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "file_capacity_claim",
+      "discriminator": [
+        202,
+        39,
+        198,
+        193,
+        119,
+        121,
+        97,
+        65
+      ],
+      "accounts": [
+        {
+          "name": "capacity_claimer",
+          "docs": [
+            "`trellis_capacity`'s claimer PDA; only reachable via CPI from that program."
+          ],
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the proposal rent (the capacity authority that reported the shortfall)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "arg",
+                "path": "proposal_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "docs": [
+            "The bond's slash ledger; created with its first proposal (`init_if_needed`: it is never closed)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "What the host locked behind its commitments. The claim is paid for out of it, so the account must exist: a bond",
+            "that never locked anything cannot be claimed against."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "u64"
+        },
+        {
+          "name": "evidence_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "The initial authority. In production this is a Squads v4 2-of-3 multisig. Must be the program's upgrade",
+            "authority, so nobody else can initialise the program between deploy and init."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "refund_pool"
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "capacity_refund"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "lock_bond",
+      "docs": [
+        "`trellis_capacity` only (CPI): lock part of a bond behind a capacity commitment."
+      ],
+      "discriminator": [
+        30,
+        142,
+        81,
+        179,
+        253,
+        64,
+        109,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "capacity_claimer",
+          "docs": [
+            "`trellis_capacity`'s claimer PDA; only reachable via CPI from that program."
+          ],
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the lock account's rent the first time (the host committing capacity)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "docs": [
+            "until the bond's first proposal, and then counts as nothing pending."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "`init_if_needed`: the lock is created by the first commitment and never closed, so it cannot be re-initialised."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "migrate_config",
+      "docs": [
+        "Grows a config created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "migrate_proposal",
+      "docs": [
+        "Grows a proposal created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        240,
+        117,
+        96,
+        251,
+        253,
+        64,
+        32,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "pause",
+      "docs": [
+        "Guardian or authority: pause for `PAUSE_TTL` (72h). A guardian pause cannot be repeated for 7 days."
+      ],
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "post_bond",
+      "discriminator": [
+        168,
+        151,
+        202,
+        119,
+        163,
+        58,
+        147,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Vault holding the bonded USDC; authority is the `HostBond` PDA."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "propose_config",
+      "docs": [
+        "Authority: record any config change (including an authority hand-over); it can be applied after",
+        "`CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        163,
+        247,
+        238,
+        160,
+        236,
+        129,
+        153,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_pool",
+          "docs": [
+            "Optional replacements for the payout accounts; each must be a USDC token account."
+          ],
+          "optional": true
+        },
+        {
+          "name": "treasury",
+          "optional": true
+        },
+        {
+          "name": "capacity_refund",
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "propose_reinstate",
+      "docs": [
+        "Authority: propose to clear `delisted` / `ejected` on a bond. Applicable after `CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        95,
+        200,
+        116,
+        79,
+        219,
+        222,
+        143,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_reinstate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  114,
+                  101,
+                  105,
+                  110,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "propose_slash",
+      "discriminator": [
+        198,
+        144,
+        128,
+        49,
+        72,
+        78,
+        74,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "slasher",
+          "docs": [
+            "The slasher authority (the `slasher` service key; production sits behind the Squads multisig)."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "arg",
+                "path": "proposal_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "docs": [
+            "The bond's slash ledger; created with its first proposal (`init_if_needed`: it is never closed)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "u64"
+        },
+        {
+          "name": "evidence_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "bps",
+          "type": "u16"
+        },
+        {
+          "name": "reason_code",
+          "type": "u8"
+        },
+        {
+          "name": "refund_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "request_unbond",
+      "discriminator": [
+        11,
+        35,
+        179,
+        103,
+        226,
+        159,
+        251,
+        63
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "signer": true,
+          "relations": [
+            "bond"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resolve_config",
+      "docs": [
+        "`apply = true`: the authority installs the pending change after the timelock (a new authority must co-sign).",
+        "`apply = false`: the authority drops it (the guardian cannot); anyone may clear an expired one."
+      ],
+      "discriminator": [
+        7,
+        245,
+        77,
+        171,
+        174,
+        156,
+        145,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Applying or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "docs": [
+            "Required only when the pending change hands the authority over: the new authority must sign to take it."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "resolve_dispute",
+      "discriminator": [
+        231,
+        6,
+        202,
+        6,
+        96,
+        103,
+        12,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          },
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.proposal_id",
+                "account": "SlashProposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "upheld",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "resolve_reinstate",
+      "docs": [
+        "`apply = true`: the authority reinstates the bond after the timelock. `apply = false`: the authority drops the",
+        "proposal; anyone may clear an expired one."
+      ],
+      "discriminator": [
+        243,
+        105,
+        27,
+        75,
+        70,
+        173,
+        149,
+        219
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Applying or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          },
+          "relations": [
+            "pending_reinstate"
+          ]
+        },
+        {
+          "name": "pending_reinstate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  114,
+                  101,
+                  105,
+                  110,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "unlock_bond",
+      "docs": [
+        "`trellis_capacity` only (CPI): release a settled commitment's lock."
+      ],
+      "discriminator": [
+        107,
+        195,
+        132,
+        102,
+        2,
+        105,
+        127,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "capacity_claimer",
+          "docs": [
+            "`trellis_capacity`'s claimer PDA; only reachable via CPI from that program."
+          ],
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_lock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
+      "docs": [
+        "Authority only."
+      ],
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Authority: tightening changes only, effective at once. Loosening is refused (`RequiresTimelock`)."
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "void_proposal",
+      "docs": [
+        "Authority: drop a proposal that has not executed, disputed or not (for example one that can never execute)."
+      ],
+      "discriminator": [
+        122,
+        95,
+        234,
+        214,
+        100,
+        172,
+        177,
+        32
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond.host",
+                "account": "HostBond"
+              }
+            ]
+          },
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.proposal_id",
+                "account": "SlashProposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_bond",
+      "discriminator": [
+        222,
+        199,
+        141,
+        31,
+        188,
+        93,
+        155,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "signer": true,
+          "relations": [
+            "bond"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "the host has committed capacity, and then counts as zero locked."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond"
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BondConfig",
+      "discriminator": [
+        142,
+        20,
+        216,
+        1,
+        7,
+        142,
+        247,
+        125
+      ]
+    },
+    {
+      "name": "BondLock",
+      "discriminator": [
+        16,
+        98,
+        144,
+        79,
+        20,
+        47,
+        13,
+        64
+      ]
+    },
+    {
+      "name": "HostBond",
+      "discriminator": [
+        214,
+        253,
+        119,
+        233,
+        158,
+        70,
+        70,
+        96
+      ]
+    },
+    {
+      "name": "PendingConfig",
+      "discriminator": [
+        109,
+        48,
+        178,
+        191,
+        125,
+        67,
+        26,
+        70
+      ]
+    },
+    {
+      "name": "PendingReinstate",
+      "discriminator": [
+        215,
+        247,
+        140,
+        213,
+        10,
+        116,
+        222,
+        71
+      ]
+    },
+    {
+      "name": "SlashLedger",
+      "discriminator": [
+        175,
+        128,
+        23,
+        99,
+        134,
+        169,
+        108,
+        79
+      ]
+    },
+    {
+      "name": "SlashProposal",
+      "discriminator": [
+        104,
+        26,
+        13,
+        94,
+        65,
+        203,
+        107,
+        43
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BondConfigProposalResolved",
+      "discriminator": [
+        78,
+        195,
+        232,
+        255,
+        11,
+        21,
+        185,
+        174
+      ]
+    },
+    {
+      "name": "BondConfigProposed",
+      "discriminator": [
+        25,
+        111,
+        90,
+        42,
+        66,
+        44,
+        150,
+        183
+      ]
+    },
+    {
+      "name": "BondConfigUpdated",
+      "discriminator": [
+        34,
+        200,
+        124,
+        24,
+        147,
+        133,
+        175,
+        79
+      ]
+    },
+    {
+      "name": "BondLockChanged",
+      "discriminator": [
+        58,
+        82,
+        190,
+        104,
+        140,
+        59,
+        240,
+        140
+      ]
+    },
+    {
+      "name": "BondPauseChanged",
+      "discriminator": [
+        85,
+        37,
+        180,
+        60,
+        118,
+        23,
+        190,
+        234
+      ]
+    },
+    {
+      "name": "BondPosted",
+      "discriminator": [
+        39,
+        196,
+        2,
+        142,
+        202,
+        74,
+        107,
+        205
+      ]
+    },
+    {
+      "name": "BondWithdrawn",
+      "discriminator": [
+        111,
+        192,
+        154,
+        231,
+        58,
+        115,
+        130,
+        103
+      ]
+    },
+    {
+      "name": "DisputeResolved",
+      "discriminator": [
+        121,
+        64,
+        249,
+        153,
+        139,
+        128,
+        236,
+        187
+      ]
+    },
+    {
+      "name": "ProposalClosed",
+      "discriminator": [
+        57,
+        90,
+        47,
+        164,
+        105,
+        55,
+        97,
+        27
+      ]
+    },
+    {
+      "name": "ReinstateProposed",
+      "discriminator": [
+        164,
+        23,
+        76,
+        187,
+        235,
+        167,
+        79,
+        230
+      ]
+    },
+    {
+      "name": "ReinstateResolved",
+      "discriminator": [
+        26,
+        2,
+        128,
+        22,
+        27,
+        27,
+        38,
+        44
+      ]
+    },
+    {
+      "name": "SlashDisputed",
+      "discriminator": [
+        153,
+        108,
+        224,
+        251,
+        178,
+        161,
+        73,
+        122
+      ]
+    },
+    {
+      "name": "SlashExecuted",
+      "discriminator": [
+        170,
+        48,
+        78,
+        119,
+        242,
+        155,
+        108,
+        61
+      ]
+    },
+    {
+      "name": "SlashProposed",
+      "discriminator": [
+        158,
+        90,
+        179,
+        8,
+        227,
+        190,
+        15,
+        231
+      ]
+    },
+    {
+      "name": "UnbondCancelled",
+      "discriminator": [
+        57,
+        233,
+        161,
+        226,
+        59,
+        29,
+        56,
+        212
+      ]
+    },
+    {
+      "name": "UnbondRequested",
+      "discriminator": [
+        237,
+        10,
+        226,
+        141,
+        212,
+        122,
+        234,
+        197
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the program authority"
+    },
+    {
+      "code": 6001,
+      "name": "NotSlasher",
+      "msg": "Signer is not the slasher authority"
+    },
+    {
+      "code": 6002,
+      "name": "NotCapacityClaimer",
+      "msg": "Signer is not the configured capacity claimer PDA"
+    },
+    {
+      "code": 6003,
+      "name": "NotGuardian",
+      "msg": "Signer is neither the guardian nor the authority"
+    },
+    {
+      "code": 6004,
+      "name": "Paused",
+      "msg": "New bonds are paused"
+    },
+    {
+      "code": 6005,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6006,
+      "name": "BelowMinimumBond",
+      "msg": "Bond total would be below the minimum bond"
+    },
+    {
+      "code": 6007,
+      "name": "MintMismatch",
+      "msg": "Token account mint does not match the configured USDC mint"
+    },
+    {
+      "code": 6008,
+      "name": "TokenOwnerMismatch",
+      "msg": "Token account owner does not match the expected owner"
+    },
+    {
+      "code": 6009,
+      "name": "UnbondNotRequested",
+      "msg": "Unbond has not been requested"
+    },
+    {
+      "code": 6010,
+      "name": "UnbondAlreadyRequested",
+      "msg": "Unbond already requested"
+    },
+    {
+      "code": 6011,
+      "name": "UnbondPeriodNotElapsed",
+      "msg": "Unbond period has not elapsed"
+    },
+    {
+      "code": 6012,
+      "name": "OpenProposals",
+      "msg": "Bond has open slash proposals; withdraw is blocked"
+    },
+    {
+      "code": 6013,
+      "name": "NothingToWithdraw",
+      "msg": "Nothing to withdraw"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidSlashBps",
+      "msg": "Slash bps is not valid for this reason code"
+    },
+    {
+      "code": 6015,
+      "name": "BpsTooLarge",
+      "msg": "Slash bps exceeds 10000"
+    },
+    {
+      "code": 6016,
+      "name": "UnknownReasonCode",
+      "msg": "Unknown slash reason code"
+    },
+    {
+      "code": 6017,
+      "name": "UseCapacityClaim",
+      "msg": "Fixed-amount claims must use the capacity-shortfall path"
+    },
+    {
+      "code": 6018,
+      "name": "RefundExceedsSlash",
+      "msg": "Refund amount exceeds the slash amount"
+    },
+    {
+      "code": 6019,
+      "name": "DisputeWindowClosed",
+      "msg": "Dispute window has closed"
+    },
+    {
+      "code": 6020,
+      "name": "AlreadyDisputed",
+      "msg": "Proposal already disputed"
+    },
+    {
+      "code": 6021,
+      "name": "NotDisputed",
+      "msg": "Proposal has not been disputed"
+    },
+    {
+      "code": 6022,
+      "name": "AlreadyResolved",
+      "msg": "Proposal already resolved"
+    },
+    {
+      "code": 6023,
+      "name": "ProposalRejected",
+      "msg": "Proposal was rejected on dispute and cannot execute"
+    },
+    {
+      "code": 6024,
+      "name": "AlreadyExecuted",
+      "msg": "Proposal already executed"
+    },
+    {
+      "code": 6025,
+      "name": "DisputeWindowOpen",
+      "msg": "Dispute window is still open"
+    },
+    {
+      "code": 6026,
+      "name": "DisputeBlocksExecution",
+      "msg": "Execution is blocked by an unresolved dispute"
+    },
+    {
+      "code": 6027,
+      "name": "ProposalNotClosable",
+      "msg": "Proposal is not closable yet"
+    },
+    {
+      "code": 6028,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6029,
+      "name": "ConfigAccountMismatch",
+      "msg": "Account does not match the configured address"
+    },
+    {
+      "code": 6030,
+      "name": "VaultUnderfunded",
+      "msg": "Bond vault balance is lower than the recorded amount"
+    },
+    {
+      "code": 6031,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6032,
+      "name": "OutOfBounds",
+      "msg": "Value is outside the bounds this program enforces"
+    },
+    {
+      "code": 6033,
+      "name": "RequiresTimelock",
+      "msg": "This change loosens a safety parameter: use propose_config and apply_config after the timelock"
+    },
+    {
+      "code": 6034,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6035,
+      "name": "SlashBpsAboveProposalMax",
+      "msg": "Slash bps exceeds the maximum one proposal may carry"
+    },
+    {
+      "code": 6036,
+      "name": "BondLocked",
+      "msg": "The whole remaining bond is locked behind open capacity commitments"
+    },
+    {
+      "code": 6037,
+      "name": "NotRentPayer",
+      "msg": "Only the account that paid a proposal's rent may close it"
+    },
+    {
+      "code": 6038,
+      "name": "InvalidConfigValue",
+      "msg": "Invalid configuration value"
+    },
+    {
+      "code": 6039,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6040,
+      "name": "GuardianCooldown",
+      "msg": "The guardian paused recently and must wait before pausing again; the authority can pause at any time"
+    },
+    {
+      "code": 6041,
+      "name": "AlreadyMigrated",
+      "msg": "The account already has the current layout"
+    },
+    {
+      "code": 6042,
+      "name": "NotMigratable",
+      "msg": "The account is not one this instruction migrates"
+    },
+    {
+      "code": 6043,
+      "name": "ExceedsBondHeadroom",
+      "msg": "The bond does not cover this commitment on top of what is already locked and claimed against it"
+    },
+    {
+      "code": 6044,
+      "name": "ClaimExceedsLocked",
+      "msg": "A capacity claim cannot exceed what is locked behind the host's commitments"
+    },
+    {
+      "code": 6045,
+      "name": "CapCutNeedsSlasher",
+      "msg": "The cumulative slash cap would cut this slash: only the slasher may execute it now"
+    },
+    {
+      "code": 6046,
+      "name": "NotDelisted",
+      "msg": "The bond is neither delisted nor ejected"
+    },
+    {
+      "code": 6047,
+      "name": "ReinstateStale",
+      "msg": "A slash was executed against the bond after this reinstatement was proposed; cancel it and propose again"
+    }
+  ],
+  "types": [
+    {
+      "name": "BondConfig",
+      "docs": [
+        "Program configuration. Production `authority` is a Squads v4 2-of-3 multisig;",
+        "`guardian` (a separate key, held by neither the operator nor the multisig) can only pause new bonds, never move funds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "slasher",
+            "docs": [
+              "Account allowed to open slash proposals (the `slasher` service, behind the multisig)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_pool",
+            "docs": [
+              "Token account that receives the share of a slash earmarked for affected callers."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Token account that receives the remainder of a slash."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "capacity_claimer",
+            "docs": [
+              "PDA of `trellis_capacity` allowed to file capacity-shortfall claims via CPI."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "capacity_refund",
+            "docs": [
+              "Token account that receives capacity-shortfall payouts (purchase price of unserved Bushels)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "min_bond",
+            "type": "u64"
+          },
+          {
+            "name": "unbond_period",
+            "type": "i64"
+          },
+          {
+            "name": "dispute_window",
+            "type": "i64"
+          },
+          {
+            "name": "dispute_block",
+            "type": "i64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (`PAUSE_TTL` after it was last set). `paused` is in force only until then."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_ready_at",
+            "docs": [
+              "The guardian may not pause again before this time (`GUARDIAN_PAUSE_COOLDOWN` after its last pause was due to",
+              "lapse)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondConfigProposalResolved",
+      "docs": [
+        "A pending config change was applied (`applied = true`) or dropped."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "applied",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondConfigProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "changes_authority",
+            "type": "bool"
+          },
+          {
+            "name": "changes_guardian",
+            "type": "bool"
+          },
+          {
+            "name": "changes_capacity_claimer",
+            "docs": [
+              "The proposal names another program address as the one allowed to lock bonds and file capacity claims."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "changes_payout_accounts",
+            "docs": [
+              "The proposal replaces the refund pool, the treasury or the capacity refund account."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "slasher",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_bond",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondLock",
+      "docs": [
+        "USDC of a bond that is locked behind open capacity commitments. PDA `[\"lock\", host_bond]`.",
+        "",
+        "`trellis_capacity` raises it when a host commits capacity (`lock_bond`, by the commitment's value) and lowers it",
+        "when the commitment is settled (`unlock_bond`, by what was not claimed). `withdraw_bond` pays `amount - locked`, so a",
+        "host cannot commit capacity, unbond and leave before a shortfall claim arrives. A shortfall claim is paid for out of",
+        "the lock: `file_capacity_claim` moves its amount from `locked` to `SlashLedger.pending_claims` and refuses a claim",
+        "larger than `locked`, so claims can never take more of a bond than its commitments locked (R3-16)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "locked",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondLockChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "locked",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondPauseChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (0 when `paused` is false)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "pause_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_cooldown",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "min_dispute_window",
+            "type": "i64"
+          },
+          {
+            "name": "min_dispute_block",
+            "type": "i64"
+          },
+          {
+            "name": "min_unbond_period",
+            "type": "i64"
+          },
+          {
+            "name": "slash_window",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DisputeResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "DisputeStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "DisputeStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "None"
+          },
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Upheld"
+          },
+          {
+            "name": "Rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostBond",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Bonded USDC currently held in the vault and not yet slashed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "unbond_at",
+            "docs": [
+              "Unix time after which `withdraw_bond` is allowed; 0 = no unbond requested."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "strikes",
+            "docs": [
+              "Number of executed slashes against this host."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "slashed_total",
+            "docs": [
+              "Total USDC slashed over the life of the bond."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "open_proposals",
+            "docs": [
+              "Proposals that are neither executed nor rejected."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "next_proposal_id",
+            "docs": [
+              "Next proposal id to be assigned (ids are monotonically increasing)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "delisted",
+            "docs": [
+              "Set by a quantization-swap or shadow-mismatch slash that took something (not by one the cumulative cap cut to",
+              "zero). Blocks new capacity commitments. Cleared only by the authority, through `propose_reinstate` and its",
+              "timelock."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "ejected",
+            "docs": [
+              "Set by a shadow-mismatch slash that took something. Cleared the same way."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "slasher",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "capacity_claimer",
+            "docs": [
+              "PDA of `trellis_capacity` (seeds `[\"bond_claimer\"]`) allowed to file shortfall claims and lock bonds."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "min_bond",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "unbond_period",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "dispute_window",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "dispute_block",
+            "type": {
+              "option": "i64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingConfig",
+      "docs": [
+        "A loosening config change waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_config\"]`; one at a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "args",
+            "type": {
+              "defined": {
+                "name": "UpdateConfigArgs"
+              }
+            }
+          },
+          {
+            "name": "refund_pool",
+            "docs": [
+              "Replacement payout accounts (mint-checked at proposal), if any."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "treasury",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "capacity_refund",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingReinstate",
+      "docs": [
+        "A reinstatement of a delisted or ejected bond waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_reinstate\", host_bond]`;",
+        "one per bond. It loosens (a host that was removed for cheating may back commitments again), so it takes the same",
+        "24 hours, the same 7-day expiry and the same authority-only cancel as a config change."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "strikes",
+            "docs": [
+              "`HostBond.strikes` when this was proposed. A slash executed since then makes the proposal stale: it cannot",
+              "clear a delisting it was not proposed for."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReinstateProposed",
+      "docs": [
+        "The authority proposed to clear `delisted` / `ejected` on a bond; it can be applied from `effective_at`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReinstateResolved",
+      "docs": [
+        "A pending reinstatement was applied (`applied = true`: the bond is listed again) or dropped."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "applied",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashDisputed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "disputed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason",
+            "type": {
+              "defined": {
+                "name": "SlashReason"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "to_refund_pool",
+            "type": "u64"
+          },
+          {
+            "name": "to_treasury",
+            "type": "u64"
+          },
+          {
+            "name": "to_capacity_refund",
+            "type": "u64"
+          },
+          {
+            "name": "strikes",
+            "type": "u16"
+          },
+          {
+            "name": "remaining_bond",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashLedger",
+      "docs": [
+        "What has recently been slashed from a bond, and what capacity claims are still open against it.",
+        "PDA `[\"slash_ledger\", host_bond]`, created with the bond's first proposal.",
+        "",
+        "Cumulative slash cap: time is cut into fixed windows of `SLASH_WINDOW`; `slashed_current` and `slashed_previous`",
+        "are the rate-based slashes executed in the window `now` falls in and in the one before. A slash may only bring",
+        "their sum up to `MAX_SLASH_BPS_PER_WINDOW` of the bond as it stood before them. Any interval of `SLASH_WINDOW`",
+        "lies inside two adjacent fixed windows, so no such interval ever sees more than the cap: there is no boundary to",
+        "straddle (the flaw of a single resetting bucket, security re-review RR-01).",
+        "",
+        "`pending_claims` is the sum of the capacity-shortfall claims filed and not yet executed or rejected. Each was taken",
+        "out of `BondLock.locked` when it was filed. It counts against the bond's headroom for new commitments (`lock_bond`),",
+        "so headroom stays taken until every claim against a commitment is paid or dropped (RR-07)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "window_index",
+            "docs": [
+              "`unix_timestamp / SLASH_WINDOW` of `slashed_current`."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "slashed_current",
+            "type": "u64"
+          },
+          {
+            "name": "slashed_previous",
+            "type": "u64"
+          },
+          {
+            "name": "pending_claims",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashProposal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal_id",
+            "type": "u64"
+          },
+          {
+            "name": "evidence_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reason",
+            "type": {
+              "defined": {
+                "name": "SlashReason"
+              }
+            }
+          },
+          {
+            "name": "bps",
+            "docs": [
+              "Rate for rate-based reasons; 0 for `CapacityShortfall`."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "fixed_amount",
+            "docs": [
+              "Fixed amount for `CapacityShortfall`; 0 for rate-based reasons."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "refund_amount",
+            "docs": [
+              "Portion of the slash routed to `refund_pool` (rate-based reasons only)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "docs": [
+              "`proposed_at + dispute_window`."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "dispute_status",
+            "type": {
+              "defined": {
+                "name": "DisputeStatus"
+              }
+            }
+          },
+          {
+            "name": "disputed_at",
+            "type": "i64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "executed_amount",
+            "type": "u64"
+          },
+          {
+            "name": "rent_payer",
+            "docs": [
+              "Account that paid the proposal's rent; refunded by `close_proposal`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "unblock_at",
+            "docs": [
+              "When an open dispute stops blocking execution: `disputed_at` plus the dispute block AS IT WAS when the host",
+              "disputed. A later change of the block does not move it (security re-review RR-10). 0 until disputed, and on a",
+              "proposal created before this field existed (then `disputed_at + config.dispute_block` applies)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal_id",
+            "type": "u64"
+          },
+          {
+            "name": "reason",
+            "type": {
+              "defined": {
+                "name": "SlashReason"
+              }
+            }
+          },
+          {
+            "name": "bps",
+            "type": "u16"
+          },
+          {
+            "name": "fixed_amount",
+            "type": "u64"
+          },
+          {
+            "name": "refund_amount",
+            "type": "u64"
+          },
+          {
+            "name": "evidence_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashReason",
+      "docs": [
+        "Slash schedule from Backend spec section 5.3, encoded as reason codes.",
+        "",
+        "| Code | Evidence                                            | Slash                       |",
+        "| ---- | --------------------------------------------------- | --------------------------- |",
+        "| 0    | Empty-200 > 2% over 24h                             | 1% (100 bps)                |",
+        "| 1    | Quantization swap (3/3 canaries)                    | 25% (2500 bps) + delist     |",
+        "| 2    | Uptime < 95% over 30 days                           | 0.5% (50 bps) per day       |",
+        "| 3    | Shadow re-execution mismatch                        | 50% (5000 bps) + ejection   |",
+        "| 4    | SEALED served without fresh attestation             | 5% (500 bps) per incident   |",
+        "| 5    | Capacity commitment under-delivered (section 5.6)   | exact purchase price of the unserved Bushels (fixed amount, never a rate) |",
+        "Borsh encodes variants by declaration order, which matches the reason codes above."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "EmptyTwoHundred"
+          },
+          {
+            "name": "QuantizationSwap"
+          },
+          {
+            "name": "UptimeBelow95"
+          },
+          {
+            "name": "ShadowMismatch"
+          },
+          {
+            "name": "SealedWithoutAttestation"
+          },
+          {
+            "name": "CapacityShortfall"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnbondCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnbondRequested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "unbond_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateConfigArgs",
+      "docs": [
+        "The fields `update_config` / `propose_config` may change. `None` leaves a field as it is."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "docs": [
+              "Hand the authority over. Only through the timelock, and the new authority must sign the apply."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "slasher",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "guardian",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "capacity_claimer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "min_bond",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "unbond_period",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "dispute_window",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "dispute_block",
+            "type": {
+              "option": "i64"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

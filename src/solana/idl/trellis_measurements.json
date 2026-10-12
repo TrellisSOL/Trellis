@@ -1,0 +1,1745 @@
+{
+  "address": "4PzSbQpW3tGQJY676KNr6AwWY9WZ4feKZ1rx6JjtTgNY",
+  "metadata": {
+    "name": "trellis_measurements",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis measurement registry: the digests a Graft host may run"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "cancel_measurement_proposal",
+      "docs": [
+        "Authority: drop a pending registration or reinstatement. Anyone may clear an expired one."
+      ],
+      "discriminator": [
+        63,
+        73,
+        60,
+        132,
+        200,
+        130,
+        19,
+        63
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "The authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_registry",
+      "docs": [
+        "Create the registry and name its authority (the Squads 2-of-3 vault in production)."
+      ],
+      "discriminator": [
+        131,
+        22,
+        4,
+        103,
+        24,
+        94,
+        163,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the registry's rent. Must be the program's upgrade authority (the deployer, right after the deploy), so",
+            "nobody else can initialise the registry and name its authority first."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "propose_measurement",
+      "docs": [
+        "Authority: announce one `(kind, digest)` for the allow-list. It can be registered after `CONFIG_TIMELOCK`",
+        "(24h). Fails when the entry exists, whether it is live or revoked."
+      ],
+      "discriminator": [
+        163,
+        57,
+        23,
+        122,
+        245,
+        229,
+        203,
+        251
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "measurement",
+          "docs": [
+            "again: see `propose_reinstate`)."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_measurement",
+          "docs": [
+            "One proposal per kind and digest: a second one fails at `init` while the first is pending."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "label",
+          "type": "string"
+        },
+        {
+          "name": "policy_version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "propose_reinstate",
+      "docs": [
+        "Authority: announce that the revocation of an entry is to be cleared. Applicable after `CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        95,
+        200,
+        116,
+        79,
+        219,
+        222,
+        143,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "measurement",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "register",
+      "docs": [
+        "Authority: add a proposed `(kind, digest)` to the allow-list, once its timelock has elapsed."
+      ],
+      "discriminator": [
+        211,
+        124,
+        67,
+        15,
+        211,
+        194,
+        178,
+        240
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Pays the entry's rent and gets the proposal's rent back."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "measurement",
+          "docs": [
+            "One account per kind and digest. A second `register` for the same pair fails at `init`",
+            "(account already in use), also when the entry is revoked: see `reinstate`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "reinstate",
+      "docs": [
+        "Authority: clear the revocation of an entry, once the proposal's timelock has elapsed. The only way a revoked",
+        "digest is accepted again."
+      ],
+      "discriminator": [
+        168,
+        199,
+        183,
+        135,
+        124,
+        114,
+        176,
+        240
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Gets the proposal's rent back."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_authority_transfer",
+      "docs": [
+        "`accept = true`: the new authority takes over (after the timelock). `accept = false`: the authority cancels",
+        "(anyone, once the hand-over has expired)."
+      ],
+      "discriminator": [
+        255,
+        204,
+        30,
+        8,
+        25,
+        234,
+        199,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Accepting: the new authority. Cancelling: the current authority."
+          ],
+          "signer": true
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "accept",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "revoke",
+      "docs": [
+        "Authority: withdraw an entry, at once. The account stays, stamped with the revocation time."
+      ],
+      "discriminator": [
+        170,
+        23,
+        31,
+        34,
+        133,
+        173,
+        93,
+        242
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "measurement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "kind"
+              },
+              {
+                "kind": "arg",
+                "path": "digest"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "digest",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "reason_code",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "transfer_authority",
+      "docs": [
+        "Authority: name a new authority. It takes over only by signing `resolve_authority_transfer`",
+        "after `CONFIG_TIMELOCK`."
+      ],
+      "discriminator": [
+        48,
+        169,
+        76,
+        72,
+        229,
+        180,
+        55,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Measurement",
+      "discriminator": [
+        102,
+        58,
+        48,
+        155,
+        68,
+        220,
+        172,
+        169
+      ]
+    },
+    {
+      "name": "PendingAuthority",
+      "discriminator": [
+        108,
+        91,
+        208,
+        174,
+        216,
+        189,
+        207,
+        93
+      ]
+    },
+    {
+      "name": "PendingMeasurement",
+      "discriminator": [
+        119,
+        82,
+        85,
+        182,
+        63,
+        137,
+        125,
+        95
+      ]
+    },
+    {
+      "name": "Registry",
+      "discriminator": [
+        47,
+        174,
+        110,
+        246,
+        184,
+        182,
+        252,
+        218
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferProposed",
+      "discriminator": [
+        103,
+        244,
+        27,
+        116,
+        177,
+        4,
+        100,
+        119
+      ]
+    },
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "MeasurementProposalCancelled",
+      "discriminator": [
+        115,
+        176,
+        126,
+        23,
+        204,
+        253,
+        130,
+        226
+      ]
+    },
+    {
+      "name": "MeasurementProposed",
+      "discriminator": [
+        92,
+        22,
+        211,
+        71,
+        170,
+        58,
+        140,
+        137
+      ]
+    },
+    {
+      "name": "MeasurementRegistered",
+      "discriminator": [
+        114,
+        143,
+        96,
+        215,
+        55,
+        202,
+        104,
+        186
+      ]
+    },
+    {
+      "name": "MeasurementReinstated",
+      "discriminator": [
+        29,
+        123,
+        65,
+        102,
+        83,
+        36,
+        232,
+        207
+      ]
+    },
+    {
+      "name": "MeasurementRevoked",
+      "discriminator": [
+        119,
+        70,
+        63,
+        220,
+        105,
+        46,
+        146,
+        56
+      ]
+    },
+    {
+      "name": "RegistryInitialized",
+      "discriminator": [
+        144,
+        138,
+        62,
+        105,
+        58,
+        38,
+        100,
+        177
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAuthority",
+      "msg": "Authority must not be the default pubkey"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidKind",
+      "msg": "Unknown measurement kind"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidDigest",
+      "msg": "Digest must not be all zeros"
+    },
+    {
+      "code": 6004,
+      "name": "LabelTooLong",
+      "msg": "Label is longer than 64 bytes"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyRevoked",
+      "msg": "Measurement is already revoked"
+    },
+    {
+      "code": 6006,
+      "name": "NotRevoked",
+      "msg": "Measurement is not revoked"
+    },
+    {
+      "code": 6007,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6008,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6009,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6010,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6011,
+      "name": "AlreadyRegistered",
+      "msg": "The entry already exists; a revoked entry comes back only through propose_reinstate"
+    },
+    {
+      "code": 6012,
+      "name": "WrongProposalKind",
+      "msg": "The pending proposal is of the other kind (registration or reinstatement)"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Measurement",
+      "docs": [
+        "One allow-listed digest. PDA `[\"measurement\", [kind], digest]`.",
+        "",
+        "Live while `revoked_at` is `None`. `label` is free text set at registration (at most 64",
+        "bytes; the router writes the hash of the entry's transparency-log record).",
+        "`policy_version` is the version of the measurement policy the entry was approved under."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "name": "policy_version",
+            "type": "u32"
+          },
+          {
+            "name": "registered_at",
+            "type": "i64"
+          },
+          {
+            "name": "revoked_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeasurementProposalCancelled",
+      "docs": [
+        "A pending proposal was dropped without being applied."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reinstate",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeasurementProposed",
+      "docs": [
+        "The authority proposed to add an entry to the allow-list (`reinstate = false`) or to clear the revocation of an",
+        "existing one (`reinstate = true`). It can be applied from `effective_at`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "name": "policy_version",
+            "type": "u32"
+          },
+          {
+            "name": "reinstate",
+            "type": "bool"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeasurementRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "name": "policy_version",
+            "type": "u32"
+          },
+          {
+            "name": "registered_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeasurementReinstated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reinstated_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MeasurementRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reason_code",
+            "type": "u8"
+          },
+          {
+            "name": "revoked_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingAuthority",
+      "docs": [
+        "An authority hand-over waiting for the new authority to accept after `CONFIG_TIMELOCK`. PDA `[\"pending_authority\"]`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingMeasurement",
+      "docs": [
+        "A registration (`reinstate = false`) or a reinstatement (`reinstate = true`) waiting out `CONFIG_TIMELOCK`.",
+        "PDA `[\"pending_measurement\", [kind], digest]`. Until it is applied the allow-list is unchanged: a registration has no",
+        "`Measurement` account yet, and a revoked entry stays revoked, so a reader that knows nothing of proposals sees",
+        "exactly what is in force."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "label",
+            "docs": [
+              "The label the entry will be registered with (empty for a reinstatement: the entry keeps its own)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "policy_version",
+            "type": "u32"
+          },
+          {
+            "name": "reinstate",
+            "type": "bool"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Registry",
+      "docs": [
+        "The registry. PDA `[\"registry\"]`.",
+        "",
+        "`authority` registers, revokes and reinstates entries. Revoking is immediate; registering and reinstating are",
+        "proposed first and applied `CONFIG_TIMELOCK` (24h) later. In production it is a Squads 2-of-3 multisig. `registered` counts every entry ever created and `revoked` the entries",
+        "revoked right now, so `registered - revoked` is the size of the live allow-list."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "registered",
+            "type": "u64"
+          },
+          {
+            "name": "revoked",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "KIND_COMPOSE_HASH",
+      "type": "u8",
+      "value": "1"
+    },
+    {
+      "name": "KIND_COUNT",
+      "type": "u8",
+      "value": "4"
+    },
+    {
+      "name": "KIND_MODEL_DIGEST",
+      "docs": [
+        "Measurement kinds (`kind: u8`).",
+        "",
+        "| Kind | Name             | Digest                                                        |",
+        "|------|------------------|---------------------------------------------------------------|",
+        "| 0    | `model_digest`   | the digest the sidecar computes over the served weights       |",
+        "| 1    | `compose_hash`   | sha256 of the confidential VM's app-compose file (RTMR3)      |",
+        "| 2    | `os_image`       | the image digest the quote commits to                         |",
+        "| 3    | `sidecar_source` | sha256 of the sidecar source tarball the compose file pins    |"
+      ],
+      "type": "u8",
+      "value": "0"
+    },
+    {
+      "name": "KIND_OS_IMAGE",
+      "type": "u8",
+      "value": "2"
+    },
+    {
+      "name": "KIND_SIDECAR_SOURCE",
+      "type": "u8",
+      "value": "3"
+    },
+    {
+      "name": "MAX_LABEL_LEN",
+      "docs": [
+        "Longest `label`, in bytes: room for a 64-hex transparency-log entry hash."
+      ],
+      "type": "u32",
+      "value": "64"
+    },
+    {
+      "name": "MEASUREMENT_SEED",
+      "type": "bytes",
+      "value": "[109, 101, 97, 115, 117, 114, 101, 109, 101, 110, 116]"
+    },
+    {
+      "name": "PENDING_AUTHORITY_SEED",
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121]"
+    },
+    {
+      "name": "PENDING_MEASUREMENT_SEED",
+      "docs": [
+        "A registration or reinstatement waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_measurement\", [kind], digest]`: one",
+        "per entry, any number of entries side by side."
+      ],
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 109, 101, 97, 115, 117, 114, 101, 109, 101, 110, 116]"
+    },
+    {
+      "name": "REGISTRY_SEED",
+      "docs": [
+        "PDA seeds.",
+        "",
+        "| Account       | Seeds                              | Notes                               |",
+        "|---------------|------------------------------------|-------------------------------------|",
+        "| `Registry`    | `[\"registry\"]`                     | singleton                           |",
+        "| `Measurement` | `[\"measurement\", [kind], digest]`  | one per kind and digest; never closed |"
+      ],
+      "type": "bytes",
+      "value": "[114, 101, 103, 105, 115, 116, 114, 121]"
+    }
+  ]
+}

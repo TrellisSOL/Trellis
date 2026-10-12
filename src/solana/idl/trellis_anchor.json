@@ -1,0 +1,1765 @@
+{
+  "address": "GAzh2GTSDpqcNcMX1iiCq5Dezx85fQLNXA7M1tS5BMjn",
+  "metadata": {
+    "name": "trellis_anchor",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis hourly receipt roots and receipt-signer set"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "close_host_root",
+      "docs": [
+        "Authority: close one host's root of an hour that ended at least `ROOT_RETENTION` ago."
+      ],
+      "discriminator": [
+        142,
+        234,
+        8,
+        247,
+        162,
+        168,
+        205,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "The authority paid the root's rent and gets it back."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  115,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "provider_id_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "hour"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "provider_id_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "hour",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "close_root",
+      "docs": [
+        "Authority: close the root of an hour that ended at least `ROOT_RETENTION` ago; the rent returns to the authority."
+      ],
+      "discriminator": [
+        237,
+        47,
+        174,
+        228,
+        24,
+        190,
+        63,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "The authority paid the root's rent and gets it back."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "receipt_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "hour"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hour",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "init_signer_set",
+      "discriminator": [
+        190,
+        15,
+        224,
+        131,
+        21,
+        214,
+        174,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Pays for the account. Must be the program's upgrade authority (the deployer, later the multisig), so nobody",
+            "else can initialise the program between deploy and init."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "signer_set",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "initial_signer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "post_host_root",
+      "docs": [
+        "Authority: post one attested host's receipt root for the hour. Idempotent per",
+        "(host, hour): a second post for the same pair fails."
+      ],
+      "discriminator": [
+        25,
+        195,
+        127,
+        184,
+        90,
+        53,
+        223,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_root",
+          "docs": [
+            "One account per (host, hour). A second `post_host_root` for the same pair fails at",
+            "`init` (account already in use), which makes posting idempotent per host and hour."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  115,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "provider_id_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "hour"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "provider_id_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "hour",
+          "type": "i64"
+        },
+        {
+          "name": "root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "count",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "post_root",
+      "docs": [
+        "Authority: post the hour's receipt root. Idempotent per hour (second post fails)."
+      ],
+      "discriminator": [
+        154,
+        210,
+        156,
+        158,
+        199,
+        27,
+        174,
+        35
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "receipt_root",
+          "docs": [
+            "One account per hour. A second `post_root` for the same hour fails at `init`",
+            "(account already in use), which makes posting idempotent per hour."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "hour"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hour",
+          "type": "i64"
+        },
+        {
+          "name": "root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "count",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "propose_signer",
+      "docs": [
+        "Authority: announce the next receipt signing key. It can be installed after `CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        24,
+        75,
+        93,
+        178,
+        237,
+        251,
+        148,
+        191
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_signer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_signer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "resolve_authority_transfer",
+      "docs": [
+        "`accept = true`: the new authority takes over (after the timelock). `accept = false`: the authority cancels",
+        "(anyone, once the hand-over has expired)."
+      ],
+      "discriminator": [
+        255,
+        204,
+        30,
+        8,
+        25,
+        234,
+        199,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Accepting: the new authority. Cancelling: the current authority."
+          ],
+          "signer": true
+        },
+        {
+          "name": "signer_set",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "accept",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "resolve_signer",
+      "docs": [
+        "`apply = true`: the authority installs the proposed signer after the timelock (the outgoing one is kept as the",
+        "previous signer). `apply = false`: the authority drops the proposal; anyone may clear an expired one."
+      ],
+      "discriminator": [
+        201,
+        244,
+        202,
+        24,
+        7,
+        77,
+        120,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Installing or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "signer_set",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_signer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "revoke_signer",
+      "docs": [
+        "Authority: remove the current or the previous signer from the set, at once."
+      ],
+      "discriminator": [
+        177,
+        3,
+        124,
+        193,
+        8,
+        158,
+        33,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "signer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "transfer_authority",
+      "docs": [
+        "Authority: name a new authority. It takes over only by signing `resolve_authority_transfer`",
+        "after `CONFIG_TIMELOCK`."
+      ],
+      "discriminator": [
+        48,
+        169,
+        76,
+        72,
+        229,
+        180,
+        55,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "signer_set"
+          ]
+        },
+        {
+          "name": "signer_set",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "HostRoot",
+      "discriminator": [
+        205,
+        99,
+        22,
+        98,
+        22,
+        69,
+        138,
+        15
+      ]
+    },
+    {
+      "name": "PendingAuthority",
+      "discriminator": [
+        108,
+        91,
+        208,
+        174,
+        216,
+        189,
+        207,
+        93
+      ]
+    },
+    {
+      "name": "PendingSigner",
+      "discriminator": [
+        119,
+        245,
+        80,
+        184,
+        93,
+        76,
+        135,
+        47
+      ]
+    },
+    {
+      "name": "ReceiptRoot",
+      "discriminator": [
+        23,
+        119,
+        243,
+        26,
+        60,
+        131,
+        68,
+        246
+      ]
+    },
+    {
+      "name": "SignerSet",
+      "discriminator": [
+        202,
+        99,
+        45,
+        139,
+        165,
+        94,
+        48,
+        22
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferProposed",
+      "discriminator": [
+        103,
+        244,
+        27,
+        116,
+        177,
+        4,
+        100,
+        119
+      ]
+    },
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "HostRootClosed",
+      "discriminator": [
+        141,
+        57,
+        136,
+        179,
+        236,
+        6,
+        106,
+        134
+      ]
+    },
+    {
+      "name": "HostRootPosted",
+      "discriminator": [
+        243,
+        12,
+        58,
+        191,
+        5,
+        248,
+        181,
+        77
+      ]
+    },
+    {
+      "name": "RootClosed",
+      "discriminator": [
+        157,
+        14,
+        46,
+        83,
+        247,
+        8,
+        85,
+        252
+      ]
+    },
+    {
+      "name": "RootPosted",
+      "discriminator": [
+        245,
+        251,
+        4,
+        0,
+        87,
+        227,
+        252,
+        231
+      ]
+    },
+    {
+      "name": "SignerProposalCancelled",
+      "discriminator": [
+        48,
+        89,
+        233,
+        86,
+        164,
+        117,
+        255,
+        91
+      ]
+    },
+    {
+      "name": "SignerProposed",
+      "discriminator": [
+        200,
+        233,
+        28,
+        20,
+        176,
+        105,
+        98,
+        221
+      ]
+    },
+    {
+      "name": "SignerRevoked",
+      "discriminator": [
+        1,
+        63,
+        100,
+        62,
+        58,
+        38,
+        54,
+        22
+      ]
+    },
+    {
+      "name": "SignerRotated",
+      "discriminator": [
+        191,
+        74,
+        185,
+        111,
+        117,
+        207,
+        92,
+        19
+      ]
+    },
+    {
+      "name": "SignerSetInitialized",
+      "discriminator": [
+        247,
+        175,
+        80,
+        101,
+        224,
+        98,
+        235,
+        118
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidHour",
+      "msg": "Hour must be a non-negative multiple of 3600"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidSigner",
+      "msg": "Signer pubkey must not be the default pubkey"
+    },
+    {
+      "code": 6003,
+      "name": "SignerUnchanged",
+      "msg": "New signer equals the current signer"
+    },
+    {
+      "code": 6004,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidProviderId",
+      "msg": "Provider id hash must not be all zeros"
+    },
+    {
+      "code": 6006,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6007,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6008,
+      "name": "HourInFuture",
+      "msg": "Hour is in the future"
+    },
+    {
+      "code": 6009,
+      "name": "HourTooOld",
+      "msg": "Hour is older than the retention period: its root could already have been closed"
+    },
+    {
+      "code": 6010,
+      "name": "RetentionNotElapsed",
+      "msg": "The root is younger than the retention period"
+    },
+    {
+      "code": 6011,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6012,
+      "name": "SignerNotInSet",
+      "msg": "The key is neither the current nor the previous signer"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "docs": [
+              "Seconds between `transfer_authority` and the moment the new authority can accept (and between `propose_signer`",
+              "and the moment the signer can be installed)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "root_retention",
+            "docs": [
+              "Seconds after an hour's end before its root may be closed (and after which it can no longer be posted)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "docs": [
+              "Seconds after a hand-over becomes effective during which the new authority can still accept it."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostRoot",
+      "docs": [
+        "Hourly receipt Merkle root of one attested host (Trellis Backend §3: per-host receipts).",
+        "PDA `[\"host_root\", provider_id_hash, hour.to_le_bytes()]`.",
+        "",
+        "`provider_id_hash` is sha256 of the router's provider id. `root` is a sha256 Merkle root over",
+        "the host's sidecar receipt leaves collected for `hour` (see `crate::merkle`); `signer` is the",
+        "router receipt signing key that was current when the root was posted."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider_id_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostRootClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider_id_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostRootPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider_id_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingAuthority",
+      "docs": [
+        "An authority hand-over waiting for the new authority to accept after `CONFIG_TIMELOCK`. PDA `[\"pending_authority\"]`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingSigner",
+      "docs": [
+        "A receipt signer waiting out `CONFIG_TIMELOCK` before it can be installed. PDA `[\"pending_signer\"]`; one at a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReceiptRoot",
+      "docs": [
+        "Hourly receipt Merkle root. PDA `[\"receipt_root\", hour.to_le_bytes()]`.",
+        "",
+        "`root` is a sha256 Merkle root (see `crate::merkle`). `signer` is the receipt signing key",
+        "that was current when the root was posted (the default key if the current signer had been revoked and its",
+        "replacement was still waiting out the timelock). It is a record, not a check: posting a root needs the authority's",
+        "signature only."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RootClosed",
+      "docs": [
+        "A root older than `ROOT_RETENTION` was closed and its rent returned. The root itself stays in the `RootPosted`",
+        "event and the instruction data of the transaction that posted it."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RootPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u64"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "posted_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerProposalCancelled",
+      "docs": [
+        "A pending signer proposal was dropped without being installed."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerProposed",
+      "docs": [
+        "The authority proposed a new receipt signer; it can be installed from `effective_at` (`resolve_signer`)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerRevoked",
+      "docs": [
+        "A key was removed from the signer set at once. `was_current`: it was the current signer (the set has no current",
+        "signer until a proposed one is installed); otherwise it was the previous signer."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "was_current",
+            "type": "bool"
+          },
+          {
+            "name": "revoked_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerRotated",
+      "docs": [
+        "A proposed signer was installed after the timelock: it is the current signer, the outgoing one the previous."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "current_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "rotated_at",
+            "type": "i64"
+          },
+          {
+            "name": "rotation_count",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerSet",
+      "docs": [
+        "The receipt signing key set. PDA `[\"signer_set\"]`.",
+        "",
+        "`authority` rotates the signer weekly. A new signer is never installed at once: `propose_signer` announces it,",
+        "`resolve_signer(true)` installs it `CONFIG_TIMELOCK` (24h) later. Removing a key is immediate (`revoke_signer`), so a",
+        "compromised signer is cut off in one transaction and its replacement follows a day later; until then",
+        "`current_signer` is the default (all-zero) key, which is no key at all. In production the authority is a Squads",
+        "2-of-3 multisig. `previous_signer` is retained so receipts signed just before a rotation still verify."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "current_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "previous_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "rotated_at",
+            "type": "i64"
+          },
+          {
+            "name": "rotation_count",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerSetInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "HOST_ROOT_SEED",
+      "type": "bytes",
+      "value": "[104, 111, 115, 116, 95, 114, 111, 111, 116]"
+    },
+    {
+      "name": "MAINNET_CONFIG_TIMELOCK",
+      "docs": [
+        "The mainnet values, as the default build carries them and as the IDL publishes them. A deployed binary proves its own",
+        "values through `build_profile`, not through the IDL (the IDL is the same file for both flavours)."
+      ],
+      "type": "i64",
+      "value": "86400"
+    },
+    {
+      "name": "MAINNET_ROOT_RETENTION",
+      "type": "i64",
+      "value": "34560000"
+    },
+    {
+      "name": "PENDING_AUTHORITY_SEED",
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121]"
+    },
+    {
+      "name": "PENDING_SIGNER_SEED",
+      "docs": [
+        "A proposed receipt signer waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_signer\"]`; one at a time."
+      ],
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 115, 105, 103, 110, 101, 114]"
+    },
+    {
+      "name": "RECEIPT_ROOT_SEED",
+      "type": "bytes",
+      "value": "[114, 101, 99, 101, 105, 112, 116, 95, 114, 111, 111, 116]"
+    },
+    {
+      "name": "SECONDS_PER_HOUR",
+      "type": "i64",
+      "value": "3600"
+    },
+    {
+      "name": "SIGNER_SET_SEED",
+      "docs": [
+        "PDA seeds.",
+        "",
+        "| Account       | Seeds                                   | Notes                              |",
+        "|---------------|-----------------------------------------|------------------------------------|",
+        "| `SignerSet`   | `[\"signer_set\"]`                        | singleton                          |",
+        "| `ReceiptRoot` | `[\"receipt_root\", hour.to_le_bytes()]`  | one per hour; second post fails    |",
+        "| `HostRoot`    | `[\"host_root\", provider_id_hash, hour.to_le_bytes()]` | one per host and hour  |"
+      ],
+      "type": "bytes",
+      "value": "[115, 105, 103, 110, 101, 114, 95, 115, 101, 116]"
+    }
+  ]
+}

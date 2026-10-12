@@ -1,0 +1,3969 @@
+{
+  "address": "dtwL4NqHvvF2QAB84y9VjfNdkEUGw6NWbNWRtgjifAi",
+  "metadata": {
+    "name": "trellis_credits",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis prepaid, spend-only USDC inference credits"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "cancel_close",
+      "docs": [
+        "Whoever asked for the closure, or the key's registered owner wallet: take a queued closure back while nothing has",
+        "been paid. The key may do this once per `KEY_CANCEL_COOLDOWN`. A depositor has no say over a closure."
+      ],
+      "discriminator": [
+        180,
+        18,
+        250,
+        175,
+        124,
+        125,
+        242,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Whoever asked for the closure (the key itself, or the owner wallet), or the key's registered owner wallet."
+          ],
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the fee and, the first time the key cancels, the small rent of its `CloseGuard`. Any wallet."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_request",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent_payer",
+          "writable": true
+        },
+        {
+          "name": "guard",
+          "docs": [
+            "When the key may next cancel. `init_if_needed`: created by the first cancel and never closed, so it cannot be",
+            "re-initialised to forget a cooldown."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  115,
+                  101,
+                  95,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "close_account",
+      "docs": [
+        "Signed by the key itself: close the key and queue a refund of the unspent balance to the wallets that funded it."
+      ],
+      "discriminator": [
+        125,
+        255,
+        149,
+        14,
+        110,
+        34,
+        72,
+        24
+      ],
+      "accounts": [
+        {
+          "name": "key",
+          "docs": [
+            "The API key's own ed25519 keypair (derived from the secret). Its public key must hash to `key_hash`."
+          ],
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the RefundRequest rent and the fee (the key's keypair holds no SOL). Any wallet."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_request",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "close_account_by_owner",
+      "docs": [
+        "Signed by the key's registered owner wallet, without the key: close the key and queue the same refund. A closure",
+        "asked for this way cannot be cancelled with the key."
+      ],
+      "discriminator": [
+        173,
+        64,
+        28,
+        44,
+        133,
+        151,
+        156,
+        86
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "The key's registered owner wallet."
+          ],
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays the RefundRequest rent and the fee. Any wallet (usually the owner itself)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_request",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "commit_spent_root",
+      "docs": [
+        "Settlement authority: commit the hour's spend root and advance `spent_total`."
+      ],
+      "discriminator": [
+        53,
+        139,
+        77,
+        55,
+        4,
+        156,
+        244,
+        116
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "spent_root",
+          "docs": [
+            "One account per hour: a second commit for the same hour fails at `init`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  101,
+                  110,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "hour"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hour",
+          "type": "i64"
+        },
+        {
+          "name": "root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "spent_delta",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "docs": [
+        "Deposit USDC for `key_hash`; creates the credit account on first use and extends",
+        "`expires_at` to now + `credit_ttl`. Anyone may deposit to any key; it gives the depositor no rights over it."
+      ],
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "credit",
+          "docs": [
+            "Anyone may deposit to any key hash (\"top up a key\"). `init_if_needed` is justified here: a deposit is the only way a credit account comes",
+            "into existence (there is no separate \"open\" instruction, per Backend §5.1), and the",
+            "re-initialisation attack does not apply because this program never closes a",
+            "`CreditAccount` (closure sets `closed = true` and keeps the account)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "share",
+          "docs": [
+            "What this wallet has put into this key, and where it wants it back. `init_if_needed`: created by the wallet's",
+            "first deposit to the key and never closed, so it cannot be re-initialised."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              },
+              {
+                "kind": "account",
+                "path": "depositor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "depositor_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "init_config",
+      "docs": [
+        "Upgrade authority only: creates the config, the vault and the outflow limiter."
+      ],
+      "discriminator": [
+        23,
+        235,
+        115,
+        232,
+        168,
+        96,
+        1,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Admin key (Squads 2-of-3 in production). Pays for the config and vault accounts. Must be the program's upgrade",
+            "authority, so nobody else can initialise the program between deploy and init."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Program-owned USDC vault; authority is the config PDA."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_token_account"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitConfigParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_limiter",
+      "docs": [
+        "Creates the outflow limiter for a config initialised before it existed (anyone may pay)."
+      ],
+      "discriminator": [
+        29,
+        52,
+        51,
+        248,
+        246,
+        240,
+        216,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "migrate_config",
+      "docs": [
+        "Grows a config created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "migrate_limiter",
+      "docs": [
+        "Grows a limiter created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        252,
+        129,
+        70,
+        129,
+        73,
+        188,
+        83,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "notice_expiry",
+      "docs": [
+        "Settlement authority: start the grace period for an expired balance."
+      ],
+      "discriminator": [
+        206,
+        112,
+        238,
+        114,
+        210,
+        252,
+        72,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "pay_refund",
+      "docs": [
+        "Settlement authority: pay (part of) a queued refund to one depositor's destination, after the request's",
+        "`payable_at` and within the refund allowance."
+      ],
+      "discriminator": [
+        222,
+        142,
+        111,
+        215,
+        70,
+        190,
+        60,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_request",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  102,
+                  117,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "refund_request.key_hash",
+                "account": "RefundRequest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "share",
+          "docs": [
+            "The share of one wallet that deposited to this key: the refund is that wallet's own USDC coming back."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "refund_request.key_hash",
+                "account": "RefundRequest"
+              },
+              {
+                "kind": "account",
+                "path": "share.depositor",
+                "account": "DepositorShare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "refund_to",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "propose_config",
+      "docs": [
+        "Authority: record any config change (including an authority hand-over); it can be applied after",
+        "`CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        163,
+        247,
+        238,
+        160,
+        236,
+        129,
+        153,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_config",
+          "docs": [
+            "One pending change at a time: a second proposal fails at `init` until this one is applied or cancelled."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_treasury",
+          "docs": [
+            "Optional new treasury token account; must hold the configured USDC mint."
+          ],
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_config",
+      "docs": [
+        "`apply = true`: the authority installs the pending change after the timelock (a new authority must co-sign).",
+        "`apply = false`: the authority drops it (the guardian cannot); anyone may clear an expired one."
+      ],
+      "discriminator": [
+        7,
+        245,
+        77,
+        171,
+        174,
+        156,
+        145,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Applying or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "docs": [
+            "Required only when the pending change hands the authority over: the new authority must sign to take it."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_deposits_paused",
+      "docs": [
+        "Guardian or authority pauses new deposits for `PAUSE_TTL`; only the authority unpauses. Never affects outflows."
+      ],
+      "discriminator": [
+        160,
+        98,
+        241,
+        200,
+        54,
+        132,
+        77,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Either the guardian or the authority."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_key_authority",
+      "docs": [
+        "Register the key's owner wallet (signed by the key and by the wallet), or, once one is registered, change or",
+        "clear it (signed by the current owner; a new owner signs too). The key alone cannot change a registered owner."
+      ],
+      "discriminator": [
+        172,
+        162,
+        229,
+        142,
+        235,
+        201,
+        113,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "While the key has no owner: the API key's own ed25519 keypair (its public key must hash to `key_hash`). Once an",
+            "owner is registered: that owner wallet. The key alone can never replace or clear a registered owner."
+          ],
+          "signer": true
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_owner",
+          "docs": [
+            "The wallet being registered as owner. It must sign: a key cannot name a wallet that has not agreed (and so",
+            "cannot borrow someone else's standing, security review round 3 R3-23). Omitted only when the owner clears itself."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_refund_destination",
+      "docs": [
+        "A depositor: name another USDC token account for its own refunds from this key."
+      ],
+      "discriminator": [
+        210,
+        115,
+        178,
+        210,
+        151,
+        133,
+        201,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "signer": true,
+          "relations": [
+            "share"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "share",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              },
+              {
+                "kind": "account",
+                "path": "depositor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_to",
+          "docs": [
+            "The USDC token account the depositor wants its refunds from this key paid to."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_settlements_paused",
+      "docs": [
+        "Guardian or authority pauses spend commits, host settlement and sweeps for `PAUSE_TTL`; only the authority",
+        "unpauses. Closures and closure refunds are never paused."
+      ],
+      "discriminator": [
+        103,
+        244,
+        89,
+        134,
+        151,
+        97,
+        106,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "The guardian or the authority may pause; only the authority may unpause."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "settle_to_host",
+      "docs": [
+        "Settlement authority: pay a host from the vault, bounded by committed spend and the per-window limit."
+      ],
+      "discriminator": [
+        77,
+        133,
+        81,
+        121,
+        146,
+        151,
+        152,
+        65
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "spent_root",
+          "docs": [
+            "The committed hour this settlement references (must exist)."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  101,
+                  110,
+                  116,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "hour_root_ref"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "host_token_account",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "hour_root_ref",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "sweep_expired",
+      "docs": [
+        "Settlement authority: move the unspent part of an expired, noticed balance to treasury after the grace period."
+      ],
+      "discriminator": [
+        10,
+        72,
+        70,
+        57,
+        62,
+        128,
+        19,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "credit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury_token_account",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "key_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Authority: tightening changes only, effective at once. Loosening is refused (`RequiresTimelock`)."
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "limiter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  116,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigParams"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CloseGuard",
+      "discriminator": [
+        182,
+        200,
+        224,
+        146,
+        7,
+        109,
+        15,
+        210
+      ]
+    },
+    {
+      "name": "CreditAccount",
+      "discriminator": [
+        196,
+        171,
+        234,
+        132,
+        239,
+        255,
+        21,
+        96
+      ]
+    },
+    {
+      "name": "CreditsConfig",
+      "discriminator": [
+        51,
+        127,
+        46,
+        105,
+        211,
+        170,
+        215,
+        16
+      ]
+    },
+    {
+      "name": "DepositorShare",
+      "discriminator": [
+        179,
+        91,
+        55,
+        167,
+        70,
+        23,
+        144,
+        223
+      ]
+    },
+    {
+      "name": "PendingConfig",
+      "discriminator": [
+        109,
+        48,
+        178,
+        191,
+        125,
+        67,
+        26,
+        70
+      ]
+    },
+    {
+      "name": "RefundRequest",
+      "discriminator": [
+        40,
+        79,
+        128,
+        211,
+        184,
+        96,
+        201,
+        204
+      ]
+    },
+    {
+      "name": "SettleLimiter",
+      "discriminator": [
+        158,
+        0,
+        105,
+        248,
+        124,
+        67,
+        88,
+        159
+      ]
+    },
+    {
+      "name": "SpentRoot",
+      "discriminator": [
+        204,
+        28,
+        253,
+        235,
+        45,
+        125,
+        101,
+        50
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "CloseCancelled",
+      "discriminator": [
+        110,
+        18,
+        213,
+        55,
+        110,
+        78,
+        87,
+        222
+      ]
+    },
+    {
+      "name": "CloseRequested",
+      "discriminator": [
+        136,
+        120,
+        170,
+        78,
+        168,
+        236,
+        47,
+        118
+      ]
+    },
+    {
+      "name": "CloseRequester",
+      "discriminator": [
+        223,
+        245,
+        150,
+        44,
+        79,
+        170,
+        23,
+        44
+      ]
+    },
+    {
+      "name": "ConfigInitialized",
+      "discriminator": [
+        181,
+        49,
+        200,
+        156,
+        19,
+        167,
+        178,
+        91
+      ]
+    },
+    {
+      "name": "ConfigProposalApplied",
+      "discriminator": [
+        167,
+        127,
+        85,
+        78,
+        183,
+        186,
+        148,
+        89
+      ]
+    },
+    {
+      "name": "ConfigProposalCancelled",
+      "discriminator": [
+        39,
+        218,
+        97,
+        147,
+        66,
+        122,
+        22,
+        71
+      ]
+    },
+    {
+      "name": "ConfigProposed",
+      "discriminator": [
+        148,
+        34,
+        23,
+        129,
+        45,
+        161,
+        66,
+        192
+      ]
+    },
+    {
+      "name": "ConfigUpdated",
+      "discriminator": [
+        40,
+        241,
+        230,
+        122,
+        11,
+        19,
+        198,
+        194
+      ]
+    },
+    {
+      "name": "Deposited",
+      "discriminator": [
+        111,
+        141,
+        26,
+        45,
+        161,
+        35,
+        100,
+        57
+      ]
+    },
+    {
+      "name": "DepositsPausedSet",
+      "discriminator": [
+        233,
+        62,
+        211,
+        201,
+        3,
+        251,
+        55,
+        61
+      ]
+    },
+    {
+      "name": "ExpiredSwept",
+      "discriminator": [
+        247,
+        14,
+        36,
+        204,
+        105,
+        27,
+        4,
+        128
+      ]
+    },
+    {
+      "name": "ExpiryNoticed",
+      "discriminator": [
+        172,
+        134,
+        181,
+        235,
+        12,
+        214,
+        10,
+        64
+      ]
+    },
+    {
+      "name": "KeyAuthorityChanged",
+      "discriminator": [
+        28,
+        88,
+        82,
+        228,
+        133,
+        163,
+        102,
+        244
+      ]
+    },
+    {
+      "name": "OutflowCapSet",
+      "discriminator": [
+        56,
+        110,
+        116,
+        84,
+        242,
+        2,
+        190,
+        46
+      ]
+    },
+    {
+      "name": "RefundDestinationSet",
+      "discriminator": [
+        109,
+        197,
+        6,
+        159,
+        161,
+        38,
+        206,
+        94
+      ]
+    },
+    {
+      "name": "RefundPaid",
+      "discriminator": [
+        191,
+        158,
+        89,
+        168,
+        130,
+        235,
+        207,
+        139
+      ]
+    },
+    {
+      "name": "SettleRateSet",
+      "discriminator": [
+        205,
+        119,
+        230,
+        55,
+        84,
+        241,
+        158,
+        9
+      ]
+    },
+    {
+      "name": "SettledToHost",
+      "discriminator": [
+        7,
+        19,
+        97,
+        241,
+        242,
+        16,
+        177,
+        212
+      ]
+    },
+    {
+      "name": "SettlementsPausedSet",
+      "discriminator": [
+        212,
+        59,
+        177,
+        200,
+        194,
+        57,
+        183,
+        40
+      ]
+    },
+    {
+      "name": "SpentRootCommitted",
+      "discriminator": [
+        108,
+        172,
+        84,
+        19,
+        191,
+        52,
+        251,
+        21
+      ]
+    },
+    {
+      "name": "SpentTotalWrittenDown",
+      "discriminator": [
+        126,
+        39,
+        245,
+        106,
+        127,
+        54,
+        122,
+        104
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "DepositsPaused",
+      "msg": "Deposits are paused"
+    },
+    {
+      "code": 6001,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6003,
+      "name": "MaxBalanceExceeded",
+      "msg": "Deposit would exceed max_balance_per_key"
+    },
+    {
+      "code": 6004,
+      "name": "AccountClosed",
+      "msg": "Credit account is closed"
+    },
+    {
+      "code": 6005,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidHour",
+      "msg": "Hour must be a non-negative multiple of 3600"
+    },
+    {
+      "code": 6007,
+      "name": "HourNotIncreasing",
+      "msg": "Hour must be greater than the last committed hour"
+    },
+    {
+      "code": 6008,
+      "name": "SettlementExceedsCommittedSpend",
+      "msg": "Settlement would exceed the committed spend total"
+    },
+    {
+      "code": 6009,
+      "name": "RefundDelayNotElapsed",
+      "msg": "Refund delay has not elapsed"
+    },
+    {
+      "code": 6010,
+      "name": "RefundAlreadyPaid",
+      "msg": "Refund request already paid"
+    },
+    {
+      "code": 6011,
+      "name": "RefundExceedsRequest",
+      "msg": "Refund amount exceeds the requested amount"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidRefundDestination",
+      "msg": "Refund destination does not match the request"
+    },
+    {
+      "code": 6013,
+      "name": "NotExpired",
+      "msg": "Credit account has not expired"
+    },
+    {
+      "code": 6014,
+      "name": "ExpiryNoticeAlreadyGiven",
+      "msg": "Expiry notice already given"
+    },
+    {
+      "code": 6015,
+      "name": "ExpiryNoticeMissing",
+      "msg": "Expiry notice has not been given"
+    },
+    {
+      "code": 6016,
+      "name": "GracePeriodNotElapsed",
+      "msg": "Expiry grace period has not elapsed"
+    },
+    {
+      "code": 6017,
+      "name": "EmptyBalance",
+      "msg": "Credit balance is zero"
+    },
+    {
+      "code": 6018,
+      "name": "MintMismatch",
+      "msg": "Token account mint does not match the configured USDC mint"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidConfigValue",
+      "msg": "Invalid configuration value"
+    },
+    {
+      "code": 6020,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6021,
+      "name": "OutOfBounds",
+      "msg": "Value is outside the bounds this program enforces"
+    },
+    {
+      "code": 6022,
+      "name": "RequiresTimelock",
+      "msg": "This change loosens a safety parameter: use propose_config and apply_config after the timelock"
+    },
+    {
+      "code": 6023,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6024,
+      "name": "NotTheKey",
+      "msg": "Signer's public key does not hash to this key_hash"
+    },
+    {
+      "code": 6025,
+      "name": "HourInFuture",
+      "msg": "Hour is in the future"
+    },
+    {
+      "code": 6026,
+      "name": "SpendExceedsVault",
+      "msg": "Committed spend would exceed what the vault holds"
+    },
+    {
+      "code": 6027,
+      "name": "SettleRateLimited",
+      "msg": "Settlement would exceed the per-window outflow limit"
+    },
+    {
+      "code": 6028,
+      "name": "SettlementsPaused",
+      "msg": "Settlements are paused"
+    },
+    {
+      "code": 6029,
+      "name": "SweepExceedsBalance",
+      "msg": "Sweep amount exceeds the key's on-chain balance"
+    },
+    {
+      "code": 6030,
+      "name": "InvalidKeyHash",
+      "msg": "Key hash must not be all zero"
+    },
+    {
+      "code": 6031,
+      "name": "RefundRateLimited",
+      "msg": "Refund would exceed the per-window refund limit; pay the rest later"
+    },
+    {
+      "code": 6032,
+      "name": "RefundExceedsShare",
+      "msg": "Refund would exceed what this depositor put in"
+    },
+    {
+      "code": 6033,
+      "name": "RefundInProgress",
+      "msg": "This closure has already been paid in part or in full and can no longer be cancelled"
+    },
+    {
+      "code": 6034,
+      "name": "NotRequesterOrOwner",
+      "msg": "Only whoever requested this closure, or the key's registered owner wallet, can cancel it"
+    },
+    {
+      "code": 6035,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6036,
+      "name": "GuardianCooldown",
+      "msg": "The guardian paused recently and must wait before pausing again; the authority can pause at any time"
+    },
+    {
+      "code": 6037,
+      "name": "AlreadyMigrated",
+      "msg": "The account already has the current layout"
+    },
+    {
+      "code": 6038,
+      "name": "NotMigratable",
+      "msg": "The account is not one this instruction migrates"
+    },
+    {
+      "code": 6039,
+      "name": "KeyCancelCooldown",
+      "msg": "The key cancelled a closure recently and cannot cancel another yet; the registered owner wallet can"
+    },
+    {
+      "code": 6040,
+      "name": "DepositTooSmall",
+      "msg": "Deposit is below the minimum deposit"
+    },
+    {
+      "code": 6041,
+      "name": "NoOwner",
+      "msg": "The key has no registered owner wallet"
+    },
+    {
+      "code": 6042,
+      "name": "OwnerMustSign",
+      "msg": "The new owner wallet must sign"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "min_refund_delay",
+            "type": "i64"
+          },
+          {
+            "name": "min_expiry_grace",
+            "type": "i64"
+          },
+          {
+            "name": "min_credit_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "settle_window",
+            "type": "i64"
+          },
+          {
+            "name": "pause_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_cooldown",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseCancelled",
+      "docs": [
+        "A queued closure was withdrawn before anything was paid: the key is open again with its balance."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseGuard",
+      "docs": [
+        "When the key itself may next cancel a closure. PDA `[\"close_guard\", key_hash]`, created by the key's first cancel.",
+        "",
+        "Two parties can hold the same API key (its owner and whoever it leaked to). Without this, one of them could take",
+        "every closure of the other back just before it became payable, for ever. The key may cancel one closure and then",
+        "none for `KEY_CANCEL_COOLDOWN`, which is longer than any refund delay: the next closure runs to payment. The",
+        "registered owner wallet is not bound by it."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "key_cancel_blocked_until",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseRequested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "requested_at",
+            "type": "i64"
+          },
+          {
+            "name": "payable_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseRequester",
+      "docs": [
+        "Emitted with `CloseRequested`: who asked for the closure (the key's own address, or the key's registered owner",
+        "wallet). Only that party or the owner can cancel it. A separate event so that `CloseRequested` keeps its layout."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "requested_by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_balance_per_key",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigProposalApplied",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigProposalCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "changes_authority",
+            "type": "bool"
+          },
+          {
+            "name": "changes_guardian",
+            "type": "bool"
+          },
+          {
+            "name": "changes_settlement_authority",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_balance_per_key",
+            "type": "u64"
+          },
+          {
+            "name": "credit_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "refund_delay",
+            "type": "i64"
+          },
+          {
+            "name": "expiry_grace",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreditAccount",
+      "docs": [
+        "One per API key. PDA `[\"credit\", key_hash]` where `key_hash = sha256(key address)` and the key address is the",
+        "ed25519 public key derived from the API key.",
+        "",
+        "Spend is tracked off-chain and committed hourly as `SpentRoot`s, so `balance` is the",
+        "prepaid amount still on-chain, not the live remaining balance. There is no withdraw",
+        "instruction: the only outflows are `pay_refund` (closure), `settle_to_host` and",
+        "`sweep_expired`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "The key's owner wallet, or the default pubkey when none is registered. Registered once with",
+              "`set_key_authority`, signed by the key AND by the wallet; from then on only that wallet can change or clear it",
+              "(the key alone cannot). The owner can ask for a closure without the key (`close_account_by_owner`) and can",
+              "cancel any closure of the key; a closure the owner asked for cannot be cancelled with the key. It gives no claim",
+              "on funds: refunds go back to the wallets that deposited. Depositing gives no way to become the owner.",
+              "(Accounts created before the TR-05 fix may carry their first depositor here: clear it on devnet by closing.)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "balance",
+            "type": "u64"
+          },
+          {
+            "name": "deposited_total",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "Latest deposit time + `credit_ttl`; every deposit extends the whole balance."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "expiry_notice_at",
+            "docs": [
+              "Unix time of `notice_expiry`, or 0 if no notice is outstanding."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "closed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreditsConfig",
+      "docs": [
+        "Program configuration. Singleton PDA `[\"config\"]`; also the signing authority of the vault.",
+        "",
+        "`authority` is the admin key. In production this is a Squads 2-of-3 multisig; a single",
+        "pubkey is used until then. `settlement_authority` is the hot key of the settlement",
+        "service (commits spent roots, pays settlements and refunds, runs expiry). `guardian` can",
+        "only pause; it can never move funds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "docs": [
+              "Token account PDA `[\"vault\"]`, authority = this config PDA."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_token_account",
+            "docs": [
+              "Destination for swept expired balances. Must be a token account of `usdc_mint`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "max_balance_per_key",
+            "type": "u64"
+          },
+          {
+            "name": "credit_ttl",
+            "docs": [
+              "Seconds a balance lives after the latest deposit (default 365 days, never below `MIN_CREDIT_TTL`)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "refund_delay",
+            "docs": [
+              "Seconds between `close_account` and the earliest `pay_refund` (default 72h, never below `MIN_REFUND_DELAY`)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "expiry_grace",
+            "docs": [
+              "Seconds between `notice_expiry` and the earliest `sweep_expired` (default 30 days, never below `MIN_EXPIRY_GRACE`)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "spent_total",
+            "docs": [
+              "Cumulative spend committed via `commit_spent_root`. Upper bound for host settlement."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "settled_total",
+            "docs": [
+              "Cumulative USDC paid out to hosts via `settle_to_host`. Never exceeds `spent_total`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "latest_hour",
+            "docs": [
+              "Last hour committed; hours must strictly increase."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "deposits_paused",
+            "docs": [
+              "True while a deposit pause is set. It is in force only until `deposits_paused_until` (see `pause_active`)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "deposits_paused_until",
+            "docs": [
+              "When the deposit pause lapses by itself (`PAUSE_TTL` after it was last set). 0 on a config that never paused."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "deposits_guardian_ready_at",
+            "docs": [
+              "The guardian may not pause deposits again before this time (`GUARDIAN_PAUSE_COOLDOWN` after its last pause",
+              "was due to lapse)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Deposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_balance",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositorShare",
+      "docs": [
+        "What one wallet has deposited to one key, and where that wallet wants it back. PDA `[\"share\", key_hash, depositor]`.",
+        "",
+        "A closure refund never goes anywhere the key chooses (security re-review RR-05): it is paid back to the wallets",
+        "that funded the key, each at most what it put in, to the token account that wallet named. `refund_to` starts as the",
+        "token account the first deposit came from and only `depositor` can change it (`set_refund_destination`). Holding",
+        "the API key gives no way to redirect a balance, and depositing to someone's key gives no claim on anything but the",
+        "depositor's own USDC."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_to",
+            "docs": [
+              "USDC token account this depositor's refunds are paid to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "deposited",
+            "docs": [
+              "Cumulative USDC this wallet deposited to the key."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "refunded",
+            "docs": [
+              "Cumulative USDC refunded to this wallet from the key. Never exceeds `deposited`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "last_deposit_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositsPausedSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (0 when `paused` is false)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExpiredSwept",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_token_account",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExpiryNoticed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "balance",
+            "type": "u64"
+          },
+          {
+            "name": "notice_at",
+            "type": "i64"
+          },
+          {
+            "name": "sweepable_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitConfigParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_balance_per_key",
+            "docs": [
+              "0 selects `DEFAULT_MAX_BALANCE_PER_KEY`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "credit_ttl",
+            "docs": [
+              "`None` selects the defaults (365 days, 72h, 30 days). A value outside the program's floors is rejected."
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "refund_delay",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "expiry_grace",
+            "type": {
+              "option": "i64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "KeyAuthorityChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutflowCapSet",
+      "docs": [
+        "The absolute bound on one window's outflow (each of the two allowances), as it stands after a config change."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cap_per_window",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingConfig",
+      "docs": [
+        "A loosening config change waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_config\"]`; one at a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "UpdateConfigParams"
+              }
+            }
+          },
+          {
+            "name": "new_treasury",
+            "docs": [
+              "Replacement treasury token account (mint-checked at proposal), if any."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundDestinationSet",
+      "docs": [
+        "A depositor named another token account for its refunds from one key."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_to",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundPaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "refund_to",
+            "type": "pubkey"
+          },
+          {
+            "name": "depositor",
+            "docs": [
+              "The wallet whose deposits this refund returns."
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundRequest",
+      "docs": [
+        "Queued closure refund. PDA `[\"refund\", key_hash]`. Created by `close_account` (signed by the key) or",
+        "`close_account_by_owner` (signed by the key's registered owner wallet), removed again by `cancel_close` while nothing",
+        "has been paid."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "The key's on-chain balance when it was closed: the most that can ever be refunded."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "requested_at",
+            "type": "i64"
+          },
+          {
+            "name": "payable_at",
+            "docs": [
+              "Earliest `pay_refund`: `requested_at` plus the refund delay AS IT WAS when the key was closed. A later change of",
+              "the delay does not move a request that is already queued (security re-review RR-10)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "paid_amount",
+            "docs": [
+              "Cumulative amount paid so far; `pay_refund` may be called more than once and never pays more than `amount`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paid",
+            "docs": [
+              "True once `paid_amount == amount`."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "rent_payer",
+            "docs": [
+              "Who paid this account's rent; gets it back if the closure is cancelled."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "requested_by",
+            "docs": [
+              "Who asked for this closure: the key's own address or the owner wallet. Only this party, or the owner, can",
+              "cancel it (security review round 3, R3-06)."
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettleLimiter",
+      "docs": [
+        "Outflow limiter. Singleton PDA `[\"limiter_v2\"]`.",
+        "",
+        "Two independent allowances, one for `settle_to_host` and one for `pay_refund`, so host payouts can never use up",
+        "what refunds may take and refunds can never hold up host payouts. Each is a continuously refilled allowance",
+        "(`refill_allowance`), not a bucket that resets: the cap of one `SETTLE_WINDOW` is `window_cap(base)`, at most",
+        "`SETTLE_BURST_BPS` of it can be held at once, and the rest arrives evenly over the window. Over ANY interval of one",
+        "window the outflow is therefore at most the cap; there is no boundary to straddle (security re-review RR-01).",
+        "",
+        "The cap has two bounds (security review round 3, R3-07):",
+        "- a share (`rate_bps`) of `base`, and `base` is never more than the LOWEST balance the vault has had over the last",
+        "`SETTLE_WINDOW`. A deposit therefore counts only once it has been in the vault for a whole window: whoever holds",
+        "the settlement key cannot raise the cap by depositing and paying one unit, as it could when the base was the",
+        "balance after the previous payment;",
+        "- `cap_per_window`, an absolute amount set by the authority. Capital that sits in the vault long enough does raise",
+        "the share; this number it cannot raise.",
+        "",
+        "How `base` is kept without touching `deposit`: every instruction that can lower the vault (`settle_to_host`,",
+        "`pay_refund`, `sweep_expired`) and `commit_spent_root` record the balance they leave behind (`last_vault`). Between",
+        "two of them the vault can only rise, so the lowest balance of any stretch is the one recorded at its start.",
+        "`base_cur` is the lowest balance of the current epoch (`now / SETTLE_WINDOW`), starting from `last_vault` when the",
+        "epoch is first seen; `base_prev` that of the epoch before (`last_vault` when nothing was recorded in it). The base",
+        "is `min(base_prev, base_cur, vault now)`, and any stretch of one window lies inside those two epochs.",
+        "",
+        "`paused` (in force until `paused_until`) stops `commit_spent_root`, `settle_to_host` and `sweep_expired`. It never",
+        "stops deposits, closures or closure refunds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rate_bps",
+            "type": "u16"
+          },
+          {
+            "name": "settle_allowance",
+            "docs": [
+              "What `settle_to_host` may still pay right now (as of `settle_refilled_at`)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "settle_refilled_at",
+            "type": "i64"
+          },
+          {
+            "name": "base_cur",
+            "docs": [
+              "The lowest vault balance seen in epoch `base_epoch` (in the earlier layout: the balance after the last payout)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "refund_allowance",
+            "docs": [
+              "What `pay_refund` may still pay right now (as of `refund_refilled_at`)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "refund_refilled_at",
+            "type": "i64"
+          },
+          {
+            "name": "base_prev",
+            "docs": [
+              "The lowest vault balance of the epoch before `base_epoch` (in the earlier layout: the balance after the last",
+              "refund)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the settlement pause lapses by itself (`PAUSE_TTL` after it was last set)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_ready_at",
+            "docs": [
+              "The guardian may not pause settlements again before this time."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "base_epoch",
+            "docs": [
+              "The epoch (`unix time / SETTLE_WINDOW`) `base_cur` belongs to."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_vault",
+            "docs": [
+              "The vault balance left behind by the last instruction that recorded it."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "cap_per_window",
+            "docs": [
+              "The absolute bound on one window's outflow, for each of the two allowances. Never below `SETTLE_WINDOW_FLOOR`."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettleRateSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rate_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettledToHost",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "host_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "hour_root_ref",
+            "type": "i64"
+          },
+          {
+            "name": "settled_total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementsPausedSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (0 when `paused` is false)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpentRoot",
+      "docs": [
+        "Hourly commitment of off-chain spend. PDA `[\"spent_root\", hour]`.",
+        "",
+        "`root` is a sha256 Merkle root over the hour's spend records (leaf = sha256(sha256(bytes)),",
+        "node = sha256(min(a,b) || max(a,b)); see `trellis_anchor`)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "spent_delta",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_spent",
+            "type": "u64"
+          },
+          {
+            "name": "committed_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpentRootCommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "spent_delta",
+            "type": "u64"
+          },
+          {
+            "name": "spent_total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpentTotalWrittenDown",
+      "docs": [
+        "`spent_total` was written down to `settled_total` (a timelocked repair)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "u64"
+          },
+          {
+            "name": "to",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateConfigParams",
+      "docs": [
+        "The fields `update_config` / `propose_config` may change. `None` leaves a field as it is."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "docs": [
+              "Hand the authority over. Only through the timelock, and the new authority must sign the apply."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "settlement_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "guardian",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "max_balance_per_key",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "credit_ttl",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "refund_delay",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "expiry_grace",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "settle_rate_bps",
+            "docs": [
+              "Share of the vault `settle_to_host` may pay per window, in bps (at most `MAX_SETTLE_RATE_BPS`)."
+            ],
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "write_down_spent",
+            "docs": [
+              "Write `spent_total` down to `settled_total`: the repair for a spent root that committed spend which never",
+              "happened (security re-review RR-06). Only through the timelock."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "outflow_cap_per_window",
+            "docs": [
+              "The absolute bound on one window's outflow (each allowance). Lowering is immediate, raising goes through the",
+              "timelock; never below `SETTLE_WINDOW_FLOOR`."
+            ],
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "CLOSE_GUARD_SEED",
+      "type": "bytes",
+      "value": "[99, 108, 111, 115, 101, 95, 103, 117, 97, 114, 100]"
+    },
+    {
+      "name": "CONFIG_SEED",
+      "docs": [
+        "PDA seeds.",
+        "",
+        "| Account            | Seeds                                   | Owner / notes                              |",
+        "|--------------------|-----------------------------------------|--------------------------------------------|",
+        "| `CreditsConfig`    | `[\"config\"]`                            | singleton; signs vault transfers           |",
+        "| vault              | `[\"vault\"]`                             | SPL token account, authority = config      |",
+        "| `CreditAccount`    | `[\"credit\", key_hash]`                  | one per API-key hash                       |",
+        "| `SpentRoot`        | `[\"spent_root\", hour.to_le_bytes()]`    | one per hour; second init fails            |",
+        "| `RefundRequest`    | `[\"refund\", key_hash]`                  | one per closed key                         |",
+        "| `SettleLimiter`    | `[\"limiter_v2\"]`                        | singleton; outflow rate limits and pause   |",
+        "| `DepositorShare`   | `[\"share\", key_hash, depositor]`        | what one wallet deposited to one key       |",
+        "| `PendingConfig`    | `[\"pending_config\"]`                    | a loosening config change waiting its delay|",
+        "| `CloseGuard`       | `[\"close_guard\", key_hash]`             | when the key may next cancel a closure     |"
+      ],
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "CREDIT_SEED",
+      "type": "bytes",
+      "value": "[99, 114, 101, 100, 105, 116]"
+    },
+    {
+      "name": "DEFAULT_CREDIT_TTL",
+      "docs": [
+        "Credits expire 12 months after the latest deposit (Backend §5.1)."
+      ],
+      "type": "i64",
+      "value": "31536000"
+    },
+    {
+      "name": "DEFAULT_EXPIRY_GRACE",
+      "docs": [
+        "Expired balances move to treasury only 30 days after the expiry notice."
+      ],
+      "type": "i64",
+      "value": "2592000"
+    },
+    {
+      "name": "DEFAULT_MAX_BALANCE_PER_KEY",
+      "docs": [
+        "USDC has 6 decimals: 5,000 USDC."
+      ],
+      "type": "u64",
+      "value": "5000000000"
+    },
+    {
+      "name": "DEFAULT_REFUND_DELAY",
+      "docs": [
+        "Closure refunds wait 72h for the open-dispute check before they can be paid."
+      ],
+      "type": "i64",
+      "value": "259200"
+    },
+    {
+      "name": "LIMITER_SEED",
+      "docs": [
+        "The limiter that replaced the fixed 24h bucket (security re-review RR-01) lives at a new address: the first",
+        "limiter's account (`[\"limiter\"]`) has another layout and is no longer read by any instruction."
+      ],
+      "type": "bytes",
+      "value": "[108, 105, 109, 105, 116, 101, 114, 95, 118, 50]"
+    },
+    {
+      "name": "MAX_BALANCE_PER_KEY_LIMIT",
+      "docs": [
+        "The compiled maximum of `max_balance_per_key` while the programs are unaudited: 5,000 USDC. `init_config`,",
+        "`update_config` and `propose_config` refuse a higher value, so no key can raise the per-key cap above the published",
+        "figure; that takes a program upgrade (security review round 3). The same in the `devnet` build."
+      ],
+      "type": "u64",
+      "value": "5000000000"
+    },
+    {
+      "name": "MIN_DEPOSIT",
+      "docs": [
+        "The smallest deposit: 1 USDC. A deposit creates a `DepositorShare` that a closure has to screen, read and pay, and",
+        "it cancels an expiry notice; below this a stranger could queue work in front of a key's owner for dust (R3-22)."
+      ],
+      "type": "u64",
+      "value": "1000000"
+    },
+    {
+      "name": "PENDING_CONFIG_SEED",
+      "type": "bytes",
+      "value": "[112, 101, 110, 100, 105, 110, 103, 95, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "REFUND_SEED",
+      "type": "bytes",
+      "value": "[114, 101, 102, 117, 110, 100]"
+    },
+    {
+      "name": "SECONDS_PER_HOUR",
+      "type": "i64",
+      "value": "3600"
+    },
+    {
+      "name": "SHARE_SEED",
+      "type": "bytes",
+      "value": "[115, 104, 97, 114, 101]"
+    },
+    {
+      "name": "SPENT_ROOT_SEED",
+      "type": "bytes",
+      "value": "[115, 112, 101, 110, 116, 95, 114, 111, 111, 116]"
+    },
+    {
+      "name": "VAULT_SEED",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
+    }
+  ]
+}

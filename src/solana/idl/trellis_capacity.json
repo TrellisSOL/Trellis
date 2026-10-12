@@ -1,0 +1,3708 @@
+{
+  "address": "G4cDQ3duVPoSQunY1zRMyn1n7r1rsf7hh9J65iKPzYNy",
+  "metadata": {
+    "name": "trellis_capacity",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Trellis Bushels: bond-backed prepaid capacity commitments and key-bound lots, plus the write-only HVX feed (Backend spec section 5.6)"
+  },
+  "instructions": [
+    {
+      "name": "build_profile",
+      "docs": [
+        "Anyone: the floors compiled into this binary (profile 0 = mainnet, 1 = devnet), as return data."
+      ],
+      "discriminator": [
+        7,
+        162,
+        165,
+        198,
+        24,
+        11,
+        60,
+        248
+      ],
+      "accounts": [],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "BuildProfile"
+        }
+      }
+    },
+    {
+      "name": "buy_lot",
+      "docs": [
+        "Sale authority records a purchase bound to `key_hash`. No transfer exists."
+      ],
+      "discriminator": [
+        13,
+        244,
+        229,
+        160,
+        48,
+        32,
+        34,
+        63
+      ],
+      "accounts": [
+        {
+          "name": "sale_authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "commitment.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment"
+              },
+              {
+                "kind": "arg",
+                "path": "args.lot_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "BuyLotArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim_lot_shortfall",
+      "docs": [
+        "Authority files `price_paid * unserved / tokens` against the host's bond; all claims of a commitment together",
+        "stay within its value, and the bond pays them out of what the commitment locked."
+      ],
+      "discriminator": [
+        113,
+        55,
+        248,
+        88,
+        39,
+        89,
+        115,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Pays the rent of the bond proposal."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "commitment.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          },
+          "relations": [
+            "lot"
+          ]
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment"
+              },
+              {
+                "kind": "account",
+                "path": "lot.lot_id",
+                "account": "BushelLot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_claimer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "host_bond",
+          "writable": true
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        },
+        {
+          "name": "slash_ledger",
+          "docs": [
+            "pending against the bond's headroom."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "amount out of it and refuses a claim larger than what is locked."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "bond_program",
+          "address": "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proposal_id",
+          "type": "u64"
+        },
+        {
+          "name": "evidence_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "commit_capacity",
+      "docs": [
+        "Host records a bond-backed capacity commitment."
+      ],
+      "discriminator": [
+        46,
+        75,
+        73,
+        139,
+        108,
+        123,
+        102,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "host",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_config",
+          "docs": [
+            "`trellis_bond` config (for `min_bond`). `Account<..>` enforces the owner is `trellis_bond`."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "host_bond",
+          "docs": [
+            "The host's bond; must be active and have enough headroom for this commitment."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "host_capacity",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host"
+              },
+              {
+                "kind": "arg",
+                "path": "args.commitment_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_claimer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_lock",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "slash_ledger",
+          "docs": [
+            "claims still open against the bond from it."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  108,
+                  97,
+                  115,
+                  104,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "bond_program",
+          "address": "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CommitCapacityArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "The initial authority. In production this is a Squads v4 2-of-3 multisig. Must be the program's upgrade",
+            "authority, so nobody else can initialise the program between deploy and init."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "migrate_commitment",
+      "docs": [
+        "Grows a commitment created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        178,
+        30,
+        203,
+        222,
+        52,
+        237,
+        227,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "commitment",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "migrate_config",
+      "docs": [
+        "Grows a config created by an earlier version to the current layout (anyone may pay; works once)."
+      ],
+      "discriminator": [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "pause",
+      "docs": [
+        "Guardian or authority: pause for `PAUSE_TTL` (72h). A guardian pause cannot be repeated for 7 days."
+      ],
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "propose_config",
+      "docs": [
+        "Authority: record any config change (including an authority hand-over); it can be applied after",
+        "`CONFIG_TIMELOCK` (24h)."
+      ],
+      "discriminator": [
+        163,
+        247,
+        238,
+        160,
+        236,
+        129,
+        153,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "publish_hvx",
+      "docs": [
+        "HVX authority publishes the hourly index (never for a future hour). Nothing settles against it."
+      ],
+      "discriminator": [
+        177,
+        78,
+        134,
+        58,
+        227,
+        183,
+        46,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "hvx_authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feed",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "grade",
+          "type": "u8"
+        },
+        {
+          "name": "hour",
+          "type": "i64"
+        },
+        {
+          "name": "usd_per_mtoken",
+          "type": "u64"
+        },
+        {
+          "name": "thin",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "redeem_lot",
+      "docs": [
+        "Sale authority marks a lot redeemed; credits are issued off-chain against the event."
+      ],
+      "discriminator": [
+        123,
+        49,
+        49,
+        64,
+        118,
+        149,
+        146,
+        79
+      ],
+      "accounts": [
+        {
+          "name": "sale_authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.commitment",
+                "account": "BushelLot"
+              },
+              {
+                "kind": "account",
+                "path": "lot.lot_id",
+                "account": "BushelLot"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "rehome_lot",
+      "docs": [
+        "Authority honours a lot's unserved share on another host of the same grade."
+      ],
+      "discriminator": [
+        235,
+        70,
+        86,
+        209,
+        137,
+        82,
+        169,
+        48
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "commitment.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          },
+          "relations": [
+            "lot"
+          ]
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment"
+              },
+              {
+                "kind": "account",
+                "path": "lot.lot_id",
+                "account": "BushelLot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "replacement",
+          "docs": [
+            "Open commitment on another host, same grade, that will serve the unserved tokens."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "replacement.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "replacement.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "release_commitment",
+      "docs": [
+        "Anyone, after `window_end + CLAIM_PERIOD`: settle a commitment and release its bond lock."
+      ],
+      "discriminator": [
+        44,
+        219,
+        129,
+        73,
+        24,
+        12,
+        235,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "commitment.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_capacity",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_claimer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "host_bond"
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "another (empty) account to settle a commitment without releasing its lock."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "bond_program",
+          "address": "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "report_shortfall",
+      "docs": [
+        "Authority reports unserved tokens after `window_end` (0 settles the commitment)."
+      ],
+      "discriminator": [
+        8,
+        138,
+        80,
+        158,
+        19,
+        185,
+        251,
+        75
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              },
+              {
+                "kind": "account",
+                "path": "commitment.commitment_id",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "host_capacity",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "commitment.host",
+                "account": "CapacityCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_claimer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "host_bond"
+        },
+        {
+          "name": "bond_lock",
+          "docs": [
+            "another (empty) account to settle a commitment without releasing its lock."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "host_bond"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                196,
+                171,
+                26,
+                237,
+                28,
+                134,
+                68,
+                119,
+                135,
+                91,
+                3,
+                30,
+                167,
+                70,
+                151,
+                154,
+                195,
+                111,
+                32,
+                161,
+                152,
+                8,
+                136,
+                187,
+                114,
+                170,
+                198,
+                13,
+                13,
+                148,
+                13,
+                26
+              ]
+            }
+          }
+        },
+        {
+          "name": "bond_program",
+          "address": "EEiEdi8PVvCALtEXpgReQb32R5bUGz29zfAeoh1Kc8Vo"
+        }
+      ],
+      "args": [
+        {
+          "name": "unserved_tokens",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_config",
+      "docs": [
+        "`apply = true`: the authority installs the pending change after the timelock (a new authority must co-sign).",
+        "`apply = false`: the authority drops it (the guardian cannot); anyone may clear an expired one."
+      ],
+      "discriminator": [
+        7,
+        245,
+        77,
+        171,
+        174,
+        156,
+        145,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Applying or cancelling: the authority. Anyone may clear a proposal that has expired."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true
+        },
+        {
+          "name": "pending_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "docs": [
+            "Required only when the pending change hands the authority over: the new authority must sign to take it."
+          ],
+          "signer": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apply",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
+      "docs": [
+        "Authority only."
+      ],
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Authority: tightening only (a lower issuance cap), effective at once. Loosening is refused (`RequiresTimelock`)."
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BushelLot",
+      "discriminator": [
+        108,
+        59,
+        13,
+        5,
+        224,
+        244,
+        161,
+        166
+      ]
+    },
+    {
+      "name": "CapacityCommitment",
+      "discriminator": [
+        74,
+        120,
+        29,
+        155,
+        151,
+        199,
+        193,
+        181
+      ]
+    },
+    {
+      "name": "CapacityConfig",
+      "discriminator": [
+        196,
+        209,
+        68,
+        71,
+        41,
+        103,
+        95,
+        244
+      ]
+    },
+    {
+      "name": "HostCapacity",
+      "discriminator": [
+        118,
+        201,
+        157,
+        183,
+        74,
+        184,
+        240,
+        127
+      ]
+    },
+    {
+      "name": "HvxFeed",
+      "discriminator": [
+        10,
+        209,
+        6,
+        219,
+        136,
+        177,
+        122,
+        243
+      ]
+    },
+    {
+      "name": "PendingConfig",
+      "discriminator": [
+        109,
+        48,
+        178,
+        191,
+        125,
+        67,
+        26,
+        70
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CapacityCommitted",
+      "discriminator": [
+        162,
+        70,
+        26,
+        22,
+        190,
+        150,
+        228,
+        120
+      ]
+    },
+    {
+      "name": "CapacityConfigProposalResolved",
+      "discriminator": [
+        90,
+        121,
+        252,
+        121,
+        199,
+        146,
+        89,
+        240
+      ]
+    },
+    {
+      "name": "CapacityConfigProposed",
+      "discriminator": [
+        106,
+        130,
+        139,
+        80,
+        87,
+        192,
+        211,
+        90
+      ]
+    },
+    {
+      "name": "CapacityConfigUpdated",
+      "discriminator": [
+        201,
+        168,
+        182,
+        229,
+        128,
+        218,
+        97,
+        12
+      ]
+    },
+    {
+      "name": "CapacityPauseChanged",
+      "discriminator": [
+        243,
+        187,
+        114,
+        152,
+        200,
+        128,
+        38,
+        160
+      ]
+    },
+    {
+      "name": "CommitmentReleased",
+      "discriminator": [
+        243,
+        63,
+        120,
+        221,
+        193,
+        20,
+        33,
+        241
+      ]
+    },
+    {
+      "name": "HvxPublished",
+      "discriminator": [
+        141,
+        160,
+        102,
+        59,
+        253,
+        214,
+        231,
+        213
+      ]
+    },
+    {
+      "name": "LotRedeemed",
+      "discriminator": [
+        251,
+        241,
+        136,
+        142,
+        2,
+        135,
+        172,
+        97
+      ]
+    },
+    {
+      "name": "LotRehomed",
+      "discriminator": [
+        229,
+        225,
+        25,
+        157,
+        16,
+        146,
+        22,
+        130
+      ]
+    },
+    {
+      "name": "LotShortfallClaimed",
+      "discriminator": [
+        92,
+        217,
+        37,
+        214,
+        190,
+        129,
+        74,
+        230
+      ]
+    },
+    {
+      "name": "LotSold",
+      "discriminator": [
+        228,
+        113,
+        202,
+        171,
+        198,
+        141,
+        18,
+        182
+      ]
+    },
+    {
+      "name": "ShortfallReported",
+      "discriminator": [
+        157,
+        165,
+        128,
+        26,
+        219,
+        246,
+        232,
+        16
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the program authority"
+    },
+    {
+      "code": 6001,
+      "name": "NotSaleAuthority",
+      "msg": "Signer is not the sale authority"
+    },
+    {
+      "code": 6002,
+      "name": "NotHvxAuthority",
+      "msg": "Signer is not the HVX authority"
+    },
+    {
+      "code": 6003,
+      "name": "NotGuardian",
+      "msg": "Signer is neither the guardian nor the authority"
+    },
+    {
+      "code": 6004,
+      "name": "Paused",
+      "msg": "New commitments and sales are paused"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidGrade",
+      "msg": "Unknown grade (expected 0 = G-S, 1 = G-M, 2 = G-L)"
+    },
+    {
+      "code": 6006,
+      "name": "ZeroPrice",
+      "msg": "Grade price must be greater than zero"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroTokens",
+      "msg": "Tokens must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidWindow",
+      "msg": "Window end must be after window start and in the future"
+    },
+    {
+      "code": 6009,
+      "name": "BondHostMismatch",
+      "msg": "Host bond does not belong to this host"
+    },
+    {
+      "code": 6010,
+      "name": "BondInactive",
+      "msg": "Host bond is not active (under-funded, unbonding, delisted or ejected)"
+    },
+    {
+      "code": 6011,
+      "name": "ExceedsBondHeadroom",
+      "msg": "Commitment value exceeds the host's remaining bond headroom"
+    },
+    {
+      "code": 6012,
+      "name": "ExceedsIssuanceCap",
+      "msg": "Commitment value exceeds the global issuance cap"
+    },
+    {
+      "code": 6013,
+      "name": "CommitmentNotOpen",
+      "msg": "Commitment is not open"
+    },
+    {
+      "code": 6014,
+      "name": "WindowEnded",
+      "msg": "Commitment window has ended; no more sales"
+    },
+    {
+      "code": 6015,
+      "name": "WindowNotEnded",
+      "msg": "Commitment window has not ended yet"
+    },
+    {
+      "code": 6016,
+      "name": "InsufficientCapacity",
+      "msg": "Not enough unsold capacity in this commitment"
+    },
+    {
+      "code": 6017,
+      "name": "LotIdMismatch",
+      "msg": "Lot id must equal the commitment's next lot id"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidPrice",
+      "msg": "Price paid must be greater than zero and at most the list price"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidKeyHash",
+      "msg": "Key hash must not be all zeros"
+    },
+    {
+      "code": 6020,
+      "name": "AlreadyRedeemed",
+      "msg": "Lot already redeemed"
+    },
+    {
+      "code": 6021,
+      "name": "UnservedExceedsCommitted",
+      "msg": "Unserved tokens exceed committed tokens"
+    },
+    {
+      "code": 6022,
+      "name": "NoShortfall",
+      "msg": "Commitment has no reported shortfall"
+    },
+    {
+      "code": 6023,
+      "name": "LotAlreadyHandled",
+      "msg": "Lot shortfall already claimed or rehomed"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidReplacement",
+      "msg": "Replacement commitment must be a different, open commitment of the same grade"
+    },
+    {
+      "code": 6025,
+      "name": "NothingToClaim",
+      "msg": "Nothing to claim for this lot"
+    },
+    {
+      "code": 6026,
+      "name": "HvxHourNotMonotonic",
+      "msg": "HVX hour must not go backwards"
+    },
+    {
+      "code": 6027,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6028,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6029,
+      "name": "RequiresTimelock",
+      "msg": "This change loosens a safety parameter: use propose_config and apply_config after the timelock"
+    },
+    {
+      "code": 6030,
+      "name": "TimelockNotElapsed",
+      "msg": "The timelock has not elapsed"
+    },
+    {
+      "code": 6031,
+      "name": "WindowTooLong",
+      "msg": "Window is longer, or ends further away, than this program allows"
+    },
+    {
+      "code": 6032,
+      "name": "ClaimPeriodNotElapsed",
+      "msg": "The claim period after the window has not elapsed"
+    },
+    {
+      "code": 6033,
+      "name": "CommitmentSettled",
+      "msg": "Commitment is already settled"
+    },
+    {
+      "code": 6034,
+      "name": "InvalidConfigValue",
+      "msg": "Invalid configuration value"
+    },
+    {
+      "code": 6035,
+      "name": "ProposalExpired",
+      "msg": "The proposal expired; cancel it and propose again"
+    },
+    {
+      "code": 6036,
+      "name": "GuardianCooldown",
+      "msg": "The guardian paused recently and must wait before pausing again; the authority can pause at any time"
+    },
+    {
+      "code": 6037,
+      "name": "AlreadyMigrated",
+      "msg": "The account already has the current layout"
+    },
+    {
+      "code": 6038,
+      "name": "NotMigratable",
+      "msg": "The account is not one this instruction migrates"
+    },
+    {
+      "code": 6039,
+      "name": "ExceedsCommitmentValue",
+      "msg": "The lots recorded against a commitment cannot be worth more than the commitment"
+    },
+    {
+      "code": 6040,
+      "name": "ClaimExceedsCommitment",
+      "msg": "The claims filed for a commitment cannot exceed the commitment's value"
+    },
+    {
+      "code": 6041,
+      "name": "HvxHourInFuture",
+      "msg": "HVX hour is in the future"
+    },
+    {
+      "code": 6042,
+      "name": "OutOfBounds",
+      "msg": "Value is outside the bounds this program enforces"
+    }
+  ],
+  "types": [
+    {
+      "name": "BondConfig",
+      "docs": [
+        "Program configuration. Production `authority` is a Squads v4 2-of-3 multisig;",
+        "`guardian` (a separate key, held by neither the operator nor the multisig) can only pause new bonds, never move funds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "slasher",
+            "docs": [
+              "Account allowed to open slash proposals (the `slasher` service, behind the multisig)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_pool",
+            "docs": [
+              "Token account that receives the share of a slash earmarked for affected callers."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Token account that receives the remainder of a slash."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "capacity_claimer",
+            "docs": [
+              "PDA of `trellis_capacity` allowed to file capacity-shortfall claims via CPI."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "capacity_refund",
+            "docs": [
+              "Token account that receives capacity-shortfall payouts (purchase price of unserved Bushels)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "min_bond",
+            "type": "u64"
+          },
+          {
+            "name": "unbond_period",
+            "type": "i64"
+          },
+          {
+            "name": "dispute_window",
+            "type": "i64"
+          },
+          {
+            "name": "dispute_block",
+            "type": "i64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (`PAUSE_TTL` after it was last set). `paused` is in force only until then."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_ready_at",
+            "docs": [
+              "The guardian may not pause again before this time (`GUARDIAN_PAUSE_COOLDOWN` after its last pause was due to",
+              "lapse)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildProfile",
+      "docs": [
+        "What `build_profile` returns: the floors compiled into this binary."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "profile",
+            "docs": [
+              "0 = mainnet floors (the default build); 1 = the `devnet` cargo feature."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_timelock",
+            "type": "i64"
+          },
+          {
+            "name": "pause_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_cooldown",
+            "type": "i64"
+          },
+          {
+            "name": "proposal_ttl",
+            "type": "i64"
+          },
+          {
+            "name": "claim_period",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BushelLot",
+      "docs": [
+        "A purchase ledger entry. Bound to `key_hash`; there is no transfer instruction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "lot_id",
+            "type": "u32"
+          },
+          {
+            "name": "key_hash",
+            "docs": [
+              "Hash of the buyer's API key; redemption is only ever issued to this key."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          },
+          {
+            "name": "price_paid",
+            "docs": [
+              "USDC the buyer actually paid. The only figure a refund can ever reference. At most the lot's share of the",
+              "commitment at the price the commitment was made at, and all lots of a commitment together at most its `value`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "redeemed",
+            "type": "bool"
+          },
+          {
+            "name": "redeemed_at",
+            "type": "i64"
+          },
+          {
+            "name": "shortfall_claimed",
+            "docs": [
+              "Set once a shortfall claim for this lot has been filed against the host's bond."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "refund_amount",
+            "docs": [
+              "`price_paid * unserved_tokens / commitment.tokens` filed as the bond claim."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rehomed_to",
+            "docs": [
+              "Commitment on another host of the same grade that honours the unserved part, if any."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuyLotArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lot_id",
+            "type": "u32"
+          },
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "price_paid",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityCommitment",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "host_bond",
+            "docs": [
+              "`trellis_bond::HostBond` backing this commitment."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment_id",
+            "type": "u64"
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "docs": [
+              "Output-equivalent tokens committed inside the window."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "sold_tokens",
+            "docs": [
+              "Tokens sold as lots so far (including rehomed-in tokens)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          },
+          {
+            "name": "value",
+            "docs": [
+              "`tokens * grade_price / TOKENS_PER_BUSHEL` (ceil) at the price of the moment the host committed; locked in the",
+              "bond. Never changes afterwards."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CommitmentStatus"
+              }
+            }
+          },
+          {
+            "name": "unserved_tokens",
+            "docs": [
+              "Tokens the host failed to serve, as reported by the authority after `window_end`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lots_sold",
+            "docs": [
+              "Number of lots sold; also the next `lot_id`."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "price_per_bushel",
+            "docs": [
+              "The grade's price per Bushel when the host made this commitment. A lot recorded against it can never be priced",
+              "above this, whatever the grade price is changed to later (security review round 3, R3-16). 0 on a commitment",
+              "from before the field existed (`migrate_commitment`): nothing more is sold against such a commitment."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paid_total",
+            "docs": [
+              "Sum of `price_paid` of the lots recorded against this commitment. Never above `value`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "claimed_value",
+            "docs": [
+              "Sum of the shortfall claims filed against the host's bond for this commitment. Never above `value`; it is the",
+              "part of the commitment's bond lock that the claims took, so `release_commitment` unlocks `value - claimed_value`."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityCommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "host_bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment_id",
+            "type": "u64"
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          },
+          {
+            "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityConfig",
+      "docs": [
+        "Program configuration. Production `authority` is a Squads v4 2-of-3 multisig;",
+        "`guardian` (a separate key, held by neither the operator nor the multisig) can only pause new commitments and sales, never move funds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "sale_authority",
+            "docs": [
+              "Records sales and redemptions (the `mint`/settlement service key)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "hvx_authority",
+            "docs": [
+              "The only key allowed to write `HvxFeed`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "grade_prices",
+            "docs": [
+              "Fixed USDC price per Bushel (per 1M tokens) for each grade, each at most `MAX_GRADE_PRICE`. A new commitment is",
+              "valued at it and keeps it; sales never exceed it nor the price their commitment was made at."
+            ],
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "max_outstanding_value",
+            "docs": [
+              "Cap on the USDC value of all open commitments. At most `MAX_OUTSTANDING_VALUE_CAP`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "outstanding_value",
+            "docs": [
+              "USDC value of all currently open commitments."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (`PAUSE_TTL` after it was last set). `paused` is in force only until then."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "guardian_pause_ready_at",
+            "docs": [
+              "The guardian may not pause again before this time (`GUARDIAN_PAUSE_COOLDOWN` after its last pause was due to",
+              "lapse)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityConfigProposalResolved",
+      "docs": [
+        "A pending config change was applied (`applied = true`) or dropped."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "applied",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityConfigProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "After this the proposal can only be cancelled."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "changes_authority",
+            "type": "bool"
+          },
+          {
+            "name": "changes_guardian",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "sale_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "hvx_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "grade_prices",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "max_outstanding_value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapacityPauseChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "by",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused_until",
+            "docs": [
+              "When the pause lapses by itself (0 when `paused` is false)."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitCapacityArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commitment_id",
+            "type": "u64"
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitmentReleased",
+      "docs": [
+        "A commitment was settled and its bond lock released without a report, after the claim period."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "value",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitmentStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "ShortfallReported"
+          },
+          {
+            "name": "Settled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostBond",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Bonded USDC currently held in the vault and not yet slashed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "unbond_at",
+            "docs": [
+              "Unix time after which `withdraw_bond` is allowed; 0 = no unbond requested."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "strikes",
+            "docs": [
+              "Number of executed slashes against this host."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "slashed_total",
+            "docs": [
+              "Total USDC slashed over the life of the bond."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "open_proposals",
+            "docs": [
+              "Proposals that are neither executed nor rejected."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "next_proposal_id",
+            "docs": [
+              "Next proposal id to be assigned (ids are monotonically increasing)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "delisted",
+            "docs": [
+              "Set by a quantization-swap or shadow-mismatch slash that took something (not by one the cumulative cap cut to",
+              "zero). Blocks new capacity commitments. Cleared only by the authority, through `propose_reinstate` and its",
+              "timelock."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "ejected",
+            "docs": [
+              "Set by a shadow-mismatch slash that took something. Cleared the same way."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HostCapacity",
+      "docs": [
+        "Per-host aggregate used to keep issuance bond-backed: the summed value of a host's open",
+        "commitments may never exceed its bonded amount."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "committed_value",
+            "type": "u64"
+          },
+          {
+            "name": "open_commitments",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HvxFeed",
+      "docs": [
+        "HVX: hourly $/1M-token index per grade, built off-chain from wash-filtered receipts.",
+        "",
+        "This account is a PUBLIC STATISTIC ONLY. It is write-only by `hvx_authority`, is never read",
+        "by any instruction in this program or in `trellis_bond`, and NOTHING SETTLES AGAINST IT:",
+        "shortfall refunds use `BushelLot.price_paid`, sales use `CapacityConfig.grade_prices`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "hour",
+            "docs": [
+              "Unix hour (unix_timestamp / 3600) the value refers to. Never ahead of the chain clock's hour and never going",
+              "back."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "usd_per_mtoken",
+            "docs": [
+              "Index value in micro-USD per 1M output-equivalent tokens."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "thin",
+            "docs": [
+              "True when the day's volume behind the index is below $50k."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HvxPublished",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "hour",
+            "type": "i64"
+          },
+          {
+            "name": "usd_per_mtoken",
+            "type": "u64"
+          },
+          {
+            "name": "thin",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "hvx_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "grade_prices",
+            "docs": [
+              "USDC per Bushel for grades G-S, G-M, G-L."
+            ],
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "max_outstanding_value",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LotRedeemed",
+      "docs": [
+        "Credits of `grade` for `tokens` are issued off-chain to `key_hash` against this event."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lot",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "redeemed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LotRehomed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lot",
+            "type": "pubkey"
+          },
+          {
+            "name": "from_commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "to_commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokens_rehomed",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LotShortfallClaimed",
+      "docs": [
+        "`refund_amount = price_paid * unserved_tokens / committed_tokens`; filed against the host bond."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lot",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "host_bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "refund_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LotSold",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lot",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "lot_id",
+            "type": "u32"
+          },
+          {
+            "name": "key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "grade",
+            "type": "u8"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "window_end",
+            "type": "i64"
+          },
+          {
+            "name": "price_paid",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingConfig",
+      "docs": [
+        "A loosening config change waiting out `CONFIG_TIMELOCK`. PDA `[\"pending_config\"]`; one at a time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "args",
+            "type": {
+              "defined": {
+                "name": "UpdateConfigArgs"
+              }
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ShortfallReported",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commitment",
+            "type": "pubkey"
+          },
+          {
+            "name": "host",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokens",
+            "type": "u64"
+          },
+          {
+            "name": "unserved_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "settled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateConfigArgs",
+      "docs": [
+        "The fields `update_config` / `propose_config` may change. `None` leaves a field as it is."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "docs": [
+              "Hand the authority over. Only through the timelock, and the new authority must sign the apply."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "sale_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "hvx_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "guardian",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "grade_prices",
+            "type": {
+              "option": {
+                "array": [
+                  "u64",
+                  3
+                ]
+              }
+            }
+          },
+          {
+            "name": "max_outstanding_value",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
