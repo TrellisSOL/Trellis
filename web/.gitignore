@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.log
+
+# The private tokens page is source, not a secret. Some machines carry a global ignore pattern for names that start with
+# "token" (to keep credential files out of commits), which silently kept this directory out of the repository while the
+# site map, the build and the tests all expect it. Re-include it here: a repository rule outranks a global one.
+!/app/tokens/
+!/app/tokens/**
