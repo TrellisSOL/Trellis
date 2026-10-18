@@ -1,0 +1,50 @@
+/* iPhone, as a Home Screen web app and in Safari.
+   The page draws under the status bar (viewport-fit=cover, black-translucent), so the fixed header grows by the top
+   safe area and everything that clears the header (var(--header)) clears the status bar too. In a normal browser tab the
+   insets are 0 and nothing changes. html[data-standalone] is set before first paint by the inline script in layout.jsx. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --bar: 64px;
+  --header: calc(var(--bar) + var(--safe-top));
+  /* Landscape on a notched iPhone: keep content clear of the sensor housing and rounded corners. */
+  --gutter: max(clamp(16px, 4vw, 40px), var(--safe-left), var(--safe-right));
+}
+@media (max-width: 860px) { :root { --bar: 58px; --header: calc(var(--bar) + var(--safe-top)); } }
+
+.site-header { padding-top: var(--safe-top); }
+.mobile-menu { padding-bottom: calc(40px + var(--safe-bottom)); }
+.site-footer { padding-bottom: var(--safe-bottom); }
+dialog { max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px); }
+
+/* Touch polish everywhere */
+html { -webkit-tap-highlight-color: transparent; }
+@media (hover: none) and (pointer: coarse) {
+  .site-header a, .site-header button, .mobile-menu a, nav a, button { touch-action: manipulation; }
+}
+
+/* Only when opened from the Home Screen */
+html[data-standalone] { overscroll-behavior-y: none; }
+html[data-standalone] :is(a, img, svg) { -webkit-touch-callout: none; }
+/* A solid strip behind the status bar, so page content never scrolls under the clock when the header slides away. */
+html[data-standalone]::before { content: ""; position: fixed; inset: 0 0 auto; height: var(--safe-top); background: var(--paper, #09090b); z-index: 95; pointer-events: none; }
+
+/* The Add to Home Screen hint (components/HomeScreenHint.jsx) */
+.home-hint { position: fixed; z-index: 120; left: max(12px, var(--safe-left)); right: max(12px, var(--safe-right)); bottom: calc(12px + var(--safe-bottom));
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 14px 14px 14px; border-radius: 20px;
+  background: rgba(24, 24, 27, .92); -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(242, 182, 109, .22); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .03) inset;
+  color: var(--ink); animation: home-hint-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.home-hint img { width: 48px; height: 48px; border-radius: 12px; display: block; }
+.home-hint b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.home-hint p { margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.home-hint p svg { display: inline-block; vertical-align: -3px; margin: 0 2px; color: #4da3ff; }
+.home-hint button { width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(237, 237, 239, .08); color: var(--muted); cursor: pointer; }
+@keyframes home-hint-in { from { opacity: 0; transform: translateY(16px); } }
+@media (prefers-reduced-motion: reduce) { .home-hint { animation: none; } }
+
+/* Sections that take focus only so screen readers land on them after navigation (tabindex=-1) show no ring: on a phone
+   it framed the whole Payments panel in amber after opening /dashboard/#payments. Tabbable controls keep theirs. */
+.dashboard-section[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
