@@ -1,0 +1,10 @@
+import { NotAtLaunch } from "./LaunchSurfaceDocs";
+export default function SealNetworkDocs() {
+  return <section id="open-network">
+    <h2>The open host network.</h2><NotAtLaunch />
+    <p>Trellis Network is open for early hosts running <code>deploy/network/approved/tdx-qwen2.5-0.5b</code>: Intel TDX in a supported confidential VM serving Qwen2.5 0.5B. <a href="/network/#join">Join with one command</a>. Admission is automatic after fresh hardware evidence, the signed host policy v1 and sanctions screening of operator and payout addresses pass. The policy is published at <code>GET /api/v1/network/policy</code> and committed as a <code>host_policy</code> entry in the key log.</p>
+    <p>New hosts start on probation, with a public record on <a href="/hosts/">Hosts</a>. Sidecar bindings v2 commit the source archive hash, engine image and served model ID into report data. Legacy v1 evidence still verifies but does not supply every field this admission policy requires. These bindings do not prove that a declared engine image is running or that a source archive produced it; appraising the measured deployment remains necessary.</p>
+    <p>Hosts post no bond or deposit at trellis.example: admission is by hardware attestation, and traffic follows each host’s record. Payouts and slashing are not switched on at trellis.example yet. No payouts are being made. <a href="/docs/#network-host-policy">Read the host policy and limits</a>.</p>
+    <p>A host is one of two kinds of supply for the attested lane. The other is an attested gateway, a provider’s confidential endpoint that the router verifies and pays per token, which needs no host of your own. What each kind proves differs: <a href="/docs/#lanes">read the two kinds and their limits</a>.</p>
+  </section>;
+}
