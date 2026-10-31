@@ -1,0 +1,54 @@
+/* The homepage: hero and five quiet sections. Global tokens only (app/globals.css, app/calm.css). */
+.hero { position: relative; isolation: isolate; overflow: hidden; padding: calc(var(--header) + clamp(72px, 12vw, 140px)) var(--gutter) clamp(64px, 9vw, 112px); text-align: center; }
+.lattice { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; }
+.lattice path { fill: none; stroke: rgba(237, 237, 239, .07); stroke-width: 1; }
+.dawn { position: absolute; z-index: -1; left: 50%; top: -38%; width: min(1100px, 140vw); height: 760px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(242, 182, 109, .16), rgba(242, 182, 109, 0)); pointer-events: none; }
+.heroInner { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 14px; color: var(--muted); text-decoration: none; transition: border-color .2s, color .2s; }
+.pill:hover { color: var(--ink); border-color: var(--line-dark-strong); }
+.heroTitle { margin: 0; font-size: clamp(44px, 7vw, 84px); line-height: 1.02; font-weight: 500; letter-spacing: -.045em; }
+.heroLede { max-width: 600px; font-size: clamp(17px, 1.6vw, 19px); line-height: 1.6; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.fine { font-size: 14px; color: var(--faint); }
+
+.band { padding: clamp(64px, 9vw, 112px) var(--gutter); }
+.split { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: clamp(32px, 5vw, 64px); }
+.flip { flex-wrap: wrap-reverse; }
+.flip > .copy { order: 2; }
+.copy { flex: 1 1 340px; display: flex; flex-direction: column; gap: 18px; max-width: 520px; }
+.copy h2 { margin: 0; font-size: clamp(32px, 3.6vw, 44px); line-height: 1.08; font-weight: 500; letter-spacing: -.035em; }
+.copy p { font-size: 17px; line-height: 1.65; color: var(--muted); }
+.more { align-self: flex-start; color: var(--signal); text-decoration: none; font-size: 15px; }
+.more:hover { text-decoration: underline; }
+.figure { flex: 1 1 520px; min-width: 0; }
+.figure :global(.code-panel) { margin: 0; }
+.figure :global(pre) { margin: 0; padding: 22px 24px 26px; font-size: 14px; line-height: 1.75; overflow-x: auto; }
+
+.receipt { flex: 1 1 440px; margin: 0; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px; }
+.receiptHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font-size: 15px; font-weight: 500; }
+.ok { display: inline-flex; align-items: center; gap: 6px; color: var(--signal); font-size: 14px; font-weight: 400; }
+.receipt dl { margin: 0; display: grid; gap: 0; }
+.receipt dl div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.receipt dt { color: var(--faint); }
+.receipt dd { margin: 0; }
+.mono { font-family: var(--mono); font-size: 14px; }
+
+.wide { max-width: var(--max); margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+.wide > .copy { flex: none; }
+.wide .copy { max-width: 620px; }
+.trio { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.trio li { flex: 1 1 260px; background: var(--ground); padding: 28px 28px 32px; display: flex; flex-direction: column; gap: 10px; }
+.trio h3 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.trio p { font-size: 15px; line-height: 1.6; color: var(--muted); }
+
+.models { flex: 1 1 520px; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; font-family: var(--mono); font-size: 14px; color: var(--muted); }
+.models li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+
+.closing { padding: clamp(80px, 11vw, 140px) var(--gutter) clamp(96px, 12vw, 160px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.closing h2 { margin: 0; font-size: clamp(34px, 4.4vw, 52px); line-height: 1.08; font-weight: 500; letter-spacing: -.04em; }
+.closing h2 span { color: var(--faint); }
+
+@media (max-width: 600px) {
+  .models { grid-template-columns: minmax(0, 1fr); }
+  .receipt dl div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
