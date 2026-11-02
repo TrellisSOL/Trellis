@@ -1,0 +1,8 @@
+const STATS=[
+  {value:'4',unit:'',label:'Budget caps per request, hour, day and week.',eyebrow:'Agent rulebook'},
+  {value:'15',unit:'min',label:'Single-use ask-first approval window on /agents.',eyebrow:'Owner approval'},
+  {value:'0',unit:'USDC',label:'Deposit required to host. Hosts join by hardware attestation and probation.',eyebrow:'Network hosts'},
+  {value:'7',unit:'days',label:'Validity of a router-signed track-record certificate with a fresh pseudonym.',eyebrow:'Certificates'},
+];
+// Launch surface: every figure here is about agent rulebooks or the host network, so a core router's homepage leaves the strip out.
+export default function Stats(){return <section className="section tight" aria-label="Trellis in numbers" data-surface-extra=""><div className="container"><div className="stats" data-stagger>{STATS.map(s=><div className="stat" key={s.eyebrow} data-reveal><strong>{s.prefix}<span data-count={s.value}>{s.value}</span>{s.suffix}<sup>{s.unit}</sup></strong><p>{s.label}</p><div className="eyebrow">{s.eyebrow}</div></div>)}</div></div></section>}
