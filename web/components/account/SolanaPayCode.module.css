@@ -1,0 +1,5 @@
+.figure{display:grid;grid-template-columns:168px minmax(0,1fr);gap:16px;align-items:start;margin:16px 0;padding:16px;border:1px solid var(--line)}
+.code{width:168px;height:168px;display:block;border:1px solid var(--line)}
+.figure figcaption{min-width:0;font-size:14px}.figure figcaption strong{display:block;margin-bottom:4px}.figure figcaption p{margin:0 0 8px}
+.link{font:400 11px/1.5 var(--mono);overflow-wrap:anywhere}.link a{color:inherit}
+@media(max-width:500px){.figure{grid-template-columns:1fr}}
