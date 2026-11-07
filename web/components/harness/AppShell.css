@@ -1,0 +1,7 @@
+/* The chat page is a full-screen app with its own sidebar: room for device cutouts when installed. */
+.harness-connectivity { flex: none; padding: 8px 16px; background: var(--paper-2); color: var(--muted); font-size: 13px; text-align: center; }
+.harness-connectivity a { color: var(--ink); text-decoration-color: var(--signal-deep); text-underline-offset: 3px; }
+html[data-harness-standalone] [data-harness-app] { height: 100dvh; padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+@media (display-mode: standalone) {
+  [data-harness-app] { height: 100dvh; padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+}
