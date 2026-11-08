@@ -1,0 +1,57 @@
+/* The receipt panel: a calm sheet on the right of the chat, full width on a phone. */
+.panel {
+  position: fixed; z-index: 75; top: 0; right: 0; bottom: 0; width: min(400px, 100%);
+  display: flex; flex-direction: column; background: var(--raised); color: var(--ink);
+  border-left: 1px solid var(--line); box-shadow: -30px 0 60px -30px rgba(0, 0, 0, .55);
+  animation: slideIn .28s var(--ease-out) both; outline: none;
+}
+@keyframes slideIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.head { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 12px 0 20px; border-bottom: 1px solid var(--line); flex: none; }
+.head h2 { font-size: 15px; font-weight: 500; letter-spacing: 0; }
+.close { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: var(--muted); }
+.close:hover { background: rgba(237, 237, 239, .06); color: var(--ink); }
+.close:focus-visible, .primary:focus-visible, .secondary:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 20px 24px; display: grid; align-content: start; gap: 20px; overscroll-behavior: contain; }
+
+.verdict { display: grid; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper-2); }
+.verdict b { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 500; }
+.verdict b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.verdict[data-tone="ok"] { border-color: rgba(242, 182, 109, .3); background: var(--signal-tint); }
+.verdict[data-tone="ok"] b::before { background: var(--signal); }
+.verdict[data-tone="bad"] { border-color: rgba(255, 138, 138, .3); background: var(--danger-tint); }
+.verdict[data-tone="bad"] b::before { background: var(--danger); }
+.verdict[data-tone="warn"] b::before { background: var(--warn); }
+.verdict p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.verdict .anchor { color: var(--ink); }
+
+.facts { margin: 0; display: grid; }
+.facts div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.facts div:last-child { border-bottom: 0; }
+.facts dt { font-size: 13px; color: var(--muted); }
+.facts dd { margin: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+
+.section { display: grid; gap: 10px; }
+.section h3 { font-size: 14px; font-weight: 500; }
+.list { margin: 0; padding-left: 1.15em; display: grid; gap: 5px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.muted { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.more summary { cursor: pointer; width: fit-content; font-size: 13.5px; color: var(--muted); padding: 2px 0; }
+.more summary:hover { color: var(--ink); }
+.more > ul { margin-top: 10px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.checks li { display: grid; gap: 2px; }
+.checks span { font-size: 12px; font-weight: 500; color: var(--ink); }
+.checks li[data-state="fail"] span { color: var(--danger); }
+.checks li[data-state="pass"] span { color: var(--signal); }
+
+.foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px 18px; border-top: 1px solid var(--line); }
+.primary, .secondary { height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13.5px; font-weight: 500; }
+.primary { border: 0; background: var(--signal); color: var(--on-signal); }
+.primary:disabled { opacity: .6; }
+.secondary { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); }
+.secondary:hover { background: rgba(237, 237, 239, .05); }
+.links { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.links a { color: var(--muted); text-decoration: none; }
+.links a:hover { color: var(--ink); }
+
+@media (max-width: 680px) { .panel { border-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
