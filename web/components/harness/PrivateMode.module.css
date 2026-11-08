@@ -1,0 +1,105 @@
+/* Private mode in the chat page. The switch is a chip in the composer, the saved chats live in the sidebar,
+   and this strip only appears, above the thread, while the switch is on. Same tokens as Harness.module.css. */
+
+.strip { width: min(var(--col, 720px), 100% - 48px); margin-inline: auto; }
+.strip:not([data-on]) { display: contents; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 0 4px; }
+.tag { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border-radius: 999px; background: var(--signal-tint); color: var(--signal); font-size: 13px; font-weight: 500; }
+.state { font-size: 13px; color: var(--muted); }
+.fold { margin-left: auto; font-size: 13px !important; }
+
+/* composer chip */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 500;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.chip:hover:not(:disabled) { color: var(--ink); border-color: var(--line-strong); }
+.chip[aria-checked="true"] { color: var(--signal); border-color: rgba(242, 182, 109, .35); background: var(--signal-tint); }
+.chip:disabled { opacity: .5; }
+.chip:focus-visible, .iconBtn:focus-visible, .sideSearch:focus-visible, .sideChat:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.iconBtn { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted); transition: background .15s, color .15s; }
+.iconBtn:hover:not(:disabled) { background: rgba(237, 237, 239, .06); color: var(--ink); }
+.iconBtn:disabled { opacity: .45; }
+
+/* sidebar */
+.side { display: flex; flex-direction: column; gap: 14px; min-height: 0; flex: 1; }
+.sideSearch {
+  display: flex; align-items: center; gap: 10px; width: 100%; height: 40px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 14px; text-align: left; transition: border-color .15s, color .15s;
+}
+.sideSearch:hover:not(:disabled) { color: var(--ink); border-color: var(--line-strong); }
+.sideList { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; margin: 0 -4px; padding: 0 4px; scrollbar-width: thin; scrollbar-color: var(--ink-4) transparent; }
+.sideGroup { display: flex; flex-direction: column; gap: 1px; }
+.sideGroup > span { padding: 4px 10px 6px; font-size: 12px; color: var(--faint); }
+.sideChat {
+  display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted);
+  font-size: 14px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s, color .15s;
+}
+.sideChat:hover:not(:disabled) { background: rgba(237, 237, 239, .05); color: var(--ink); }
+.sideChat[aria-current="page"] { background: rgba(237, 237, 239, .07); color: var(--ink); }
+.sideNote { display: grid; gap: 8px; justify-items: start; padding: 4px 10px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.sideNote :global(.text-button) { font-size: 13px !important; }
+
+/* what sits under the switch while it is on */
+.panel {
+  display: grid; gap: 10px; margin-top: 6px; padding: 14px 16px 16px; background: var(--raised); border: 1px solid var(--line); border-radius: 12px;
+  clip-path:none; animation: panelIn .3s var(--ease-out) both;
+}
+@keyframes panelIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.lead { font-size: 14px; line-height: 1.5; color: var(--ink); max-width: 62ch; }
+.more summary { cursor: pointer; width: fit-content; font-size: 13px; color: var(--muted); padding: 2px 0; }
+.more summary:hover { color: var(--ink); }
+.more ul { margin: 8px 0 2px; padding-left: 1.2em; display: grid; gap: 5px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.more li::marker { color: var(--signal-deep); }
+.more b { color: var(--ink); font-weight: 620; }
+.tor { display: grid; gap: 6px; padding: 10px 12px; background: var(--paper); font-size: 13px; line-height: 1.5; color: var(--muted); }
+.tor b { color: var(--ink); font-weight: 620; font-size: 13.5px; }
+.tor a, .dialog a { text-decoration-color: var(--signal-deep); text-decoration-thickness: 1.5px; text-underline-offset: 3px; color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.forget { margin-left: auto; color: var(--danger); }
+.quiet { font: 400 11px/1.5 var(--mono); color: var(--muted); }
+.bad { font-size: 13px; line-height: 1.5; color: var(--danger); }
+
+/* dialogs (they use the site's shared modal; these are the parts inside it) */
+.dialog > p { margin-bottom: 18px; color: var(--muted); line-height: 1.5; }
+.dialog > .dialogWarn { color: var(--danger); }
+.chats { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 6px; max-height: min(46vh, 380px); overflow-y: auto; }
+.chats li { display: flex; align-items: center; gap: 12px; background: var(--paper-2); border-radius: 10px; overflow: hidden; padding-right: 14px; }
+.chatOpen { flex: 1; min-width: 0; display: grid; gap: 3px; border: 0; background: none; text-align: left; padding: 11px 14px; transition: background .15s var(--ease); }
+.chatOpen:hover { background: var(--paper-3); }
+.chatOpen b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chatOpen span { font: 400 10.5px var(--mono); color: var(--muted); }
+
+/* the privacy label under a reply: a disclosure in the style of the "Thinking" one */
+.label { margin-top: 10px; }
+.label summary { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; list-style: none; padding: 4px 0; font: 500 11px var(--mono); color: var(--muted); }
+.label summary::-webkit-details-marker { display: none; }
+.label summary::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .2s var(--ease); align-self: center; }
+.label[open] summary::before { transform: rotate(45deg); }
+.label summary:hover { color: var(--ink); }
+.label summary small { font: inherit; opacity: .7; }
+.label summary mark { padding: 1px 6px; background: var(--signal-tint); color: var(--signal-deep); font-weight: 500; }
+.label summary em { font-style: normal; padding: 1px 6px; background: var(--danger-tint); color: var(--danger); }
+.labelBody { display: grid; gap: 10px; margin-top: 6px; padding: 12px 14px; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; line-height: 1.55; }
+.labelSummary { margin: 0; padding-left: 1.2em; display: grid; gap: 3px; }
+.labelSummary li::marker { color: var(--signal-deep); }
+.labelRows { margin: 0; display: grid; gap: 6px; }
+.labelRows div { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 4px 14px; }
+.labelRows dt { font: 500 10.5px/1.6 var(--mono); color: var(--muted); }
+.labelRows dd { margin: 0; }
+.fields summary { cursor: pointer; width: fit-content; font: 500 10.5px var(--mono); color: var(--muted); padding: 2px 0; }
+.fields summary:hover { color: var(--ink); }
+.fields .labelRows { margin-top: 8px; }
+.labelNote { color: var(--muted); }
+.labelLinks { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 10.5px var(--mono); }
+.labelLinks a { color: var(--ink); text-decoration-color: var(--signal-deep); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+
+@media (max-width: 880px) {
+  .strip { width: calc(100% - 32px); }
+  .forget { margin-left: 0; }
+  .labelRows div { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+}
