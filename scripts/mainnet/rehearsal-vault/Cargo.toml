@@ -1,0 +1,37 @@
+# REHEARSAL ONLY. A stand-in for the Squads v4 program on a throwaway local validator (scripts/mainnet/rehearse.sh).
+# It is never deployed to a public cluster and is not part of the Trellis workspace or of `anchor build`:
+# scripts/mainnet/rehearsal-vault.sh builds it into the gitignored .data/ directory.
+[package]
+name = "rehearsal_vault"
+version = "0.1.0"
+description = "Rehearsal stand-in for a Squads v4 vault: signs inner instructions as the vault PDA"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "rehearsal_vault"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "1.2.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "allow" }
+
+[workspace]
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
