@@ -65,7 +65,7 @@
 
   "council": {
     "update": 9,
-    "on": false,
+    "on": true,
     "title": "Council",
     "summary": "Put one question to several models at once and have their answers judged against each other, or have a second provider check the first. Every model that answered has its own receipt.",
     "includes": ["One prompt, several models", "A judged answer with the reasoning for it", "Dual verification: a second provider checks the first", "A receipt per model that took part"]
