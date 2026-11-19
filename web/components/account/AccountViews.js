@@ -37,7 +37,7 @@ export const HOME_PREVIEW = [
   ['Recent calls', 'Your last five calls, each with its signed receipt.'],
 ];
 // A section description that names something a core router does not serve, as a core router's page words it.
-const CORE_COPY = {
+export const CORE_COPY = {
   dashboard: 'See your balance, keys and recent call receipts in one place.',
   settings: 'Read how to connect an app, and sign out of this browser.',
 };

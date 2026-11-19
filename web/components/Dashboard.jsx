@@ -18,6 +18,7 @@ import AccountActivity from "./account/AccountActivity";
 import AccountUnusedKeys from "./account/AccountUnusedKeys"; import KeyLastUsed from "./account/KeyLastUsed.js"; // B125
 import ProofBadge from "./ProofBadge"; // U76: account receipt marks.
 import AccountShell from "./account/AccountShell";
+import ChatPage from "./account/ChatPage"; // The Playground as a chat.
 import AccountAnchors from "./account/AccountAnchors.js";
 import AccountHome from "./account/AccountHome";
 import { useAccountKey } from "./account/useAccountKey";
@@ -950,9 +951,8 @@ export default function Dashboard() {
 
   return (
     <main className="dashboard-main" id="content" data-workspace={workspaceState}>
-      <div className="dashboard-heading"><div><span className="eyebrow">Your account</span><h1>One balance. Every call.</h1></div></div>
       <AccountAnchors/>
-      <AccountShell current={tab} apiKey={signedIn ? apiKey : ""} onConnect={signInWith} onNavigate={navigate} publicContent={tab === "Teams" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("join")}
+      <AccountShell app current={tab} apiKey={signedIn ? apiKey : ""} onConnect={signInWith} onNavigate={navigate} publicContent={tab === "Teams" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("join")}
         onDisconnect={() => { clearKey(); setApiKey(""); setWs(null); setSecrets({}); setResult(null); setModal(null); setError(""); setNotice(""); abort.current?.abort(); }}>
       <section ref={sectionRef} className="dashboard-section" tabIndex={-1} aria-label={`${tab} workspace section`}>
       {storageError && (
@@ -1003,128 +1003,37 @@ export default function Dashboard() {
           {tab === "Activity" && ws && <AccountActivity apiKey={apiKey} keys={ws.keys}/>}
           {tab === "Home" && ws && <AccountHome apiKey={apiKey} workspace={ws} onRefresh={() => refresh()} onReceipt={receipt => setModal({ type: "receipt", data: receipt })}/>}
           {tab === "Playground" && (
-            <>
-              <div className="panel-heading">
-                <h2>{live ? "Route a call." : "Route a sample call."}</h2>
-                <span className="badge">{live ? "Live request · billed to the selected key" : "No external request"}</span>
-              </div>
-              <p className="help-text harness-link">
-                Want every model with its tools, compare mode and attachments? <a className="inline-link" href="/harness/">Open Chat</a>
-              </p>
-              <div className="playground-grid">
-                <form className="control-panel" onSubmit={run}>
-                  <Field label="Model" id="play-model">
-                    <select id="play-model" value={modelId} onChange={(e) => setModelId(e.target.value)} disabled={busy}>
-                      {playModels.map((m) => (
-                        <option key={m.id} value={m.id} disabled={modelUnavailable(m)}>
-                          {live ? m.id + (modelUnavailable(m) ? " · temporarily unavailable" : "") : m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <div className="two-fields">
-                    <Field label={live ? "Key" : "Sample key"} id="play-key">
-                      <select id="play-key" value={keyId} onChange={(e) => setKeyId(e.target.value)} disabled={busy}>
-                        <option value="">Select key</option>
-                        {view.keys
-                          .filter((k) => k.active && (!live || k.secret))
-                          .map((k) => (
-                            <option key={k.id} value={k.id}>
-                              {k.name}
-                            </option>
-                          ))}
-                      </select>
-                    </Field>
-                    {(!live || payWithOn) && (
-                    <Field label="Pay with" id="play-payment">
-                      <select id="play-payment" value={payWith} onChange={(e) => setPayWith(e.target.value)} disabled={busy}>
-                        {payOptions.map((p) => (
-                          <option key={p}>{p}</option>
-                        ))}
-                      </select>
-                    </Field>
-                    )}
-                  </div>
-                  <label className="check-label">
-                    <input type="checkbox" checked={privateRoute} onChange={(e) => setPrivate(e.target.checked)} disabled={busy} /> Require an attested private route
-                  </label>
-                  <Field label={live ? "Prompt" : "Sample prompt"} id="play-prompt">
-                    <textarea id="play-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={4000} disabled={busy} />
-                  </Field>
-                  <p className="help-text">{live ? "Streams a real completion (up to 512 tokens). Prompts and responses are never stored." : "The preview returns a fixed sample response. Prompt text is not saved."}</p>
-                  <details className="failure-option">
-                    <summary>{live ? "Routing options" : "Preview a failure state"}</summary>
-                    <label className="check-label">
-                      <input type="checkbox" checked={forceFailure} onChange={(e) => setForceFailure(e.target.checked)} disabled={busy} /> {live ? "Disallow fallbacks (allow_fallbacks: false)" : "Preview a provider timeout"}
-                    </label>
-                  </details>
-                  {live && errorKind === "insufficient_credits" && <AddFunds key={keyId} apiKey={view.keys.find(k => k.id === keyId)?.secret || apiKey} balance={ws?.credits?.available} force onBalance={() => refresh()} onResume={() => run({ preventDefault() {} })} disabled={busy}/>} {/* ON1 */}
-                  {error && isNotEnabledText(error) && <Problem text={error} />}
-                  {error && !isNotEnabledText(error) && (
-                    <div className="error" role="alert">
-                      {error}
-                      {live && errorKind === "insufficient_credits" && (
-                        <>
-                          {" "}
-                          <button type="button" className="text-button" onClick={() => setModal({ type: "credits" })}>
-                            Deposit USDC →
-                          </button>
-                        </>
-                      )}
-                    </div>
+            <ChatPage live={live} busy={busy} prompt={prompt} setPrompt={setPrompt} modelId={modelId} setModelId={setModelId}
+              modelLabel={(() => { const m = playModels.find((x) => x.id === modelId); return m ? (live ? m.id : m.name) : modelId; })()}
+              modelOptions={playModels.map((m) => (
+                <option key={m.id} value={m.id} disabled={modelUnavailable(m)}>
+                  {live ? m.id + (modelUnavailable(m) ? " · temporarily unavailable" : "") : m.name}
+                </option>
+              ))}
+              keyId={keyId} setKeyId={setKeyId}
+              keyOptions={view.keys.filter((k) => k.active && (!live || k.secret)).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+              showPayWith={!live || payWithOn} payWith={payWith} setPayWith={setPayWith} payOptions={payOptions}
+              privateRoute={privateRoute} setPrivate={setPrivate} forceFailure={forceFailure} setForceFailure={setForceFailure}
+              onRun={run} onCancel={cancel} streamText={streamText} result={result} money={money}
+              request={live
+                ? JSON.stringify({ url: origin + "/api/v1/chat/completions", headers: { Authorization: "Bearer " + (view.keys.find((k) => k.id === keyId)?.token || "sk-tr-v1-…"), ...liveRequest.headers }, body: liveRequest.body }, null, 2)
+                : JSON.stringify(sampleRequest, null, 2)}
+              onReceipt={(data) => setModal({ type: "receipt", data })}
+              funding={live && errorKind === "insufficient_credits" && <AddFunds key={keyId} apiKey={view.keys.find(k => k.id === keyId)?.secret || apiKey} balance={ws?.credits?.available} force onBalance={() => refresh()} onResume={() => run({ preventDefault() {} })} disabled={busy}/>} /* ON1 */
+              problem={error && (isNotEnabledText(error) ? <Problem text={error} /> : (
+                <div className="error" role="alert">
+                  {error}
+                  {live && errorKind === "insufficient_credits" && (
+                    <>
+                      {" "}
+                      <button type="button" className="text-button" onClick={() => setModal({ type: "credits" })}>
+                        Deposit USDC →
+                      </button>
+                    </>
                   )}
-                  <div className="button-row">
-                    <Button type="submit" disabled={busy}>
-                      {busy ? (live ? "Routing…" : "Routing sample…") : live ? "Run call" : "Run sample call"}
-                    </Button>
-                    {busy && (
-                      <Button secondary type="button" onClick={cancel}>
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </form>
-                <div className="playground-output">
-                  <Code label="Request preview">
-                    {live
-                      ? JSON.stringify({ url: origin + "/api/v1/chat/completions", headers: { Authorization: "Bearer " + (view.keys.find((k) => k.id === keyId)?.token || "sk-tr-v1-…"), ...liveRequest.headers }, body: liveRequest.body }, null, 2)
-                      : JSON.stringify(sampleRequest, null, 2)}
-                  </Code>
-                  <div className={"response-panel" + (busy ? " is-busy" : "")} aria-live="polite" aria-busy={busy || undefined}>
-                    <span className="eyebrow">{busy ? (live ? "STREAMING…" : "ROUTING…") : live ? "RESPONSE" : "SAMPLE RESPONSE"}</span>
-                    {live && (busy || result) && (streamText || result?.text) ? (
-                      <>
-                        <p style={{ whiteSpace: "pre-wrap" }}>{result?.text ?? streamText}</p>
-                        {result && (
-                          <>
-                            <div className="model-meta">
-                              <span>{result.tokens} tokens</span>
-                              <span>{money(result.cost, 6)} USDC</span>
-                            </div>
-                            <button className="text-button" onClick={() => setModal({ type: "receipt", data: result })}>
-                              Inspect generation receipt →
-                            </button>
-                          </>
-                        )}
-                      </>
-                    ) : result ? (
-                      <>
-                        <p>A generation receipt makes usage easier to audit by recording the model, provider, token counts, payment allocation and cost components for one call.</p>
-                        <div className="model-meta">
-                          <span>{result.tokens} tokens</span>
-                          <span>{money(result.cost, 6)} USDC</span>
-                        </div>
-                        <button className="text-button" onClick={() => setModal({ type: "receipt", data: result })}>
-                          Inspect generation receipt →
-                        </button>
-                      </>
-                    ) : (
-                      <p>{busy ? (live ? "Selecting a provider and holding the worst-case cost…" : "Checking the sample route and budget…") : "Run a call to see the response and its itemized receipt."}</p>
-                    )}
-                  </div>
                 </div>
-              </div>
-            </>
+              ))}
+            />
           )}
           {tab === "Models" && (
             <ModelCatalog

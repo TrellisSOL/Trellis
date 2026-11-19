@@ -1,25 +1,27 @@
-import {Button} from './UI';
 import styles from './Landing.module.css';
+import { Arrow } from './landing/Mark';
 
-// The landing hero: one headline, one paragraph, two actions, a faint trellis lattice and a warm light from above.
-// It stays still: no route animation, no live card, no status strip (Night garden: calm before clever).
-export default function Hero(){
-  return <section className={styles.hero} id="home" data-dark-hero>
-    <svg className={styles.lattice} aria-hidden="true" focusable="false">
-      <defs>
-        <pattern id="hero-lattice" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H64M0 0V64"/></pattern>
-        <radialGradient id="hero-fade" cx="50%" cy="28%" r="58%"><stop offset="0" stopColor="#fff"/><stop offset="1" stopColor="#000"/></radialGradient>
-        <mask id="hero-mask"><rect width="100%" height="100%" fill="url(#hero-fade)"/></mask>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#hero-lattice)" mask="url(#hero-mask)"/>
-    </svg>
-    <div className={styles.dawn} aria-hidden="true"/>
+const FACTS = [['Routes to', 'Open models across many providers'], ['Paid in', 'USDC on Solana'], ['Receipts', 'Signed per call, rooted hourly'], ['Router markup', 'None']];
+
+// The landing hero: the night-garden art full bleed, the headline at the lower left and four plain facts at the
+// upper right.
+export default function Hero() {
+  return <section className={styles.hero} id="home" data-dark-hero aria-labelledby="hero-title">
+    <picture className={styles.heroArt}>
+      <source media="(max-width: 700px)" srcSet="/art/hero-night-900.jpg"/>
+      <img src="/art/hero-night.jpg" alt="" width="1536" height="1024" fetchPriority="high"/>
+    </picture>
     <div className={styles.heroInner}>
-      <a className={styles.pill} href="/docs/#quickstart">OpenRouter-compatible, built on Solana</a>
-      <h1 className={styles.heroTitle}>Every open model.<br/>One key.</h1>
-      <p className={styles.heroLede}>Call any open model through one API and one prepaid balance. Every answer comes with a signed receipt you can check.</p>
-      <div className={styles.actions}><Button href="/dashboard/">Get an API key</Button><Button href="/docs/" secondary>Read the docs</Button></div>
-      <p className={styles.fine}>No email. No password. No router markup.</p>
+      <dl className={styles.heroFacts}>{FACTS.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      <div className={styles.heroCopy}>
+        <p className={styles.heroKicker}>The open inference router</p>
+        <h1 id="hero-title">Every open model.<br/>One key.</h1>
+        <p className={styles.heroLede}>One OpenAI-compatible API for the open models, one prepaid balance in USDC, and a signed receipt for every answer.</p>
+        <div className={styles.actions}>
+          <a className={styles.btnLight} href="/dashboard/">Get an API key</a>
+          <a className={styles.btnGhost} href="/docs/">Read the docs <Arrow className={styles.arrow}/></a>
+        </div>
+      </div>
     </div>
   </section>;
 }
