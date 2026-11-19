@@ -41,7 +41,7 @@
 
   "anchor": {
     "update": 6,
-    "on": false,
+    "on": true,
     "title": "Receipt roots in the anchor program",
     "summary": "The hourly receipt root is held by a program account instead of a memo, so anyone can read it from the chain's state without walking a key's history.",
     "includes": ["One root account per hour", "Receipt signing keys published and rotated on chain", "Proofs checked against program state", "Earlier memo roots stay verifiable as memos"]
