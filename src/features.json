@@ -33,7 +33,7 @@
 
   "sealed": {
     "update": 5,
-    "on": false,
+    "on": true,
     "title": "Sealed lane",
     "summary": "Run a call on attested hardware and get the evidence with the answer: the measurement the router checked and the provider's own signed receipt.",
     "includes": ["Models served from an attested gateway", "Attestation checked before the request is sent", "Measurement pin with every identifier the evidence carries", "Attestation record on each receipt"]
