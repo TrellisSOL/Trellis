@@ -57,7 +57,7 @@
 
   "holders": {
     "update": 8,
-    "on": false,
+    "on": true,
     "title": "Holder tiers",
     "summary": "Wallets that hold $TRLS get membership levels: higher limits, priority on the sealed lane when it is busy, earlier access to newly listed models, an advisory vote and a profile badge. A tier never changes a price.",
     "includes": ["Tiers by $TRLS held, with fixed thresholds", "Higher request and token limits per tier", "Sealed-lane priority and early access to new models", "Advisory vote and an opt-in badge"]
