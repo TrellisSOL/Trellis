@@ -141,7 +141,10 @@ export async function readiness(ctx: Ctx) {
           const [head, chainId] = await Promise.all([ctx.chain.blockNumber(), ctx.chain.client.getChainId()]);
           if (chainId !== ctx.cfg.chain.id) throw new Error("Chain mismatch");
           const [cursor] = await ctx.db.select().from(chainCursor).where(eq(chainCursor.id, "main"));
-          const maxLag = Math.max(ctx.cfg.chain.confirmations + 20, 30);
+          // The cursor is the head the credits indexer's last complete pass started from (credits-indexer.ts,
+          // FOLLOWED_CURSOR). A pass runs every few seconds and a slot lasts about 0.4 s, so a healthy indexer is a few
+          // dozen slots behind; 150 slots (about a minute) is several missed passes.
+          const maxLag = Math.max(ctx.cfg.chain.confirmations + 20, 150);
           checks.chain = !!cursor && head - cursor.block <= BigInt(maxLag) && cursor.block <= head;
         });
       } catch { checks.chain = false; if (escrowMode) checks.escrow_finality = false; }

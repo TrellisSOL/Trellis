@@ -2,7 +2,7 @@ import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, sql } from "drizzle-
 import { PublicKey } from "@solana/web3.js";
 import type { Ctx } from "../context.ts";
 import type { Db, Tx } from "../db/client.ts";
-import { chainEvents, keys, kv, ledger } from "../db/schema.ts";
+import { chainCursor, chainEvents, keys, kv, ledger } from "../db/schema.ts";
 import { post } from "../ledger/ledger.ts";
 import { picoToUsdc, usdcToPico } from "../lib/money.ts";
 import { log, uid } from "../lib/util.ts";
@@ -58,6 +58,8 @@ import { verifyAccountInfo } from "./verified-account.ts";
 //                  is matched against that state credit and credits nothing more.
 
 export const CURSOR_KEY = "credits_indexer_cursor";
+/** The chain_cursor row that says how far the indexer has followed the chain (a slot); read by GET /ready. */
+export const FOLLOWED_CURSOR = "main";
 export const STATUS_KEY = "credits_indexer_status";
 export const SWEEP_KEY = "credits_state_sweep_cursor";
 export const DEPOSIT_KIND = "deposit";
@@ -300,6 +302,9 @@ export async function pollCredits(ctx: Ctx, rpc: CreditsRpc = ctx.chain.connecti
   const program = creditsProgram(ctx.cfg);
   if (!program) return { skipped: "credits program not configured" };
   const cursor = await readCursor(ctx);
+  // The head this pass starts from: once the pass has reached the frontier of finalized transactions, this is the slot
+  // the indexer has followed the chain to (the `chain` check of GET /ready compares it with the head).
+  const headAtStart = await Promise.resolve().then(() => ctx.chain.blockNumber()).catch(() => null);
   const batch = await nextSignatureBatch(rpc, program.programId, cursor.signature ?? undefined, cursor.walk ?? null, { commitment: "finalized", limit: o.pageSize, maxPages: o.maxPages });
   let recorded = 0, scanned = 0, failedTx = 0, undecodable = 0, vaultMismatch = 0, ignored = 0, quarantined = 0, held = false;
   let last: Cursor = { signature: cursor.signature, slot: cursor.slot };
@@ -338,6 +343,11 @@ export async function pollCredits(ctx: Ctx, rpc: CreditsRpc = ctx.chain.connecti
   const pendingPages = walk ? walk.bounds.length : 0;
   const status = { at: new Date().toISOString(), walking: !!walk, discovering: batch.discovering, pending_pages: pendingPages, held, cursor: last.signature };
   await setKv(ctx.db, STATUS_KEY, status).catch(() => undefined);
+  // Followed to `headAtStart`: nothing held the walk and no backlog is left for a later pass. A pass that is still
+  // walking or held leaves the cursor where it was, so readiness sees the indexer fall behind.
+  if (headAtStart !== null && !held && !walk && todo.length === batch.signatures.length) {
+    await ctx.db.insert(chainCursor).values({ id: FOLLOWED_CURSOR, block: headAtStart }).onConflictDoUpdate({ target: chainCursor.id, set: { block: headAtStart } }).catch(() => undefined);
+  }
   if (batch.discovering) log.warn("credits indexer: the backlog does not fit one pass; the walk towards the cursor continues next pass (deposits are still credited from chain state)", { pages_so_far: pendingPages });
   return { scanned, recorded: recorded + retried.recorded, failed_tx: failedTx, undecodable, vault_mismatch: vaultMismatch, ignored, quarantined, held, page_limit_hit: false, walking: !!walk, backlog: batch.signatures.length + pendingPages * (o.pageSize ?? 1000), retried: retried.retried, resolved: retried.resolved, ...applied, ...swept, cursor: last.signature };
 }
