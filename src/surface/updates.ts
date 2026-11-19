@@ -57,11 +57,12 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
     { setting: "OHTTP_ENABLED", when: truthy }, { setting: "OHTTP_CHUNKED_ENABLED", when: truthy },
     { setting: "ONION_ADDRESS" }, { setting: "ONION_PROXY_SECRET" }, { setting: "UNLINKABLE_VIA_ONION", when: truthy },
   ],
-  // Paying in the token: deposits through the escrow path, priced from a pool, and the fee router that burns what was
-  // paid for inference. The token's address is a setting of holder tiers too; either update lets it through.
+  // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
+  // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [
     { setting: "TRLS_TOKEN_ADDRESS" }, { setting: "PAYMENTS_MODE", when: (v) => v === "escrow" }, { setting: "ESCROW_ADDRESS" }, { setting: "ESCROW_TOKENS" },
     { setting: "TRLS_POOL_LEGS" }, { setting: "TRLS_POOL_PROGRAM" }, { setting: "TRELLIS_FEE_ROUTER_PROGRAM_ID" },
+    { setting: "TRLS_POOL_VAULTS" }, { setting: "TRLS_BURN_PRIVATE_KEY" },
   ],
 };
 
@@ -72,6 +73,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
  */
 export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> = {
   council: ["TRELLIS_FEATURE_COUNCIL"],
+  // Paying in $TRLS: the token and the wallet deposits go to. Nothing else of escrow is admitted: no escrow mode, no
+  // Stock Tokens, no USDC escrow, no fast credit, and the retired pool legs stop the start in every environment.
+  trls: ["TRLS_TOKEN_ADDRESS", "ESCROW_ADDRESS"],
 };
 
 /** The non-core settings the released updates admit on the core surface, for this environment. */

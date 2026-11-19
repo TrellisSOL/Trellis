@@ -227,10 +227,16 @@ const schema = z.object({
   // so the site can be tried without a wallet. Refused in production and against a non-loopback RPC.
   DEV_FAUCET: bool.default(false),
   DEV_FAUCET_PRIVATE_KEY: pk,
-  TRLS_POOL_PROGRAM: addr, // informational: the TWAP (src/solana/twap.ts) reads any AMM pool from its vault balances, so it does not need the pool program
-  TRLS_POOL_LEGS: opt, // optional off-chain second opinion: JSON legs [{key:{pool,base,quote}, sign}] pricing TRLS in USDC
-  TRLS_TWAP_MINUTES: num(30), // the window the $TRLS deposit price averages over
-  TRLS_TWAP_MAX_DEVIATION: num(0.05),
+  TRLS_POOL_PROGRAM: addr, // unused: kept so an old environment still parses
+  TRLS_POOL_LEGS: opt, // retired (security review R4-33): a set value stops the start, see trlsEscrowConfig
+  // The $TRLS deposit price (src/solana/trls-price.ts): the router's own samples of the token's market, the lowest of the window.
+  TRLS_POOL_VAULTS: opt, // JSON {base,quote}: the pool's $TRLS and wrapped-SOL token accounts, once the token has left its launch curve
+  TRLS_PRICE_WINDOW_MINUTES: num(30),
+  TRLS_PRICE_SAMPLE_SECONDS: num(60),
+  TRLS_PRICE_MIN_COVERAGE: num(0.75), // the share of the window's samples that must exist before there is a price
+  TRLS_PRICE_MIN_SOL: num(10), // no sample from a market holding less SOL than this
+  TRLS_SOL_USD_FEED: z.string().default("0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"),
+  TRLS_SOL_USD_ACCOUNT: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/).default("7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE"), // the on-chain price account of that feed
   HF_BASE_URL: z.string().default("https://huggingface.co"),
 
   // Economics (basis points)
@@ -269,15 +275,18 @@ const schema = z.object({
   ESCROW_REORG_HORIZON_BLOCKS: int(864_000),
 
   // Pay with $TRLS in escrow (off unless TRLS_TOKEN_ADDRESS is set). TRLS sent to ESCROW_ADDRESS is credited
-  // like a Stock Token, with the same finality and reorganization rules, but priced from its pools
-  // (TRLS_POOL_LEGS: the lower of spot and the TRLS_TWAP_MINUTES average) instead of a price feed,
-  // minus TRLS_ESCROW_HAIRCUT_BPS, and credited at most TRLS_ESCROW_MAX_USD_PER_DEPOSIT per deposit.
+  // like a Stock Token, with the same finality rules, but priced from the router's own samples of its market
+  // (src/solana/trls-price.ts: the lowest of the window) instead of a price feed, minus TRLS_ESCROW_HAIRCUT_BPS, and
+  // credited at most TRLS_ESCROW_MAX_USD_PER_DEPOSIT per deposit and TRLS_ESCROW_MAX_USD_PER_DAY across all deposits
+  // of a day. What a credited deposit paid is burned by the worker that holds TRLS_BURN_PRIVATE_KEY (trls-burn.ts).
   TRLS_TOKEN_ADDRESS: addr,
   TRLS_TOKEN_SYMBOL: z.string().default("TRLS"),
   TRLS_TOKEN_DECIMALS: int(9), // checked against the mint before anything is credited
   TRLS_ESCROW_HAIRCUT_BPS: int(0),
   TRLS_ESCROW_MAX_USD_PER_DEPOSIT: num(250),
-  TRLS_ESCROW_MAX_DEVIATION: opt, // no price while spot is further than this from the average; default TRLS_TWAP_MAX_DEVIATION
+  TRLS_ESCROW_MAX_USD_PER_DAY: num(100), // every $TRLS deposit of the last 24 hours together; a deposit past it waits
+  TRLS_BURN_PRIVATE_KEY: pk, // the escrow wallet's key (ESCROW_ADDRESS): signs the burn and nothing else; a worker's, never the API's
+  TRLS_BURN_FEE_PAYER: z.enum(["escrow", "anchorer"]).default("escrow"), // who pays the burn's network fee
 
   // Add funds with USDC in escrow (off unless USDC_ESCROW_ENABLED). USDC (USDC_ADDRESS, 6 decimals, checked against the
   // token contract before anything is credited) sent to ESCROW_ADDRESS is credited 1:1 at par, with no price feed, under
@@ -679,6 +688,7 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
     if (e.PAYMASTER_ADDRESS && e.RUNTIME_ROLE === "api" && !e.PAYMASTER_SIGNER_KEY) throw new Error("Configured paymaster requires its signing role.");
     const roleKeys = { settlement: e.SETTLEMENT_PRIVATE_KEY, anchoring: e.ANCHORER_PRIVATE_KEY, slashing: e.SLASHER_PRIVATE_KEY, keeper: e.KEEPER_PRIVATE_KEY };
     if (e.RUNTIME_ROLE === "api" && Object.values(roleKeys).some(Boolean)) throw new Error("Public API must not receive settlement, anchoring, slashing or keeper signing keys.");
+    if (e.RUNTIME_ROLE === "api" && e.TRLS_BURN_PRIVATE_KEY) throw new Error("Public API must not receive TRLS_BURN_PRIVATE_KEY: the worker that runs trls-burn holds it.");
     // Escrow mode has no contracts, so no job signs anything: receipts stay signed locally ("local"
     // anchors) and settlement and slashing are inert. No signing key belongs anywhere.
     if (escrowMode && Object.values(roleKeys).some(Boolean)) throw new Error("PAYMENTS_MODE=escrow must not receive settlement, anchoring, slashing or keeper signing keys.");
@@ -693,6 +703,7 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
       const allowed = ["health-flush", "holds-expire", "catalog-refresh", "provider-registry", "health-probes", "canaries", "attestor", "receipts-anchor", "receipt-key-rotation", "settlement", "slasher", "chain-indexer", "paywith-aggregator", "escrow-indexer", "spend-watch", "alert-notifier", "telegram-bot", "measurements", "blind-key-rotation", "ipx-oracle", "dayzero", "ohttp-key-rotation", "host-anchor", "tlog", "batches", "skills-mirror", "sanctions-refresh", "tab-close"];
       allowed.push("weekly-summary"); // B120
       allowed.push("media-jobs"); // the media update: follows pending image and video generations to their end
+      allowed.push("trls-price", "trls-burn"); // paying in $TRLS: the price sampler, and the burn of what deposits paid
       allowed.push("deposit-pings"); // B123
       allowed.push("low-balance-alerts"); // B119
       allowed.push("webhooks"); // V86: bounded event delivery.
@@ -970,12 +981,8 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
       attestedBonus: { public: e.ATTESTED_BONUS_PUBLIC, attested: e.ATTESTED_BONUS_ATTESTED, unlinkable: e.ATTESTED_BONUS_UNLINKABLE },
     },
     canaries: { intervalMs: e.CANARY_INTERVAL_MS, enabled: e.CANARIES, shadowDays: e.SHADOW_DAYS },
-    // The pool average that prices $TRLS escrow deposits (src/solana/twap.ts); nothing is bought or swapped with it.
-    trlsTwap: {
-      legs: e.TRLS_POOL_LEGS ? (JSON.parse(e.TRLS_POOL_LEGS) as import("./solana/twap.ts").Leg[]) : null,
-      twapMinutes: e.TRLS_TWAP_MINUTES,
-      maxDeviation: e.TRLS_TWAP_MAX_DEVIATION,
-    },
+    /** The escrow wallet's key and who pays the fee, for the burn of what $TRLS deposits paid (src/solana/trls-burn.ts). */
+    trlsBurn: { key: e.TRLS_BURN_PRIVATE_KEY, feePayer: e.TRLS_BURN_FEE_PAYER },
     hfBaseUrl: e.HF_BASE_URL.replace(/\/$/, ""),
     webDir: e.WEB_DIR,
     zkapiPageOrigins: e.ZKAPI_PAGE_ORIGINS, // ZK10
@@ -1643,54 +1650,46 @@ export type PaywithToken = { symbol: string; address: string; decimals: number; 
 export type EscrowToken = PaywithToken & { feed: string };
 
 // ---- Pay with $TRLS in escrow ------------------------------------------------------------------
-// TRLS has no price feed, so escrow prices it with the off-chain pool TWAP
-// (TRLS_POOL_LEGS, src/solana/twap.ts). The legs are optional: holder tiers and the $TRLS burn path only need the
-// mint, and without legs TRLS deposits are not priced (they wait as `pending`, reason `pool_missing`). When given, the legs
-// must chain from the TRLS mint to USDC, or TRLS deposits could be priced in the wrong unit; a leg may set `minLiquidity`
-// (raw pool liquidity) so a thin pool gives no price.
+// TRLS has no price feed. A deposit is priced from the router's own samples of the token's market
+// (src/solana/trls-price.ts): its launch curve by default, or the two vaults TRLS_POOL_VAULTS names.
 export type TrlsEscrow = {
   address: string;
   symbol: string;
   decimals: number;
   haircutBps: number;
   maxUsdPerDeposit: number;
-  maxDeviation: number;
-  /** null: no pools configured, so no $TRLS price (deposits stay pending). */
-  legs: import("./solana/twap.ts").Leg[] | null;
+  maxUsdPerDay: number;
+  price: { vaults: { base: string; quote: string } | null; windowSeconds: number; sampleSeconds: number; coverage: number; minLamports: bigint; solFeed: string; solAccount: string };
 };
 
 function trlsEscrowConfig(e: Env, stockAddresses: string[]): TrlsEscrow | null {
+  if (e.TRLS_POOL_LEGS) throw new Error("TRLS_POOL_LEGS is retired: a price read from a pool's last transactions can be set by a few swaps (security review R4-33). Remove it; $TRLS deposits are priced from the router's own samples (TRLS_POOL_VAULTS once the token trades in a pool).");
   if (!e.TRLS_TOKEN_ADDRESS) return null;
   const address = e.TRLS_TOKEN_ADDRESS;
   if (!/^[A-Za-z0-9.$_-]{1,16}$/.test(e.TRLS_TOKEN_SYMBOL)) throw new Error("TRLS_TOKEN_SYMBOL must be 1-16 letters or digits.");
   if (e.TRLS_TOKEN_DECIMALS < 0 || e.TRLS_TOKEN_DECIMALS > 36) throw new Error("TRLS_TOKEN_DECIMALS must be between 0 and 36.");
   if (e.TRLS_ESCROW_HAIRCUT_BPS < 0 || e.TRLS_ESCROW_HAIRCUT_BPS >= 10_000) throw new Error("TRLS_ESCROW_HAIRCUT_BPS must be between 0 and 9999.");
-  if (!(e.TRLS_ESCROW_MAX_USD_PER_DEPOSIT > 0) || !Number.isFinite(e.TRLS_ESCROW_MAX_USD_PER_DEPOSIT)) throw new Error("TRLS_ESCROW_MAX_USD_PER_DEPOSIT must be a positive USD amount.");
-  const maxDeviation = e.TRLS_ESCROW_MAX_DEVIATION === undefined ? e.TRLS_TWAP_MAX_DEVIATION : Number(e.TRLS_ESCROW_MAX_DEVIATION);
-  if (!(maxDeviation > 0 && maxDeviation <= 1)) throw new Error("TRLS_ESCROW_MAX_DEVIATION must be above 0 and at most 1 (100%).");
+  for (const name of ["TRLS_ESCROW_MAX_USD_PER_DEPOSIT", "TRLS_ESCROW_MAX_USD_PER_DAY"] as const) if (!(e[name] > 0) || !Number.isFinite(e[name])) throw new Error(`${name} must be a positive USD amount.`);
   if (stockAddresses.includes(address)) throw new Error("TRLS_TOKEN_ADDRESS is also listed in ESCROW_TOKENS.");
-  if (!e.TRLS_POOL_LEGS) return { address, symbol: e.TRLS_TOKEN_SYMBOL, decimals: e.TRLS_TOKEN_DECIMALS, haircutBps: e.TRLS_ESCROW_HAIRCUT_BPS, maxUsdPerDeposit: e.TRLS_ESCROW_MAX_USD_PER_DEPOSIT, maxDeviation, legs: null };
-  const leg = z.object({
-    key: z.object({ pool: z.string().regex(ADDRESS_RE), base: z.string().regex(ADDRESS_RE), quote: z.string().regex(ADDRESS_RE) }),
-    sign: z.union([z.literal(1), z.literal(-1)]),
-    minLiquidity: z.union([z.string().regex(/^\d+$/), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)]).optional(),
-  });
-  let legs: TrlsEscrow["legs"];
-  try {
-    legs = z.array(leg).min(1).parse(JSON.parse(e.TRLS_POOL_LEGS)) as TrlsEscrow["legs"];
-  } catch (err) {
-    throw new Error(`TRLS_POOL_LEGS must be a JSON array of {key:{pool,base,quote},sign,minLiquidity?}: ${(err as Error).message.slice(0, 200)}`);
+  if (!(e.TRLS_PRICE_SAMPLE_SECONDS >= 15 && e.TRLS_PRICE_SAMPLE_SECONDS <= 600)) throw new Error("TRLS_PRICE_SAMPLE_SECONDS must be between 15 and 600.");
+  if (!(e.TRLS_PRICE_WINDOW_MINUTES >= 10 && e.TRLS_PRICE_WINDOW_MINUTES <= 720)) throw new Error("TRLS_PRICE_WINDOW_MINUTES must be between 10 and 720: a shorter window is a price a few trades can hold.");
+  if (!(e.TRLS_PRICE_MIN_COVERAGE >= 0.5 && e.TRLS_PRICE_MIN_COVERAGE <= 1)) throw new Error("TRLS_PRICE_MIN_COVERAGE must be between 0.5 and 1.");
+  if (!(e.TRLS_PRICE_MIN_SOL > 0)) throw new Error("TRLS_PRICE_MIN_SOL must be positive.");
+  if (!/^0x[0-9a-fA-F]{64}$/.test(e.TRLS_SOL_USD_FEED)) throw new Error("TRLS_SOL_USD_FEED must be a 32-byte feed id (0x and 64 hex digits).");
+  let vaults: TrlsEscrow["price"]["vaults"] = null;
+  if (e.TRLS_POOL_VAULTS) {
+    try {
+      vaults = z.object({ base: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/), quote: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/) }).parse(JSON.parse(e.TRLS_POOL_VAULTS));
+    } catch (err) {
+      throw new Error(`TRLS_POOL_VAULTS must be JSON {base,quote} naming two token accounts: ${(err as Error).message.slice(0, 200)}`);
+    }
+    if (vaults.base === vaults.quote) throw new Error("TRLS_POOL_VAULTS names the same account twice.");
   }
-  // Each leg prices its base in its quote (sign 1: base in quote, -1 the reverse); the first base must be TRLS
-  // and every quote the next leg's base, ending in USDC.
-  let at = address as string;
-  for (const l of legs ?? []) {
-    const [base, quote] = l.sign === 1 ? [l.key.base, l.key.quote] : [l.key.quote, l.key.base];
-    if (base !== at) throw new Error("TRLS_POOL_LEGS must price TRLS_TOKEN_ADDRESS: each leg's base must be TRLS or the previous leg's quote.");
-    at = quote;
-  }
-  if (at !== e.USDC_ADDRESS) throw new Error("TRLS_POOL_LEGS must end in USDC (USDC_ADDRESS).");
-  return { address, symbol: e.TRLS_TOKEN_SYMBOL, decimals: e.TRLS_TOKEN_DECIMALS, haircutBps: e.TRLS_ESCROW_HAIRCUT_BPS, maxUsdPerDeposit: e.TRLS_ESCROW_MAX_USD_PER_DEPOSIT, maxDeviation, legs };
+  return {
+    address, symbol: e.TRLS_TOKEN_SYMBOL, decimals: e.TRLS_TOKEN_DECIMALS, haircutBps: e.TRLS_ESCROW_HAIRCUT_BPS,
+    maxUsdPerDeposit: Math.min(e.TRLS_ESCROW_MAX_USD_PER_DEPOSIT, e.TRLS_ESCROW_MAX_USD_PER_DAY), maxUsdPerDay: e.TRLS_ESCROW_MAX_USD_PER_DAY,
+    price: { vaults, windowSeconds: Math.round(e.TRLS_PRICE_WINDOW_MINUTES * 60), sampleSeconds: Math.round(e.TRLS_PRICE_SAMPLE_SECONDS), coverage: e.TRLS_PRICE_MIN_COVERAGE, minLamports: BigInt(Math.round(e.TRLS_PRICE_MIN_SOL * 1e9)), solFeed: e.TRLS_SOL_USD_FEED, solAccount: e.TRLS_SOL_USD_ACCOUNT },
+  };
 }
 
 // ---- Add funds with USDC in escrow -------------------------------------------------------------

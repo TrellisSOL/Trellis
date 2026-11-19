@@ -21,7 +21,9 @@ import { pruneAgentPolicyEvents } from "../agents/store.ts";
 import { expireHolds } from "../ledger/ledger.ts";
 import { pollChain } from "../solana/indexer.ts";
 import { runPaywithAggregator } from "../solana/paywith.ts";
-import { pollEscrow } from "../solana/escrow.ts";
+import { escrowEnabled, pollEscrow } from "../solana/escrow.ts";
+import { sampleTrlsPrice } from "../solana/trls-price.ts";
+import { runTrlsBurn } from "../solana/trls-burn.ts";
 import { runSpendWatch } from "./spend-watch.ts";
 import { retryAnchors, runAnchor, runKeyRotation, closeExpiredRoots } from "./anchor.ts";
 import { runAttestorWithSealed as runAttestor } from "../agents/sealed/attestor.ts";
@@ -96,7 +98,12 @@ export function registerJobs(ctx: Ctx, router?: RouterCall, dispatch?: Dispatch)
   if (cfg.webhookSigningEnabled) jobs.register("webhooks", 60_000, () => runWebhooks(ctx)); // V86.
   if (cfg.makegood.enabled) jobs.register("makegood-payouts", 3_600_000, () => runMakegoodPayouts(ctx)); // V6 R: refuses without its key.
   jobs.register("spend-watch", 60_000, () => runSpendWatch(ctx));
-  jobs.register("escrow-indexer", 5_000, () => pollEscrow(ctx), { atStart: true });
+  // On a core router the escrow jobs exist only with the $TRLS update released and configured (src/surface/updates.ts).
+  if (!ctx.surface?.core || escrowEnabled(ctx)) jobs.register("escrow-indexer", ctx.surface?.core ? 20_000 : 5_000, () => pollEscrow(ctx), { atStart: true });
+  if (cfg.trlsEscrow && cfg.escrow.address) {
+    jobs.register("trls-price", cfg.trlsEscrow.price.sampleSeconds * 1000, () => sampleTrlsPrice(ctx), { atStart: true }); // the deposit price: one reading per interval
+    jobs.register("trls-burn", 60_000, () => runTrlsBurn(ctx)); // burns what credited deposits paid; idle without the escrow wallet's key
+  }
   jobs.register("paywith-aggregator", 60_000, () => runPaywithAggregator(ctx));
   if (cfg.solana.programs.tab) jobs.register("tab-close", 60_000, () => runTabClose(ctx));
   // Weekly blind-token issuer key rotation: next epoch's keys are created ahead, ended epochs lose their private half.

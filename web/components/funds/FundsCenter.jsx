@@ -1,6 +1,7 @@
 'use client';
 // Funds: the dashboard's Payments section. A balance card with its last two weeks, an inline way to add USDC (amount
-// presets, what the amount buys at this account's own recent prices, wallet / phone / already-sent), the balance alert
+// presets, what the amount buys at this account's own recent prices, wallet / phone / already-sent), paying in $TRLS
+// where the router has released that update (lib/trls-funding.js), the balance alert
 // and account closure, and one activity list of deposits and daily spending.
 import { useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
@@ -10,6 +11,10 @@ import { defaultFundingOption } from '../../lib/funding-display.js';
 import { depositSender, readDepositProgress } from '../../lib/deposit-progress.js';
 import { chainOf } from '../../lib/solana.js';
 import { PRESETS, activityItems, answersFor, balanceSeries, roughly, spendStats, sparkPaths, usd } from '../../lib/funds.js';
+import { TRLS_FACTS, TRLS_OWN_WALLET, TRLS_SIGN_IN, trlsFunding, trlsRateLine } from '../../lib/trls-funding.js';
+import { useUpdate } from '../media/useUpdate';
+import { FundingDeposits } from '../account/FundingDetails.js';
+import { CopyButton } from '../UI';
 import DepositProgress from '../account/DepositProgress';
 import DepositNextLine from '../account/DepositNextLine';
 import TrackDeposit from '../account/TrackDeposit';
@@ -72,6 +77,9 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
   const [step, setStep] = useState(-1);
   const [error, setError] = useState('');
   const [wallet, setWallet] = useState(false);
+  const [token, setToken] = useState('usdc');
+  const [trlsPrice, setTrlsPrice] = useState(null);
+  const trlsUpdate = useUpdate('trls');
   const alive = useRef(true);
   const amountId = useId();
 
@@ -111,6 +119,17 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
   const buys = answersFor(amount, stats.avgCost);
   const runwayDays = stats.spent30d > 0 ? Math.floor(balance / (stats.spent30d / 30)) : null;
   const pending = state.phase === 'pending';
+  // Paying in $TRLS: offered only where the router has released the update and lists the token.
+  const trls = useMemo(() => trlsFunding({ update: trlsUpdate, escrow: ws?.escrow, stock: ws?.stock }), [trlsUpdate, ws?.escrow, ws?.stock]);
+  // Where the router takes no USDC deposits (no funding option), $TRLS is the one way to fund and needs no switch.
+  const inTrls = !!trls && (token === 'trls' || !option);
+  useEffect(() => {
+    if (!inTrls) return;
+    let live = true;
+    api('/api/v1/escrow/trls/price').then((r) => { if (live) setTrlsPrice(r.data); }, () => {});
+    return () => { live = false; };
+  }, [inTrls]);
+  const trlsRate = inTrls ? trlsRateLine(trlsPrice, trls.symbol) : '';
   const [whole, cents] = (Math.floor(shown * 100 + 1e-6) / 100).toFixed(2).split('.'); // cents shown like the header: never rounded up
 
   async function deposit() {
@@ -170,6 +189,30 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
         {/* Add funds */}
         <section className={s.add} aria-labelledby="funds-add">
           <h2 id="funds-add"><IconTile name="arrowIn" size={34} icon={17} />Add funds</h2>
+          {trls && option && (
+            <div className={s.tokens} role="radiogroup" aria-label="Pay with">
+              <button type="button" role="radio" aria-checked={!inTrls} disabled={busy || pending} onClick={() => setToken('usdc')}>USDC</button>
+              <button type="button" role="radio" aria-checked={inTrls} disabled={busy || pending} onClick={() => setToken('trls')}>${trls.symbol}</button>
+            </div>
+          )}
+          {inTrls ? (
+            <div className={s.trls}>
+              <p className={s.buys}><Icon name="sparkles" size={15} /><span>Fund this balance with <b>${trls.symbol}</b>. Send it from your own wallet to the deposit address below.</span></p>
+              {!trls.wallet && <p className={s.muted}>{TRLS_SIGN_IN}</p>}
+              <div className={s.methodBody}>
+                {trls.payLink && <SolanaPayCode url={trls.payLink} title={`Send $${trls.symbol} from a wallet app`} />}
+              </div>
+              <dl className={s.where}>
+                <div><dt>Send ${trls.symbol} to</dt><dd><code>{trls.owner}</code><CopyButton text={trls.owner} label="Copy" /></dd></div>
+                <div><dt>Token</dt><dd><code>{trls.mint}</code></dd></div>
+                {trls.wallet && <div><dt>Credited to</dt><dd><code>{trls.wallet}</code></dd></div>}
+              </dl>
+              {trlsRate && <p className={s.muted}>{trlsRate}</p>}
+              {trls.maxUsd != null && <p className={s.muted}>Up to {usd(trls.maxUsd)} is credited per deposit.</p>}
+              <p className={s.muted}>{TRLS_OWN_WALLET}</p>
+              <FundingDeposits deposits={trls.deposits} escrow={ws?.escrow} />
+            </div>
+          ) : (<>
           <label htmlFor={amountId} className={s.amountLabel}>Amount</label>
           <div className={s.amountField}>
             <span aria-hidden="true">$</span>
@@ -211,6 +254,8 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
             )}
           </div>
 
+          </>)}
+
           {step >= 0 && (
             <ol className={s.steps} aria-label="Deposit progress">
               {STEPS.map((label, i) => <li key={label} data-state={i < step ? 'done' : i === step ? 'now' : 'next'}><i aria-hidden="true">{i < step ? <Icon name="check" size={12} strokeWidth={2.4} /> : i + 1}</i>{label}</li>)}
@@ -219,11 +264,19 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
           {state.status && <p className={s.status} role="status">{state.status}</p>}
           {error && <p className={s.error} role="alert">{error}</p>}
 
+          {inTrls ? (
+            <ul className={s.fine}>
+              <li><Icon name="zap" size={14} />{TRLS_FACTS[0]}</li>
+              <li><Icon name="shieldCheck" size={14} />{TRLS_FACTS[1]}</li>
+              <li><Icon name="sparkles" size={14} />{TRLS_FACTS[2]}</li>
+            </ul>
+          ) : (
           <ul className={s.fine}>
             <li><Icon name="shieldCheck" size={14} />0% router fee</li>
             <li><Icon name="zap" size={14} />{data?.credits ? <DepositNextLine info={data.credits} lane="usdc" /> : 'Credited in seconds'}</li>
             <li><Icon name="arrowOut" size={14} />Leftovers go back to the paying wallet if you close</li>
           </ul>
+          )}
         </section>
       </div>
 

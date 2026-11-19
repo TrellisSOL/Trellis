@@ -280,8 +280,11 @@ export async function loadWorkspace(key) {
     keysError = e.message;
     keys = [me.data];
   }
-  const [session, escrow, stock] = !payWith ? [{ data: null }, null, null] : await Promise.all([
-    api("/api/v1/paywith/session", { key }).catch(() => ({ data: null })),
+  // Paying in $TRLS has its own release switch (GET /api/v1/status `updates`): with it on, a core router serves the
+  // escrow routes for that token alone.
+  const trlsOn = payWith ? false : await fetch(API_BASE + "/api/v1/status").then((r) => (r.ok ? r.json() : null)).then((d) => (d?.data?.updates || []).some((u) => u.name === "trls" && u.on)).catch(() => false);
+  const [session, escrow, stock] = !payWith && !trlsOn ? [{ data: null }, null, null] : await Promise.all([
+    payWith ? api("/api/v1/paywith/session", { key }).catch(() => ({ data: null })) : { data: null },
     // Stock escrow (PAYMENTS_MODE=escrow): where to send Stock Tokens, live rates, this wallet's deposits.
     api("/api/v1/escrow").then((r) => (r.data?.enabled ? r.data : null)).catch(() => null),
     api("/api/v1/escrow/deposits", { key }).then((r) => r.data).catch(() => null),

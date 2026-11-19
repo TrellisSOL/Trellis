@@ -85,8 +85,8 @@ export async function probe(base: string, opts: ProbeOptions = {}): Promise<{ co
     const name = (t: { symbol?: unknown }) => (typeof t.symbol === "string" && SYMBOL.test(t.symbol) ? t.symbol : "unknown");
     // A pool-priced token ($TRLS) has no price whenever its pool is swinging or thin: its deposits wait and are credited
     // once the price settles, so that is reported (waiting_prices) but does not fail the probe. A feed-priced token with no price does.
-    const stale = unpriced.filter((t) => t.price_source !== "twap").map(name);
-    const waiting = unpriced.filter((t) => t.price_source === "twap").map(name);
+    const stale = unpriced.filter((t) => t.price_source !== "window_low").map(name);
+    const waiting = unpriced.filter((t) => t.price_source === "window_low").map(name);
     checks["escrow.tokens"] = tokens.length > 0;
     checks["escrow.prices"] = stale.length === 0;
     result.escrow = { enabled: true, tokens: tokens.length, stale_prices: stale, ...(waiting.length ? { waiting_prices: waiting } : {}) };

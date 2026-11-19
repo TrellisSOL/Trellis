@@ -72,6 +72,8 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
     "POST /api/v1/credits/close/release",
   ],
   deposits: ["GET /api/v1/credits/deposits", "POST /api/v1/credits/deposits"],
+  // Paying in $TRLS: mounted in core only with that update released (src/app.ts).
+  escrow: ["GET /api/v1/escrow", "GET /api/v1/escrow/trls/price", "GET /api/v1/escrow/deposits"],
   "account-runway": ["GET /api/v1/account/low-balance", "PATCH /api/v1/account/low-balance"],
 
   // ---- Attestation, status, holder tiers (read-only) -------------------------------------------------------------
@@ -120,6 +122,9 @@ export const CORE_JOBS: readonly string[] = [
   "alert-notifier", // readiness-driven alerts (monitoring hook)
   "provider-reconcile", // R4-02: what each provider is owed against what the ledger collected, daily
   "tab-close", // posts the highest voucher of a tab near its cap or expiry with trellis_tab::close (joined 2026-11-04)
+  "escrow-indexer", // paying in $TRLS: deposits into the escrow wallet; registered in core only with that update released and configured
+  "trls-price", // paying in $TRLS: the router's own price readings
+  "trls-burn", // paying in $TRLS: burns what credited deposits paid
   "media-jobs", // the media update: follows pending image and video generations to their end; registered only with the switch on
   "job-watchdog", // R4-01: liveness of every job above
 ];

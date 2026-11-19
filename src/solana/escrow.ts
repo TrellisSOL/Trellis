@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { PublicKey } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, unpackMint } from "@solana/spl-token";
+import { ExtensionType, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, getExtensionTypes, unpackMint } from "@solana/spl-token";
 import type { Config } from "../config.ts";
 import type { Ctx } from "../context.ts";
 import type { Db } from "../db/client.ts";
@@ -12,7 +12,8 @@ import type { EscrowFinality, EscrowTransfer } from "./chain-service.ts";
 import { fastCreditAllows, recordFastDeposit, settleFastDeposit } from "./fast-credit-state.ts";
 import { paywithDeps, pythFeedId, scalePrice } from "./paywith.ts";
 import { oldestSignaturesSince, withRetry, type RpcLike } from "./rpc.ts";
-import { TwapError, v4Twap } from "./twap.ts";
+import { lastPriceFailure, readSamples, windowPrice } from "./trls-price.ts";
+import { burnState } from "./trls-burn.ts";
 
 // Escrow deposits (docs/Trellis_Backend.md §Escrow deposits): a customer transfers an accepted SPL token from their own
 // wallet to ESCROW_ADDRESS (the escrow wallet's associated token account for that mint); once the slot is finalized the
@@ -27,7 +28,7 @@ import { TwapError, v4Twap } from "./twap.ts";
 // cluster never finalizes is reversed with a compensating debit and a review flag.
 //
 // Prices: Stock Tokens from their Pyth feed (18-decimal USD per whole UI token, no older than ESCROW_MAX_PRICE_AGE_S),
-// $TRLS from the pool TWAP (twap.ts) when TRLS_POOL_LEGS is set, USDC at par. A deposit without a price waits as
+// $TRLS from the router's own samples of its market (trls-price.ts: the lowest of the window), USDC at par. A deposit without a price waits as
 // `pending` (stage awaiting_price). Network reads go through the connection and paywithDeps.fetch, so tests run offline.
 
 export type EscrowStatus = "provisional" | "pending_finality" | "pending" | "credited" | "orphaned" | "reversed";
@@ -66,36 +67,39 @@ export const acceptedToken = (ctx: Ctx, address: string) => acceptedTokens(ctx).
 export const usdcParPrice = (): EscrowPrice => ({ price18: 10n ** 18n, updatedAt: Math.floor(Date.now() / 1000) });
 
 /** Why $TRLS cannot be priced right now, as a stable code. */
-export type TrlsPriceFailure = "price_swinging" | "pool_thin" | "pool_missing" | "history_short" | "history_inconsistent" | "no_price" | "source_unreachable";
+export type TrlsPriceFailure = "pool_missing" | "history_short" | "market_moved" | "market_unreadable" | "market_thin" | "sol_price_stale" | "no_price" | "source_unreachable";
 export type TrlsQuote =
-  | { available: true; spot: number; average: number; conservative: number; windowSeconds: number; block: number; swaps: number }
+  | { available: true; price18: string; spot: number; average: number; conservative: number; windowSeconds: number; samples: number }
   | { available: false; code: TrlsPriceFailure; message: string };
 
-const TWAP_FAILURE: Record<TwapError["code"], TrlsPriceFailure> = { spot_deviates: "price_swinging", thin_liquidity: "pool_thin", pool_uninitialized: "pool_missing", history_short: "history_short", history_mismatch: "history_inconsistent", malformed_history: "history_inconsistent", unusable_price: "no_price", no_head: "source_unreachable" };
-
 let lastTrlsQuote: { at: number; quote: TrlsQuote } | null = null;
-export const TRLS_QUOTE_TTL_MS = 60_000;
-export const clearEscrowCaches = () => { lastTrlsQuote = null; stockPriceCache.clear(); mintProgramCache.clear(); };
+export const TRLS_QUOTE_TTL_MS = 15_000;
+export const clearEscrowCaches = () => { lastTrlsQuote = null; stockPriceCache.clear(); mintProgramCache.clear(); plainMints.clear(); };
 
 /** The last $TRLS quote this process computed (never waits for a fresh one), or null when none was attempted. */
 export function peekTrlsQuote(_ctx: Ctx): TrlsQuote | null {
   return lastTrlsQuote?.quote ?? null;
 }
 
-/** A fresh $TRLS quote from the pool TWAP (cached a minute), or the reason there is none. */
+const usd = (p18: bigint) => Number(p18) / 1e18;
+
+/** The $TRLS price of the sampled window (trls-price.ts; cached a few seconds), or the reason there is none. */
 export async function trlsQuote(ctx: Ctx): Promise<TrlsQuote> {
   const a = ctx.cfg.trlsEscrow;
   if (!a) return { available: false, code: "pool_missing", message: "$TRLS is not accepted on this router." };
   if (lastTrlsQuote && Date.now() - lastTrlsQuote.at < TRLS_QUOTE_TTL_MS) return lastTrlsQuote.quote;
   let quote: TrlsQuote;
-  if (!a.legs) quote = { available: false, code: "pool_missing", message: "No $TRLS pools are configured (TRLS_POOL_LEGS); deposits wait as pending." };
-  else {
-    try {
-      const r = await v4Twap(ctx.chain.connection, ctx.cfg.chain.poolManager, a.legs, { windowSeconds: ctx.cfg.trlsTwap.twapMinutes * 60, maxDeviation: a.maxDeviation });
-      quote = { available: true, ...r };
-    } catch (e) {
-      quote = e instanceof TwapError ? { available: false, code: TWAP_FAILURE[e.code], message: e.message } : { available: false, code: "source_unreachable", message: "The pool history could not be read." };
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const w = windowPrice(await readSamples(ctx, a.address), now, a.price);
+    if (w.available) quote = { available: true, price18: w.price18.toString(), spot: usd(w.spot18), average: usd(w.average18), conservative: usd(w.price18), windowSeconds: w.windowSeconds, samples: w.samples };
+    else {
+      // The window is short: say why the sampler is not filling it, when it said so recently.
+      const failure = await lastPriceFailure(ctx, a.address);
+      quote = failure && failure.at > now - a.price.sampleSeconds * 3 ? { available: false, code: failure.code, message: failure.message } : { available: false, code: w.code, message: w.message };
     }
+  } catch {
+    quote = { available: false, code: "source_unreachable", message: "The price readings could not be read." };
   }
   lastTrlsQuote = { at: Date.now(), quote };
   return quote;
@@ -134,8 +138,8 @@ export async function escrowPrice(ctx: Ctx, t: AcceptedToken): Promise<{ price: 
   }
   const q = await trlsQuote(ctx);
   if (!q.available) return { price: null, reason: { code: q.code, message: q.message } };
-  // USD per whole $TRLS, 18 decimals, from the conservative (lower of spot and average) number.
-  const price18 = BigInt(Math.round(q.conservative * 1e9)) * 10n ** 9n;
+  // USD per whole $TRLS, 18 decimals: the lowest reading of the window.
+  const price18 = BigInt(q.price18);
   return price18 > 0n ? { price: { price18, updatedAt: Math.floor(Date.now() / 1000) } } : { price: null, reason: { code: "no_price", message: "The pool gives no usable $TRLS price." } };
 }
 
@@ -190,6 +194,35 @@ export function escrowTransfersOf(signature: string, tx: TxLike, mint: string, e
     left -= value;
     return { token: mint, from: s.owner, value, txHash: signature, logIndex: i, blockNumber: BigInt(tx.slot), blockHash: "" };
   }).filter((t) => t.value > 0n);
+}
+
+/**
+ * Security review R4-34: a Token-2022 mint can carry extensions that change what an amount means (a UI multiplier,
+ * interest, a transfer fee, a hook). $TRLS is credited only while its mint is what the configuration says: the stated
+ * decimals, and no extension beyond its own metadata. Returns the problem as a code, or null.
+ */
+const plainMints = new Set<string>();
+const PLAIN_EXTENSIONS: ReadonlySet<ExtensionType> = new Set([ExtensionType.MetadataPointer, ExtensionType.TokenMetadata]);
+export async function trlsMintProblem(conn: Pick<RpcLike, "getAccountInfo">, t: Pick<AcceptedToken, "address" | "decimals">): Promise<"mint_missing" | "mint_decimals" | "mint_unsupported" | null> {
+  if (plainMints.has(t.address)) return null;
+  const mint = new PublicKey(t.address);
+  const info = await withRetry(() => conn.getAccountInfo(mint));
+  if (!info) return "mint_missing";
+  const program = info.owner.equals(TOKEN_2022_PROGRAM_ID) ? TOKEN_2022_PROGRAM_ID : info.owner.equals(TOKEN_PROGRAM_ID) ? TOKEN_PROGRAM_ID : null;
+  if (!program) return "mint_unsupported";
+  const m = unpackMint(mint, info as never, program);
+  if (m.decimals !== t.decimals) return "mint_decimals";
+  if (program.equals(TOKEN_2022_PROGRAM_ID) && getExtensionTypes(m.tlvData).some((x) => !PLAIN_EXTENSIONS.has(x))) return "mint_unsupported";
+  plainMints.add(t.address);
+  return null;
+}
+
+/** pico-USD of $TRLS credits the day still has room for: TRLS_ESCROW_MAX_USD_PER_DAY less what the last 24 hours were credited. */
+export async function trlsRoomToday(ctx: Ctx, t: Extract<AcceptedToken, { kind: "trls" }>): Promise<Pico> {
+  const [row] = await ctx.db.select({ sum: sql<string>`coalesce(sum(${escrowDeposits.credited}), 0)` }).from(escrowDeposits).where(and(eq(escrowDeposits.token, t.address), isNotNull(escrowDeposits.credited), gt(escrowDeposits.creditedAt, new Date(Date.now() - 86_400_000))));
+  const used = BigInt(String(row?.sum ?? "0").split(".")[0]);
+  const room = usdToPico(t.trls.maxUsdPerDay, "floor") - used;
+  return room > 0n ? room : 0n;
 }
 
 const mintProgramCache = new Map<string, PublicKey>();
@@ -327,12 +360,24 @@ async function creditPending(ctx: Ctx) {
   const rows = await ctx.db.select().from(escrowDeposits).where(and(inArray(escrowDeposits.status, ["pending", "pending_finality"]), isNull(escrowDeposits.credited))).orderBy(asc(escrowDeposits.blockNumber)).limit(200);
   let credited = 0, awaitingPrice = 0, provisional = 0;
   const prices = new Map<string, Awaited<ReturnType<typeof escrowPrice>>>();
+  let trlsRoom: Pico | null = null;
   for (const row of rows) {
     const t = acceptedToken(ctx, row.token);
     if (!t) { await ctx.db.update(escrowDeposits).set({ error: "token_not_accepted" }).where(eq(escrowDeposits.id, row.id)); continue; }
+    if (t.kind === "trls") {
+      const problem = await trlsMintProblem(ctx.chain.connection, t).catch(() => "mint_missing" as const);
+      if (problem) { awaitingPrice++; await ctx.db.update(escrowDeposits).set({ error: problem }).where(eq(escrowDeposits.id, row.id)); continue; }
+    }
     if (!prices.has(t.address)) prices.set(t.address, await escrowPrice(ctx, t));
     const p = prices.get(t.address)!;
     if (!p.price) { awaitingPrice++; await ctx.db.update(escrowDeposits).set({ error: p.reason.code }).where(eq(escrowDeposits.id, row.id)); continue; }
+    if (t.kind === "trls") {
+      // The day's limit: a deposit that does not fit waits (uncredited, unburned) and is credited when there is room.
+      const amount = creditFor(BigInt(row.rawAmount), t, p.price.price18);
+      trlsRoom ??= await trlsRoomToday(ctx, t);
+      if (amount > trlsRoom) { awaitingPrice++; await ctx.db.update(escrowDeposits).set({ error: "daily_limit" }).where(eq(escrowDeposits.id, row.id)); continue; }
+      trlsRoom -= amount;
+    }
     if (row.status === "pending_finality") {
       const amount = creditFor(BigInt(row.rawAmount), t, p.price.price18);
       if (!(await fastCreditAllows(ctx, row.accountId ?? escrowAccountId(row.fromAddress), amount))) continue; // waits for finality
@@ -383,7 +428,9 @@ export async function escrowInfo(ctx: Ctx) {
   const tokens = [];
   for (const t of acceptedTokens(ctx)) {
     const account = await escrowTokenAccount(conn, escrow, new PublicKey(t.address)).then((a) => a.toBase58()).catch(() => null);
-    tokens.push({ symbol: t.symbol, address: t.address, decimals: t.decimals, haircut_bps: t.haircutBps, kind: t.kind, deposit_account: account, max_usd_per_deposit: t.maxCredit === null ? null : picoToUsd(t.maxCredit) });
+    // $TRLS: what has been burned so far and the transactions that did it (trls-burn.ts), so anyone can check the claim.
+    const burn = t.kind === "trls" ? await burnState(ctx, t.address).catch(() => null) : null;
+    tokens.push({ symbol: t.symbol, address: t.address, decimals: t.decimals, haircut_bps: t.haircutBps, kind: t.kind, deposit_account: account, max_usd_per_deposit: t.maxCredit === null ? null : picoToUsd(t.maxCredit), ...(t.kind === "trls" ? { max_usd_per_day: t.trls.maxUsdPerDay, burned: burn ? formatRaw(BigInt(burn.burned), t.decimals) : null, burns: (burn?.txs ?? []).slice(-5).reverse().map((b) => ({ tx: b.signature, amount: formatRaw(BigInt(b.amount), t.decimals), at: b.at })) } : {}) });
   }
   const fin = await escrowFinality(ctx).catch(() => null);
   return { enabled: true as const, address: ctx.cfg.escrow.address, finality: ctx.cfg.escrow.finality, tokens, head_slot: fin?.head.toString() ?? null, final_slot: fin?.final.toString() ?? null, fast_credit: ctx.cfg.fastCredit.enabled, note: "Send an accepted token from your own wallet to its deposit account; the sending wallet's account is credited once the slot is finalized." };
@@ -413,7 +460,7 @@ export function usdcSummary(ctx: Ctx) {
 export function trlsSummary(ctx: Ctx) {
   const a = ctx.cfg.trlsEscrow;
   if (!a || !escrowEnabled(ctx)) return null;
-  return { symbol: a.symbol, address: a.address, decimals: a.decimals, haircut_bps: a.haircutBps, max_usd_per_deposit: a.maxUsdPerDeposit, price_source: "twap" as const, twap_minutes: ctx.cfg.trlsTwap.twapMinutes, pools: a.legs?.length ?? 0 };
+  return { symbol: a.symbol, address: a.address, decimals: a.decimals, haircut_bps: a.haircutBps, max_usd_per_deposit: a.maxUsdPerDeposit, max_usd_per_day: a.maxUsdPerDay, price_source: "window_low" as const, window_minutes: Math.round(a.price.windowSeconds / 60), market: a.price.vaults ? ("pool" as const) : ("launch_curve" as const) };
 }
 
 /** The rate $TRLS deposits are credited at right now, or why there is none. */
@@ -422,5 +469,5 @@ export async function trlsPriceInfo(ctx: Ctx) {
   if (!a || !escrowEnabled(ctx)) return { enabled: false as const };
   const q = await trlsQuote(ctx);
   if (!q.available) return { enabled: true as const, symbol: a.symbol, available: false as const, reason: { code: q.code, message: q.message } };
-  return { enabled: true as const, symbol: a.symbol, available: true as const, usd_per_token: q.conservative, spot: q.spot, average: q.average, window_seconds: q.windowSeconds, swaps: q.swaps, slot: q.block, haircut_bps: a.haircutBps };
+  return { enabled: true as const, symbol: a.symbol, available: true as const, usd_per_token: q.conservative, spot: q.spot, average: q.average, window_seconds: q.windowSeconds, samples: q.samples, haircut_bps: a.haircutBps };
 }
