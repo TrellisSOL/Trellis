@@ -54,6 +54,8 @@ export function resolveSpecHref(href, docs) {
   if (target.startsWith("..") || path.posix.isAbsolute(target)) return null;
   const doc = docs.find((d) => `spec/${d.file}` === target);
   if (doc) return { href: doc.url + frag, external: false };
+  // An edition can omit optional documents such as the changelog.
+  if (/^spec\/[^/]+\.md$/i.test(target)) return null;
   return { href: `${REPO_URL}/blob/main/${target}${frag}`, external: true };
 }
 

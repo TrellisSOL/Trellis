@@ -50,15 +50,14 @@ export default function SpecDoc({ doc }) {
           </nav>
           <article className={`page-body prose ${s.doc}`}>
             <div className="note">
-              The GRAFT specification is licensed under the{" "}
+              The protocol documents use the{" "}
               <a href={SPEC_LICENSE_URL} rel="noopener noreferrer" target="_blank">
                 Apache License 2.0
               </a>
-              , so anyone can implement it. That license covers the documents in <code>spec/</code> only; the rest of the Trellis repository keeps its own license. This page is built from{" "}
+              . The repository has a separate license for the implementation. Read the source in{" "}
               <a href={source} rel="noopener noreferrer" target="_blank">
                 <code>spec/{doc.file}</code>
-              </a>{" "}
-              each time the site is built.
+              </a>
             </div>
             <div className={s.body} dangerouslySetInnerHTML={{ __html: doc.html }} />
             <nav className={s.pager} aria-label="Previous and next document">
