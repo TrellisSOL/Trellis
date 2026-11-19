@@ -32,7 +32,7 @@ export default function Privacy(){
   const done=step>=DONE;
   return <section className="section muted-surface" id="privacy"><div className="container split">
     <div className="split-copy">
-      <div data-reveal><span className="eyebrow tick">Privacy / attested routes</span><h2 className="h2">Privacy with a receipt.</h2><p className="lede">A private request goes only to a provider whose TEE evidence was verified minutes ago. If the evidence is missing or stale, the request fails closed.</p></div>
+      <div data-reveal><h2 className="h2">Attestation checks</h2><p className="lede">On the public route, the router and the inference provider can read the request. The example shows the additional checks a route requiring fresh attestation would perform.</p></div>
       <div className="points" data-stagger>{POINTS.map(([t,b],i)=><div className="point" key={t} data-reveal {...(i===0?{'data-surface-extra':''}:{})}><i aria-hidden="true"/><h3>{t}</h3><p>{b}</p></div>)}</div>
       <p data-reveal style={{marginTop:24}}><a className="inline-link" href="/verify/">Check what the router has verified about any provider</a> · <span data-surface-extra=""><a className="inline-link" href="/docs/#e2ee-gateway">Encrypted chat</a> · </span><a className="inline-link" href="/keep/">What we keep</a></p>
     </div>

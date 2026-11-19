@@ -9,12 +9,7 @@ export default function AskPage() {
     <PageFrame><SurfaceGate page="/ask/">
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Ask / Your files</span>
-          <h1>
-            Ask your
-            <br />
-            files.
-          </h1>
+          <h1>Ask your files</h1>
           <p>Drop in documents, ask a question, and get an answer that cites the passages it used. Your files are read in this browser and sent to Trellis over TLS with your question. This page saves nothing in your browser.</p>
         </div>
         <Ask />

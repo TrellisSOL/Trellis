@@ -9,12 +9,7 @@ export default function ToolsPage() {
     <PageFrame><SurfaceGate page="/tools/">
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Tools / Paid by your balance</span>
-          <h1>
-            One balance
-            <br />
-            pays any tool.
-          </h1>
+          <h1>Paid tools</h1>
           <p>Where a router has its paid tool market switched on, a Trellis key can call any x402 tool priced in USDC on Solana. The router pays the seller, charges the key the price plus its take and signs a receipt. Your rulebook decides which tools, how much per call and how much per day.</p>
         </div>
         <ToolsCatalog />

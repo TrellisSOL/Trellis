@@ -75,12 +75,7 @@ export default function SealPage() {
         {/* Launch surface: this page is reference reading and stays open; a core router shows this one marker. */}
         <SurfaceNote>This router runs the core launch surface. Of what this page describes it serves signed receipts and attestation records; encrypted chat, blind tokens, the unlinkable lane and the host network are not enabled here.</SurfaceNote>
         <div className="page-title" data-reveal>
-          <span className="eyebrow">GRAFT / PRIVACY PROTOCOL · SPEC {v}</span>
-          <h1>
-            A verifiable privacy layer
-            <br />
-            for open models.
-          </h1>
+          <h1>GRAFT privacy protocol</h1>
           <p>
             GRAFT is the privacy expansion of the Trellis stack: a public protocol and implementation effort for serving open-weight models with a clearer answer to four basic questions.
           </p>

@@ -65,11 +65,10 @@ export default function ChatPage({ live, busy, prompt, setPrompt, modelId, setMo
   const spent = turns.reduce((sum, t) => sum + (t.result?.cost || 0), 0);
   return <div className={w.chat}>
     {!turns.length && <div className={w.chatEmpty}>
-      <img src="/dashboard-icons/chat.png" alt="" width="96" height="96"/>
-      <h2>Ask any open model.</h2>
-      <p>Each answer streams back with its cost and a signed receipt. {live ? 'Prompts and responses are never stored.' : 'Connect a key to send live calls; this preview returns a fixed sample.'}</p>
+      <h2>Start a conversation</h2>
+      <p>{live ? 'Choose a model and send a message.' : 'Preview uses a fixed reply. Connect a key for a live call.'}</p>
       <div className={w.suggestions}>{SUGGESTIONS.map(text => <button key={text} type="button" onClick={() => { setPrompt(text); input.current?.focus(); }}>{text}</button>)}</div>
-      <p className={w.chatAside}>Tools, compare mode and attachments are in the full <a href="/harness/">Chat</a>.</p>
+      <p className={w.chatAside}><a href="/harness/">Open chat with attachments and model comparison</a></p>
     </div>}
 
     {turns.length > 0 && <div className={w.threadMap}>

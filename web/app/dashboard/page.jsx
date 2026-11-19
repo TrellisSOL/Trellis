@@ -1,5 +1,3 @@
-import '@fontsource-variable/fraunces/full.css';
-import '../garden.css';
 import Dashboard from '../../components/Dashboard';
 import { MotionManager } from '../../components/UI';
 export const metadata={title:'Your account — Trellis'};

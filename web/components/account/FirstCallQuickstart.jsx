@@ -10,7 +10,7 @@ export default function FirstCallQuickstart({ apiKey = '', workspace, account = 
   const [revision, setRevision] = useState(0);
   const snapshot = useFirstCall(apiKey, workspace, revision);
   const connected = !!snapshot.me?.hash;
-  const code = firstCallCurl({ account, apiKey: connected ? apiKey : '', baseUrl: API_BASE || 'https://trellis.example' });
+  const code = firstCallCurl({ account, apiKey: connected ? apiKey : '', baseUrl: API_BASE || 'https://trellischat.app' });
   return <section className="first-call" aria-label="Get started with the API">
     <FirstCallSteps snapshot={snapshot}/>
     {apiKey ? <><p className="help-text">Progress refreshes every 15 seconds while this page is visible. A call counts when it appears in your account history.</p><button className="text-button" onClick={() => setRevision(value => value + 1)}>Refresh progress</button></> : <p className="help-text">Sign in from your account to see your progress here.</p>}

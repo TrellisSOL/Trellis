@@ -41,8 +41,11 @@ export const CORE_COPY = {
   dashboard: 'See your balance, keys and recent call receipts in one place.',
   settings: 'Read how to connect an app, and sign out of this browser.',
 };
-export function AccountPreview({ current, children }) {
+export function AccountPreview({ current, workspace = false, children }) {
   const section = ACCOUNT_SECTIONS.find(item => item.title === current) || ACCOUNT_SECTIONS[0];
+  if (workspace) return h('section', { className: 'workspace-entry', 'aria-label': 'Account access' },
+    h('div', { className: 'workspace-entry-form' }, children),
+    h('img', { className: 'workspace-entry-art', src: '/art/gate.jpg', alt: '', width: 600, height: 640 }));
   return h('section', { className: 'control-panel', 'aria-labelledby': 'account-preview-title' },
     h('span', { className: 'eyebrow' }, 'Your account'), h('h2', { id: 'account-preview-title', tabIndex: -1 }, section.title),
     CORE_COPY[section.taskId] ? h('p', { 'data-surface-extra': '' }, section.description) : h('p', null, section.description),

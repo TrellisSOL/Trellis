@@ -2,7 +2,7 @@ import PageFrame from '../../../components/PageFrame';
 export const metadata={title:'Terms (draft) — Trellis'};
 // DRAFT placeholder. Terms are planned before any public deposit is accepted. No fee numbers, no promises, no guarantees.
 export default function Terms(){return <PageFrame><main className="page-main" id="content">
-  <div className="page-title" data-reveal><span className="eyebrow">Legal / Terms · Draft</span><h1>Terms of service<br/>(draft placeholder)</h1><p>This page is a placeholder. It is not a contract, an offer or a guarantee, and nothing on it is binding. The documentation describes how Trellis works today; pricing, refund rules and features can change.</p></div>
+  <div className="page-title" data-reveal><h1>Terms of service (draft)</h1><p>This page is a placeholder. It is not a contract, an offer or a guarantee, and nothing on it is binding. The documentation describes how Trellis works today; pricing, refund rules and features can change.</p></div>
   <div className="side-layout">
     <nav className="side-nav" aria-label="Legal pages" data-reveal="fade"><span className="side-nav-label">Legal</span><a href="/legal/privacy/">Privacy notice (draft)</a><a href="/legal/terms/" aria-current="page">Terms (draft)</a><a href="/keep/">What we keep</a></nav>
     <article className="page-body prose legal-body" data-reveal>

@@ -9,13 +9,8 @@ export default function VerifyPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Verify / Providers and receipts</span>
-          <h1>
-            Check it
-            <br />
-            yourself.
-          </h1>
-          <p>What the router has verified about a provider’s hardware attestation, what it has not, and a receipt checker that runs in your browser against the keys the router publishes. Anything unverified stays marked unverified.</p>
+          <h1>Verify a receipt</h1>
+          <p>Check a receipt signature in your browser or inspect the hardware evidence for a provider.</p>
         </div>
         <Verify />
         <ProofGuide />

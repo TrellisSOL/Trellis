@@ -1,14 +1,38 @@
 import PageFrame from '../../components/PageFrame';
-import TaskMap from '../../components/nav/TaskMap';
-import Stats from '../../components/Stats';
-import FeatureGrid from '../../components/FeatureGrid';
 import RouteModes from '../../components/RouteModes';
-import HowItWorks from '../../components/HowItWorks';
-import Accountability from '../../components/Accountability';
 import Gateway from '../../components/Gateway';
 import Privacy from '../../components/Privacy';
-import {Roadmap,About,Developers} from '../../components/Extensions';
-export const metadata={title:'How it works — Trellis'};
-// The long-form tour that used to be the homepage: every tool, the route types, the rulebook, the network, the privacy
-// routes and their limits, the roadmap. Sections outside the core launch surface hide themselves on a core router.
-export default function HowItWorksPage(){return <PageFrame><main className="page-main" id="content"><div className="page-title" data-reveal><span className="eyebrow">How it works</span><h1>Everything Trellis does, and where it stops.</h1><p>The routes, the receipts, the balance, the agent rulebook, the host network and the privacy routes, with the limits of each.</p></div><TaskMap/><Stats/><FeatureGrid/><RouteModes/><HowItWorks/><Accountability/><Gateway/><Privacy/><Roadmap/><About/><Developers/></main></PageFrame>}
+import TaskMap from '../../components/nav/TaskMap';
+import ReferenceAnchors from '../../components/ReferenceAnchors';
+import s from './tour.module.css';
+
+export const metadata = {
+  title: 'How it works — Trellis',
+  description: 'Follow a model request from route selection and payment to its signed receipt.',
+};
+
+export default function HowItWorksPage() {
+  return <PageFrame><main className={`page-main ${s.tour}`} id="content" data-reference-groups>
+    <header className="page-title" id="about">
+      <h1>How a call works</h1>
+      <p>Trellis routes a model request, quotes the payment in USDC and signs a record of the call.</p>
+    </header>
+    <ol className={s.steps} id="how-it-works">
+      <li><h2>Choose a route</h2><p>Start with a model ID. The router considers eligible endpoints and the routing preferences in your request.</p><a href="/models/">Model catalog</a></li>
+      <li><h2>Approve the quote</h2><p>An unpaid request returns HTTP 402. Review the network, recipient and amount before your wallet signs.</p><a href="/docs/#quickstart">Request a quote</a></li>
+      <li><h2>Check the receipt</h2><p>Use the receipt ID to check the router’s signature. An inclusion proof can tie the record to its hourly batch.</p><a href="/verify/">Receipt verifier</a></li>
+    </ol>
+    <RouteModes/>
+    <div className={s.more}>
+      <details><summary>What the router and provider can see</summary><Privacy/></details>
+      <details data-surface-extra=""><summary>Explore agent key settings</summary><Gateway/></details>
+      <details id="features"><summary>Browse tools by task</summary><TaskMap/></details>
+    </div>
+    <nav className={s.reading} aria-label="Further reading">
+      <a id="accountability" href="/trust/">Trust center</a>
+      <a id="developers" href="/docs/">Developer guide</a>
+      <a id="roadmap" href="/roadmap/">Product roadmap</a>
+    </nav>
+    <ReferenceAnchors/>
+  </main></PageFrame>;
+}

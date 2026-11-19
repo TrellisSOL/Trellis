@@ -44,7 +44,7 @@ export default function Gateway(){
   // Launch surface: this section is about the agent rulebook, guardrails and team scope, none of which is core.
   return <section className="section" id="gateway" data-surface-extra=""><div className="container split reverse">
     <div className="split-copy">
-      <div data-reveal><span className="eyebrow tick">Gateway / controls per key</span><h2 className="h2">Batteries included. All removable.</h2><p className="lede">Set boundaries on the key and attach an agent rulebook. Trellis’s router enforces it for requests through Trellis only.</p></div>
+      <div data-reveal><h2 className="h2">Key configuration</h2><p className="lede">Set boundaries on the key and attach an agent rulebook. Trellis’s router enforces it for requests through Trellis only.</p></div>
       <div className="points" data-stagger>{POINTS.map(([t,b])=><div className="point" key={t} data-reveal><i aria-hidden="true"/><h3>{t}</h3><p>{b}</p></div>)}</div>
       <p data-reveal style={{marginTop:24}}><a className="inline-link" href="/agents/">Open the agent rulebook</a> · <a className="inline-link" href="/docs/#agent-rulebook">Read the API and MCP tools</a></p>
     </div>

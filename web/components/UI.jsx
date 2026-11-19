@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Wordmark} from './Logo';
+import {Lockup} from './landing/Mark';
+import shell from './SiteShell.module.css';
 import InstallApp from './harness/InstallApp';
 import AccountStrip from './nav/AccountStrip'; // U105: signed-in balance and bell (replaces the U78 inbox bell).
 // NAV1: shared task disclosures and search.
@@ -10,14 +11,68 @@ import SiteSearch from './nav/SiteSearch';
 
 export function Button({children,href,secondary=false,light=false,className='',...props}){const cls='ar-button'+(secondary?' secondary':'')+(light?' light':'')+(className?' '+className:'');const inner=<>{!secondary&&<i aria-hidden="true"/>}<span>{children}</span><b aria-hidden="true">→</b></>;return href?<a className={cls} href={href} {...props}>{inner}</a>:<button className={cls} {...props}>{inner}</button>}
 
-export function Brand(){return <a href="/" className="brand" aria-label="Trellis home"><Wordmark aria-hidden="true" title=""/></a>}
+export function Brand() {
+  return <a href="/" className={shell.brand} aria-label="Trellis home">
+    <Lockup className={shell.lockup} markClass={shell.mark} wordClass={shell.word}/>
+  </a>;
+}
 
-/** Fixed header: dark over dark heroes, hides on scroll down, returns on scroll up. */
-export function Header({app=false}){
-  const [open,setOpen]=useState(false);const [tone,setTone]=useState('light');const [hidden,setHidden]=useState(false);const button=useRef(null);const [path,setPath]=useState('');
-  useEffect(()=>{setPath(location.pathname);let last=scrollY,raf=0;const update=()=>{raf=0;const hero=document.querySelector('[data-dark-hero]');const y=scrollY;setTone(hero&&hero.getBoundingClientRect().bottom>40?'dark':'light');setHidden(y>last&&y>480);last=y};const on=()=>{if(!raf)raf=requestAnimationFrame(update)};update();addEventListener('scroll',on,{passive:true});addEventListener('resize',on);return()=>{removeEventListener('scroll',on);removeEventListener('resize',on);cancelAnimationFrame(raf)}},[]);
-  useEffect(()=>{const close=e=>{if(e.key==='Escape'&&open){setOpen(false);button.current?.focus()}};document.addEventListener('keydown',close);document.documentElement.style.overflow=open?'hidden':'';return()=>{document.removeEventListener('keydown',close);document.documentElement.style.overflow=''}},[open]);
-  return <><a className="skip" href="#content">Skip to content</a><header className={'site-header'+(open?' expanded':'')} data-tone={tone} data-hidden={hidden}><nav aria-label="Main navigation"><div className="nav-left"><Brand/><DesktopGroups path={path}/></div><div className="nav-buttons"><Button href={app?'/docs/':'/dashboard/'}>{app?'Read docs':'Open dashboard'}</Button><Button href={app?'/':'/docs/'} secondary>{app?'Website':'API docs'}</Button></div><AccountStrip/>{/* U105: signed-in balance and bell. */}<SearchButton onOpen={()=>setOpen(false)} hint={!/^\/harness\/?$/.test(path)}/>{app&&/^\/harness\/?$/.test(path)&&<span className="install-slot"><InstallApp/></span>}<button ref={button} className="menu-toggle" aria-label={open?'Close menu':'Open menu'} aria-expanded={open} aria-controls="mobile-menu" onClick={()=>setOpen(!open)}><span/><span/></button></nav>{open&&<div className="mobile-menu" id="mobile-menu"><MobileGroups onNavigate={()=>setOpen(false)}/><div className="button-row"><Button href="/dashboard/" light>Open dashboard</Button><Button href="/docs/" secondary>API docs</Button>{app&&/^\/harness\/?$/.test(path)&&<span className="install-slot-menu"><InstallApp/></span>}</div></div>}</header><SiteSearch/></>;
+export function Header({app=false}) {
+  const [open, setOpen] = useState(false);
+  const [path, setPath] = useState('');
+  const trigger = useRef(null);
+  const drawer = useRef(null);
+  useEffect(() => {
+    setPath(location.pathname);
+    const desktop = matchMedia('(min-width: 961px)');
+    const resize = () => { if (desktop.matches) setOpen(false); };
+    desktop.addEventListener('change', resize);
+    return () => desktop.removeEventListener('change', resize);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const node = drawer.current;
+    const previous = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    node.showModal();
+    return () => {
+      node.close();
+      document.documentElement.style.overflow = previous;
+      trigger.current?.focus();
+    };
+  }, [open]);
+  const close = () => setOpen(false);
+  const inChat = app && /^\/harness\/?$/.test(path);
+  return <>
+    <a className="skip" href="#content">Skip to content</a>
+    <header className={shell.header}>
+      <nav className={shell.bar} aria-label="Main navigation">
+        <Brand/>
+        <DesktopGroups path={path}/>
+        <div className={shell.actions}>
+          <AccountStrip/>
+          <SearchButton hint={!inChat}/>
+          {inChat && <span className="install-slot"><InstallApp/></span>}
+          <a className={shell.dashboard} href="/dashboard/">Dashboard</a>
+          <button type="button" ref={trigger} className={shell.menuButton} aria-label="Open navigation" aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen(true)}>
+            <span aria-hidden="true"/><span aria-hidden="true"/>
+          </button>
+        </div>
+      </nav>
+    </header>
+    {open && <dialog ref={drawer} id="mobile-menu" className={shell.drawer} aria-labelledby="mobile-menu-title" onCancel={close}>
+      <div className={shell.drawerBar}>
+        <h2 id="mobile-menu-title">Explore Trellis</h2>
+        <button type="button" onClick={close} aria-label="Close navigation">Close</button>
+      </div>
+      <nav className={shell.drawerNav} aria-label="Mobile navigation">
+        <a className={shell.drawerDashboard} href="/dashboard/" onClick={close}>Dashboard</a>
+        <MobileGroups onNavigate={close}/>
+        {inChat && <InstallApp/>}
+      </nav>
+    </dialog>}
+    <SiteSearch/>
+  </>;
 }
 
 /** Page-wide motion: scroll reveals, count-ups, cursor spotlights and scroll progress. Respects reduced motion. */

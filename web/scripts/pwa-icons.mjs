@@ -10,6 +10,7 @@ import { SPLASH_SCREENS } from '../lib/splash-screens.js';
 const require = createRequire(import.meta.url);
 const sharp = createRequire(require.resolve('next/package.json'))('sharp');
 const root = new URL('../', import.meta.url);
+const PAPER = '#f4f0e6';
 const NIGHT = '#09090b';
 const VIEW = { x: 136, y: 232, w: 982, h: 772 }; // components/Logo.jsx MARK_VIEWBOX
 
@@ -49,6 +50,6 @@ for (const screen of SPLASH_SCREENS) {
 }
 await fs.writeFile(new URL('public/manifest.webmanifest', root), JSON.stringify({
   id: '/harness/', name: 'Trellis', short_name: 'Trellis', description: 'Install Trellis on your phone or desktop',
-  start_url: '/harness/', scope: '/', display: 'standalone', orientation: 'any', background_color: NIGHT, theme_color: NIGHT, icons,
+  start_url: '/harness/', scope: '/', display: 'standalone', orientation: 'any', background_color: PAPER, theme_color: PAPER, icons,
 }, null, 2) + '\n');
 console.log(`Wrote ${icons.length + 1} icons and ${SPLASH_SCREENS.length} launch screens.`);

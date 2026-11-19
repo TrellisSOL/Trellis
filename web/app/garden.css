@@ -1,13 +1,7 @@
-/* Garden: the light Trellis system shared by the homepage and the account dashboard, taken from the brand art.
-   Paper and forest ink for reading, one leaf green for action, night green for the few dark surfaces, and the dawn
-   yellow only on dark. Fraunces sets the large headings; Geist does everything else; Geist Mono is for code and data.
-
-   Inside .garden the site-wide tokens of globals.css (written for the dark Night garden) are re-pointed at these
-   values, so existing components render on paper without changes. --ground and --raised become paper and card:
-   every component pairs them with --ink. --g-code is the one dark surface, for code on the homepage. */
-.garden{
+/* Shared Trellis palette, display type and surfaces. */
+:root,.garden{
   --g-paper:#f4f0e6;--g-paper-2:#ece6d6;--g-paper-3:#e2dbc7;--g-card:#fbf9f4;
-  --g-ink:#17281d;--g-ink-2:#465649;--g-ink-3:#66746a;
+  --g-ink:#17281d;--g-ink-2:#465649;--g-ink-3:#536457;
   --g-line:rgba(23,40,29,.13);--g-line-2:rgba(23,40,29,.26);
   --g-leaf:#346143;--g-leaf-2:#284d35;--g-leaf-tint:#e1e9d9;
   --g-forest:#1d3727;--g-night:#10211a;--g-on-dark:#efeadc;--g-on-dark-2:rgba(239,234,220,.68);--g-dark-line:rgba(239,234,220,.16);
@@ -74,3 +68,45 @@ html:has(.garden-app),html:has(.garden-app) body{background:#fbfaf6}
 .garden .tok-k{color:#3a5788}.garden .tok-s{color:#875611}.garden .tok-n{color:#2f6a3f}.garden .tok-c{color:#7a857c}
 .garden ::selection{background:var(--g-leaf);color:#f7f3e8}
 .garden :focus-visible{outline:2px solid var(--g-leaf);outline-offset:3px}
+
+/* The catalog, verifier and service pages share the paper and type of the landing page. */
+.garden-interior {
+  --max: 1200px;
+  --gutter: max(var(--g-pad), var(--safe-left), var(--safe-right));
+  --radius: var(--g-radius);
+  --radius-lg: 10px;
+}
+.garden-interior .page-main {
+  width: min(var(--max), calc(100% - 2 * var(--gutter)));
+  padding-top: calc(var(--header) + clamp(30px, 4vw, 60px));
+}
+.garden-interior .page-title {
+  max-width: none;
+  margin-bottom: clamp(24px, 3vw, 40px);
+  padding-bottom: clamp(20px, 3vw, 32px);
+  border-bottom: 1px solid var(--g-line-2);
+}
+.garden-interior .page-title::after { content: none; }
+.garden-interior .page-title h1, .garden-interior main > header h1 {
+  margin: 0;
+  font: 440 clamp(34px, 4.4vw, 62px)/1.07 var(--g-display);
+  letter-spacing: -.045em;
+  color: var(--g-ink);
+}
+.garden-interior .page-title p { max-width: 65ch; margin-top: .8em; font-size: clamp(15px, 1.4vw, 18px); line-height: 1.55; }
+.garden-interior .page-title .eyebrow { display: block; margin-bottom: 12px; color: var(--g-leaf); }
+.garden-interior .section-head h2, .garden-interior .h2 {
+  font-family: var(--g-display); font-weight: 450; letter-spacing: -.035em;
+}
+.garden-interior .ar-button:hover,.garden-interior .ar-button:focus-visible { background: var(--g-leaf-2); color: var(--g-on-dark); }
+.garden-interior .ar-button.secondary:hover,.garden-interior .ar-button.light:hover { background: var(--g-leaf-tint); color: var(--g-ink); }
+.garden-interior .icon-tile,.garden-interior .icon-tile[data-tone] { background: var(--g-leaf-tint); border-color: var(--g-line); color: var(--g-leaf-2); box-shadow: none; }
+.garden-interior .section { padding-block: clamp(36px, 6vw, 80px); }
+.garden-interior .code-panel { border: 1px solid var(--g-line-2); border-radius: var(--g-radius); }
+.garden-interior .prose { line-height: 1.7; }
+.garden-interior :is(.search-field,.catalog-tools select,.field input,.field select,.field textarea) { border-color: var(--g-line-2); background-color: var(--g-card); }
+.garden-interior .page-body, .garden-interior .page-title { min-width: 0; }
+@media (max-width: 700px) {
+  .garden-interior .side-nav { position: static; }
+  .garden-interior .side-layout { grid-template-columns: minmax(0,1fr); gap: 24px; }
+}

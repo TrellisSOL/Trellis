@@ -2,7 +2,7 @@ import PageFrame from '../../../components/PageFrame';
 export const metadata={title:'Privacy notice (draft) — Trellis'};
 // DRAFT placeholder. A privacy notice is planned before any public deposit is accepted. The data inventory at /keep/ is the current factual record. No promises, no guarantees.
 export default function Privacy(){return <PageFrame><main className="page-main" id="content">
-  <div className="page-title" data-reveal><span className="eyebrow">Legal / Privacy · Draft</span><h1>Privacy notice<br/>(draft placeholder)</h1><p>This page is a placeholder, not a notice, an offer or a guarantee. A published notice is planned to replace it before any public deposit is accepted.</p></div>
+  <div className="page-title" data-reveal><h1>Privacy notice (draft)</h1><p>This page is a placeholder, not a notice, an offer or a guarantee. A published notice is planned to replace it before any public deposit is accepted.</p></div>
   <div className="side-layout">
     <nav className="side-nav" aria-label="Legal pages" data-reveal="fade"><span className="side-nav-label">Legal</span><a href="/legal/privacy/" aria-current="page">Privacy notice (draft)</a><a href="/legal/terms/">Terms (draft)</a><a href="/keep/">What we keep</a></nav>
     <article className="page-body prose legal-body" data-reveal>

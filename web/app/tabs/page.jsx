@@ -11,12 +11,7 @@ export default function TabsPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Tabs / Pay for what you use</span>
-          <h1>
-            Open a tab,
-            <br />
-            pay what you used.
-          </h1>
+          <h1>Payment tabs</h1>
           <p>
             A tab puts a ceiling in escrow once; every call then carries a voucher your session key signs for the running total, and closing the tab pays exactly that and returns the rest. Tabs are opened from the SDKs. This page says whether this router has them open and makes the session key that signs for yours.
           </p>

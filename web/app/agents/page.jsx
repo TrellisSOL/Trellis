@@ -6,7 +6,7 @@ export const metadata = { title: 'Agents — Trellis', description: 'Give your a
 
 export default function AgentsPage() {
   return <PageFrame><SurfaceGate page="/agents/"><main id="content" className="page-main">
-    <div className="page-title"><span className="eyebrow">Agent rulebooks</span><h1>Give your agent a budget and a rulebook.</h1><p>Enforced by Trellis's router for requests through Trellis.</p></div>
+    <div className="page-title"><h1>Agent spending rules</h1><p>Enforced by Trellis's router for requests through Trellis.</p></div>
     <Agents/>
   </main></SurfaceGate></PageFrame>;
 }

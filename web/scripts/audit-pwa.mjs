@@ -11,8 +11,8 @@ export function auditPwa(root) {
   assert.equal(manifest.start_url, '/harness/');
   assert.equal(manifest.id, '/harness/');
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.theme_color, '#09090b');
-  assert.equal(manifest.background_color, '#09090b');
+  assert.equal(manifest.theme_color, '#f4f0e6');
+  assert.equal(manifest.background_color, '#f4f0e6');
   for (const size of [192, 512]) for (const purpose of ['any', 'maskable']) {
     const icon = manifest.icons.find(icon => icon.sizes === `${size}x${size}` && icon.purpose === purpose);
     assert(icon && icon.type === 'image/png', `Missing ${size} ${purpose} icon`);

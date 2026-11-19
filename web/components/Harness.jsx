@@ -1176,7 +1176,7 @@ export default function Harness() {
   const chatTitle = compare ? `Comparing ${lanes.length} models` : empty ? "New chat" : titleOf(lanes);
 
   return (
-    <div className={s.harness} data-harness-app data-compare={compare || undefined} data-side={sheet === "side" || undefined}>
+    <div className={`garden ${s.harness}`} data-harness-app data-compare={compare || undefined} data-side={sheet === "side" || undefined}>
       <aside className={s.side} aria-label="Chats">
         <div className={s.sideHead}>
           <Brand />
@@ -1209,8 +1209,8 @@ export default function Harness() {
           ) : (
             <>
               <span>
-                <small>Pay per answer</small>
-                <b>No account yet</b>
+                <small>Account</small>
+                <b>Signed out</b>
               </span>
               <button type="button" className={s.signBtn} onClick={() => setSignin("header")} disabled={auth.state === "checking"}>
                 Sign in
@@ -1315,9 +1315,9 @@ export default function Harness() {
           {auth.state === "ok" && !lanes.some(l => l.messages.findLast(m => m.role === "assistant")?.errorKind === "funds") && <AddFunds key={auth.key} apiKey={auth.key} balance={auth.balance} onBalance={balance => setAuth(a => ({ ...a, balance }))}/>} {/* ON1 */}
           {empty ? (
             <div className={s.empty}>
-              <h1 className={s.display}>What should we ask?</h1>
+              <h1 className={s.display}>Start a conversation</h1>
               <p className={s.lede} aria-label="Live catalogue">
-                {!raw ? "Loading the live catalogue…" : counts.models ? `${counts.models.toLocaleString("en-US")} chat models from ${counts.makers} makers. Every answer shows what it cost.` : "No model can answer here right now."}
+                {!raw ? "Loading the live catalogue…" : counts.models ? `${counts.models.toLocaleString("en-US")} chat models from ${counts.makers} makers.` : "No model can answer here right now."}
               </p>
             </div>
           ) : (
@@ -1439,7 +1439,7 @@ export default function Harness() {
               <span title="An estimate of what the prompt is charged. While the request runs the router holds more (the prompt’s bytes plus the output cap) and releases what is not used.">Prompt ≈ {formatUsd(promptCost)} · Enter to send, Shift Enter for a new line</span>
             ) : (
               <span>
-                Every answer comes with a signed receipt. <kbd>{mod} ⇧ K</kbd> model · <kbd>{mod} K</kbd> chats · <kbd>{mod} ⇧ P</kbd> prompts {/* V81 */}
+                <kbd>{mod} ⇧ K</kbd> model · <kbd>{mod} K</kbd> chats · <kbd>{mod} ⇧ P</kbd> prompts {/* V81 */}
               </span>
             )}
           </p>

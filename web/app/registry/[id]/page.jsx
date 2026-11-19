@@ -15,13 +15,8 @@ export default function RegistryEntryPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Registry / Measurement history</span>
-          <h1>
-            On the
-            <br />
-            record.
-          </h1>
-          <p>Every attestation check the router ran for this endpoint, the software measurements it verified, and the badge that shows it on your site.</p>
+          <h1>Endpoint history</h1>
+          <p>Review hardware checks and software measurements for this endpoint.</p>
         </div>
         <RegistryEntry />
       </main>

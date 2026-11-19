@@ -8,13 +8,8 @@ export default function RegistryPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Registry / Attested endpoints</span>
-          <h1>
-            What ran,
-            <br />
-            and when.
-          </h1>
-          <p>Each attested endpoint with the measurement the router verified, how long it held a fresh attestation and every time its software changed. Read live from the router’s public record.</p>
+          <h1>Attestation registry</h1>
+          <p>Inspect verified measurements, software changes and gaps in attestation for each endpoint.</p>
         </div>
         <RegistryList />
       </main>

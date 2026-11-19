@@ -7,7 +7,7 @@ import FirstCallQuickstart from './FirstCallQuickstart'; // ON2
 import NotEnabled, { useLaunchSurface } from '../launch/Surface';
 import { CORE, gateView } from '../../lib/launch-surface.js';
 import { ACCOUNT_SECTIONS } from '../../lib/site-map.js';
-import { Corner, Dock, TopBar } from './Workspace';
+import { Dock, TopBar } from './Workspace';
 import { isChat, pageOf, pageSections } from './workspace-map.js';
 import s from './AccountShell.module.css';
 import w from './Workspace.module.css';
@@ -41,7 +41,7 @@ export default function AccountShell({ current, apiKey, onConnect, onDisconnect,
   const body = <>
     {view === 'notice' && <NotEnabled/>}
     {view === 'show' && <>
-    {!apiKey && <AccountPreview current={current}><AccountConnect onConnect={onConnect} onSecret={setSecret}/>{current === 'Home' && <FirstCallQuickstart/>} {/* ON2 */}</AccountPreview>}
+    {!apiKey && <AccountPreview current={current} workspace={app}><AccountConnect onConnect={onConnect} onSecret={setSecret}/>{current === 'Home' && <details className={s.guide}><summary>Make your first API call</summary><FirstCallQuickstart/></details>} {/* ON2 */}</AccountPreview>}
     {(apiKey || publicContent) && children}
     </>}
   </>;
@@ -52,26 +52,23 @@ export default function AccountShell({ current, apiKey, onConnect, onDisconnect,
     const page = pageOf(current);
     const shown = section || ACCOUNT_SECTIONS[0];
     const sections = pageSections(page, launch.surface);
-    const addFunds = PAYMENTS && current !== PAYMENTS.title;
+    const addFunds = apiKey && PAYMENTS && current !== 'Home' && current !== PAYMENTS.title;
     return <div className={w.shell} data-chat={chat ? '' : undefined}>
       <TopBar chat={chat} apiKey={apiKey} onNavigate={onNavigate} onDisconnect={onDisconnect}/>
       {chat ? <div className={w.chatContent} ref={content}>{body}</div> : <section className={w.page} aria-labelledby="page-title">
         <header className={w.heading}>
           <div>
-            <p className={w.eyebrow}>{page.label}</p>
-            <h1 className={w.title} id="page-title">{shown.title}</h1>
+            <h1 className={w.title} id="page-title">{shown.taskId === 'dashboard' ? 'Dashboard' : shown.title}</h1>
             {CORE_COPY[shown.taskId] ? <><p className={w.description} data-surface-extra="">{shown.description}</p><p className={w.description} data-surface-core="">{CORE_COPY[shown.taskId]}</p></> : <p className={w.description}>{shown.description}</p>}
           </div>
           {addFunds && <div className={w.actions}><a className={`${w.button} ${w.buttonAccent}`} href={PAYMENTS.href} onClick={follow(PAYMENTS, onNavigate)}><img src="/dashboard-icons/purse.png" alt="" width="20" height="20"/>Add funds</a></div>}
         </header>
         {sections.length > 1 && <div className={w.filterRow}>
           <nav className={w.tabs} aria-label={`${page.label} sections`}>{sections.map(item => <a key={item.taskId} href={item.href} aria-current={item.title === current ? 'page' : undefined} onClick={follow(item, onNavigate)}>{item.title}</a>)}</nav>
-          <span className={w.count}>{sections.length} sections</span>
         </div>}
         <div className={w.content} ref={content}>{body}</div>
       </section>}
       <Dock current={current} surface={launch.surface} onNavigate={onNavigate} chat={chat}/>
-      <Corner apiKey={apiKey} surface={launch.surface}/>
       {saved}
     </div>;
   }

@@ -1,6 +1,6 @@
 /* The dashboard as a workspace, in Trellis colours: leaf green for actions on light surfaces, dawn yellow for the
    active dock item, night green for the dock, Fraunces for page titles, Geist everywhere else. */
-.shell{--w-bg:#fbfaf6;--w-ink:#17281d;--w-muted:#6e746b;--w-line:#dcdcd3;--w-soft:#ecebe4;--w-hover:#f3f2ec;--w-accent:#2f6b43;--w-accent-2:#24563500;--w-accent-hover:#25583a;
+.shell{--w-bg:#f4f0e6;--w-ink:var(--g-ink);--w-muted:var(--g-ink-2);--w-line:var(--g-line-2);--w-soft:var(--g-line);--w-hover:var(--g-paper-2);--w-accent:var(--g-leaf);--w-accent-hover:var(--g-leaf-2);
   --w-dock:#132119;--w-dock-line:#2c3b31;--w-dock-text:#eee9dc;--w-dock-sep:#3b493f;--w-dawn:#e9c46a;--w-send:#3f8656;--w-send-hover:#4b9a64;
   --w-display:"Fraunces Variable","Fraunces",Georgia,serif;
   position:relative;min-height:100dvh;background:var(--w-bg);color:var(--w-ink);font:400 14px/1.5 var(--sans);padding-bottom:var(--w-dock-clear,150px)}
@@ -10,7 +10,7 @@
 :where(.shell) :where(button:disabled){opacity:.42;cursor:not-allowed}
 
 /* ---------- top bar ---------- */
-.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;height:86px;padding:22px 4.2%;background:var(--w-bg)}
+.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;height:74px;padding:16px var(--g-pad);border-bottom:1px solid var(--w-line);background:var(--w-bg)}
 .topStart,.topEnd{display:flex;align-items:center;gap:12px;min-width:0}
 .topEnd{justify-content:flex-end}
 .topMiddle{position:absolute;left:50%;transform:translateX(-50%)}
@@ -19,7 +19,7 @@
 .lockupMark{width:30px;height:30px;flex:none}
 .lockupWord{font:500 16px/1 var(--sans);letter-spacing:.36em;text-transform:uppercase;margin-right:-.36em}
 .picker{position:relative}
-.pill{display:flex;align-items:center;gap:12px;justify-content:space-between;min-width:188px;max-width:300px;padding:8px 14px;background:#fff;border:1px solid #d2d3cb;border-radius:24px;box-shadow:0 1px 3px #00000006;line-height:20px}
+.pill{display:flex;align-items:center;gap:12px;justify-content:space-between;min-width:188px;max-width:300px;padding:8px 14px;background:var(--g-card);border:1px solid var(--w-line);border-radius:24px;box-shadow:0 1px 3px #00000006;line-height:20px}
 .pill:hover{border-color:#a9aca2}
 .pill span{flex:1;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .keyDot{width:8px;height:8px;border-radius:50%;border:1.5px solid #a3a89e;flex:none}
@@ -46,11 +46,11 @@
 .menuGroup+.menuGroup{border-top:1px solid var(--w-soft);margin-top:5px;padding-top:4px}
 
 /* ---------- page (every page but Chat) ---------- */
-.page{width:min(1220px,calc(100% - 88px));margin:0 auto;padding:44px 0 56px}
+.page{width:min(var(--g-max),calc(100% - 2 * var(--g-pad)));margin:0 auto;padding:44px 0 56px}
 .heading{display:flex;justify-content:space-between;align-items:center;gap:32px;margin-bottom:34px}
 .eyebrow{margin:0 0 6px;font:500 10px/1.4 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--w-muted)}
-.title{margin:0 0 11px;font:500 clamp(45px,4.1vw,61px)/1.02 var(--w-display);letter-spacing:-.025em;font-variation-settings:"SOFT" 50}
-.description{margin:0;max-width:520px;color:#71766d;font-size:14px;line-height:1.7;text-wrap:pretty}
+.title{margin:0 0 11px;font:460 clamp(48px,5.2vw,76px)/1.02 var(--w-display);letter-spacing:-.05em;font-variation-settings:"SOFT" 50}
+.description{margin:0;max-width:600px;color:var(--w-muted);font-size:16px;line-height:1.7;text-wrap:pretty}
 .actions{display:flex;gap:10px;flex:none}
 .button{display:inline-flex;align-items:center;gap:10px;min-height:42px;padding:11px 16px;border:1px solid #dcdcd3;border-radius:8px;background:#fff;color:var(--w-ink);font:500 13px/1.2 var(--sans);text-decoration:none}
 .button:hover{background:#f5f5f0;border-color:#71766d}
@@ -72,7 +72,7 @@
 .chat{width:min(806px,calc(100% - 48px));margin:0 auto;padding:12px 0 48px}
 .chatEmpty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:9vh 0 24px}
 .chatEmpty img{width:88px;height:88px;object-fit:contain;margin-bottom:22px;filter:drop-shadow(.3px .6px .3px #17171326)}
-.chatEmpty h2{margin:0 0 10px;font:550 32px/1.15 var(--sans);letter-spacing:-.7px}
+.chatEmpty h2{margin:0 0 10px;font:470 clamp(36px,4vw,58px)/1.08 var(--w-display);letter-spacing:-.7px}
 .chatEmpty>p{max-width:460px;margin:0;color:var(--w-muted);font-size:14px;line-height:1.7}
 .suggestions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:28px;max-width:720px}
 .suggestions button{padding:9px 14px;border:1px solid #dcdcd3;border-radius:20px;background:#fff;font-size:13px;color:#3f463d}
@@ -179,11 +179,11 @@
   .top[data-chat] .topStart{position:absolute;right:64px}
   .modelChip select{max-width:118px}
   .tools{gap:2px 6px}
-  .topEnd :global(.ar-balance),.topEnd>div:first-child{display:none}
+  .topEnd :global(.ar-balance),.topEnd>div:first-child:not(:last-child){display:none}
   .page{width:calc(100% - 36px);padding:23px 0 38px}
   .heading{flex-direction:column;align-items:flex-start;gap:16px}
   .title{font-size:45px}
-  .description{font-size:12px}
+  .description{font-size:15px}
   .shell{--w-dock-clear:190px}
   .shell[data-chat]{--w-dock-clear:250px}
   .dock,.dock[data-chat]{left:12px;right:12px;width:auto;transform:none;bottom:25px;flex-direction:column-reverse;align-items:stretch;gap:7px;padding:10px 11px 6px;border-radius:17px}

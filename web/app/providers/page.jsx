@@ -8,13 +8,8 @@ export default function ProvidersPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Providers / Attestation status</span>
-          <h1>
-            Who serves
-            <br />
-            your model.
-          </h1>
-          <p>Each provider with the hardware and verifiers the router recorded, when it last verified them, and a link to check it yourself. Providers the router has not verified are marked Unverified.</p>
+          <h1>Inference providers</h1>
+          <p>Inspect the available evidence for each provider and the date of its latest hardware check.</p>
         </div>
         <Providers />
       </main>

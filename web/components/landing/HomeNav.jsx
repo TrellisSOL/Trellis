@@ -31,8 +31,8 @@ export default function HomeNav() {
         <a className={styles.menuOnly} href="/dashboard/" onClick={close}>Dashboard</a>
       </nav>
       <div className={styles.navActions}>
-        <a className={styles.navText} href="/dashboard/">Dashboard</a>
-        <a className={styles.navButton} href="/dashboard/">Get an API key</a>
+
+        <a className={styles.navButton} href="/dashboard/">Open workspace</a>
         <button type="button" className={styles.menuButton} aria-expanded={open} aria-label={open ? 'Close navigation' : 'Open navigation'} onClick={() => setOpen(o => !o)}><span/><span/></button>
       </div>
     </div>

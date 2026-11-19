@@ -38,12 +38,20 @@ export function DesktopGroups({ path }) {
     {GROUPS.map(group => <div className="task-disclosure" {...groupAttr(group)} key={group.id}>
       <button type="button" ref={node => { buttons.current[group.id] = node; }} aria-expanded={open === group.id} aria-controls={`nav-${group.id}`} aria-current={current === group.id ? 'true' : undefined} onClick={() => setOpen(open === group.id ? null : group.id)}>{group.title}<span aria-hidden="true">⌄</span></button>
       <div className="task-panel" id={`nav-${group.id}`} hidden={open !== group.id} aria-label={`${group.title} tasks`}>
-        {menuTasks(group.id).map(task => <a key={task.id} href={task.href} {...extraAttr('nav', task.id)} onClick={() => setOpen(null)}><strong>{task.title}</strong><span>{task.description}</span></a>)}
+        {menuTasks(group.id).map(task => <a key={task.id} href={task.href} {...extraAttr('nav', task.id)} onClick={() => setOpen(null)}>{task.title}</a>)}
       </div>
     </div>)}
   </div>;
 }
 
 export function MobileGroups({ onNavigate }) {
-  return <div className="mobile-task-groups"><a className="mobile-home" href="/" onClick={onNavigate}>Home</a>{GROUPS.map(group => <section key={group.id} aria-labelledby={`mobile-${group.id}`} {...groupAttr(group)}><h2 id={`mobile-${group.id}`}>{group.title}</h2><ul>{menuTasks(group.id).map(task => <li key={task.id} {...extraAttr('nav', task.id)}><a href={task.href} {...extraAttr('nav', task.id)} onClick={onNavigate}>{task.title}<span>{task.description}</span></a></li>)}</ul></section>)}</div>;
+  return <div className="mobile-task-groups">
+    <a className="mobile-home" href="/" onClick={onNavigate}>Home</a>
+    {GROUPS.map(group => <details key={group.id} {...groupAttr(group)}>
+      <summary id={`mobile-${group.id}`}>{group.title}</summary>
+      <ul>{menuTasks(group.id).map(task => <li key={task.id} {...extraAttr('nav', task.id)}>
+        <a href={task.href} {...extraAttr('nav', task.id)} onClick={onNavigate}>{task.title}</a>
+      </li>)}</ul>
+    </details>)}
+  </div>;
 }

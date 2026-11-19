@@ -1,19 +1,10 @@
-/* Trellis design system, "Night garden": a calm dark ground, light ink, one warm amber accent; Geist and Geist Mono. */
+/* Global layout and interaction primitives. The palette is defined in garden.css. */
 :root{
-  /* Night garden: a dark ground, light ink, one warm accent. The names are the old ones (ink = text, paper = page) so
-     every component keeps working; --ground and --raised are the surfaces that stay dark in every context. */
-  --ink:#ededef;--ink-2:#1b1b1e;--ink-3:#232327;--ink-4:#2e2e33;
-  --paper:#09090b;--paper-2:#111113;--paper-3:#1a1a1d;--white:#131315;
-  --ground:#09090b;--raised:#111113;--raised-2:#18181b;
-  --line:rgba(237,237,239,.09);--line-strong:rgba(237,237,239,.22);--line-dark:rgba(237,237,239,.09);--line-dark-strong:rgba(237,237,239,.32);
-  --muted:#a1a1aa;--muted-dark:#a1a1aa;--faint:#8a8a93;
-  --signal:#f2b66d;--signal-deep:#f2b66d;--signal-tint:#2a2116;--signal-glow:rgba(242,182,109,.28);--on-signal:#140d04;
-  --warn:#e8c26a;--danger:#ff8a8a;--danger-tint:#2a1515;--warn-tint:#2a2316;
   --sans:"Geist Variable","Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"Geist Mono Variable","Geist Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   --ease:cubic-bezier(.2,.7,.1,1);--ease-out:cubic-bezier(.16,1,.3,1);--ease-in-out:cubic-bezier(.65,0,.35,1);
   --gutter:clamp(16px,4vw,40px);--max:1120px;--cut:0px;--header:64px;--radius:10px;--radius-lg:14px;
-  color-scheme:dark;
+  color-scheme:light;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:calc(var(--header) + 20px);-webkit-text-size-adjust:100%;background:var(--paper)}

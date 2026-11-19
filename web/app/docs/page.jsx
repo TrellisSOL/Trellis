@@ -1,12 +1,13 @@
 // Developer documentation hub. It keeps every documented anchor other pages link to, renders the documentation
 // sections that live in components/*Docs.jsx, and holds the shorter sections (API shims, batches, characters, teams,
 // tracing, the transparency log and the data inventory) inline.
-import LaunchSurfaceDocs, { NotAtLaunch } from "../../components/LaunchSurfaceDocs";
-import PageFrame from "../../components/PageFrame";
+import { NotAtLaunch } from "../../components/LaunchSurfaceDocs";
+import Publication, { ReferenceGroup } from "../../components/Publication";
+import ReferenceAnchors from "../../components/ReferenceAnchors";
 import { Code } from "../../components/UI";
 import { sampleRequest } from "../../components/Extensions";
 import OnionAddress from "../../components/OnionAddress";
-import DocsFeatureIndex, { DocsFeatureLinks } from "../../components/DocsFeatureIndex";
+import { DocsFeatureLinks } from "../../components/DocsFeatureIndex";
 import FirstCallDocs from "../../components/FirstCallDocs";
 import GetUsdcDocs from "../../components/GetUsdcDocs";
 import PaymentsDocs from "../../components/PaymentsDocs";
@@ -147,69 +148,34 @@ Authorization: Bearer $TRELLIS_API_KEY
 { "model": "qwen/qwen3-32b", "question": "What does clause 4 require?",
   "documents": [{ "id": "contract", "text": "..." }, "a second document as a plain string"], "top_k": 6 }`;
 
+const topics = [
+  ['quickstart', 'First request'], ['account-guide', 'Account setup'],
+  ['payment-reference', 'Payments and receipts'], ['routing-reference', 'Routing and privacy'],
+  ['keys-reference', 'Keys and errors'], ['api-reference', 'API and SDKs'],
+  ['agents-reference', 'Agents and approvals'], ['network-reference', 'Providers and network'],
+  ['whats-new', 'Feature index'],
+].map(([id, heading]) => ({id, heading}));
+
 export default function Docs() {
-  return <PageFrame><main className="page-main" id="content">
-    <div className="page-title" data-reveal><span className="eyebrow">Docs / Developer documentation</span><h1>Build on<br/>one API.</h1><p>Choose a model, inspect a payment quote and check a receipt. Start here for the public API, read the <a className="inline-link" href="/whitepaper/">whitepaper</a> for the protocol, or see the <a className="inline-link" href="/roadmap/">roadmap</a> for upcoming capabilities.</p></div>
-    <div className="side-layout">
-      <nav className="side-nav" aria-label="Documentation sections" data-reveal="fade">
-        <span className="side-nav-label">On this page</span>
-        <a href="#quickstart">Quickstart</a>
-        <a href="#payments">Payments</a>
-        <a href="#get-usdc">Get USDC</a>
-        <a href="#tabs">Tabs</a>
-        <a href="#facilitator">Facilitator</a>
-        <a href="#make-good-refunds">Refunds</a>
-        <a href="#routing">Routing</a>
-        <a href="#lanes">Lanes</a>
-        <a href="#unlinkable-tor">Unlinkable lane</a>
-        <a href="#private">Private proxy</a>
-        <a href="#private-tokens">Blind tokens</a>
-        <a href="#e2ee-gateway">Encrypted chat</a>
-        <a href="#key-management">Keys</a>
-        <a href="#key-log">Key log</a>
-        <a href="#keep">What we keep</a>
-        <a href="#errors">Errors</a>
-        <a href="#structured-output">Structured output</a>
-        <a href="#anthropic">Anthropic Messages</a>
-        <a href="#ollama">Ollama</a>
-        <a href="#responses">Responses API</a>
-        <a href="#batches">Batches</a>
-        <a href="#characters">Characters</a>
-        <a href="#rag">Files and RAG</a>
-        <a href="#mcp">MCP</a>
-        <a href="#sdk">SDKs</a>
-        <a href="#signed-webhooks">Webhooks</a>
-        <a href="#tracing">Tracing</a>
-        <a href="#teams">Teams</a>
-        <a href="#paid-tools">Paid tools</a>
-        <a href="#agent-rulebook">Agent rulebook</a>
-        <a href="#sealed-agents">Sealed agents</a>
-        <a href="#open-network">Network</a>
-        <a href="#host-bonds">Host bonds</a>
-        <a href="#holders">Holder tiers</a>
-        <a href="#run-a-provider">Run a provider</a>
-        <a href="#badge">Badge</a>
-        <a href="#whats-new">What’s new</a>
-        <span className="side-nav-label">Features</span><DocsFeatureLinks />
-      </nav>
-      {/* No scroll reveal here: the article is far taller than any window, so the reveal's 14% visibility threshold could never be met and the text stayed transparent. */}
-      <article className="page-body prose docs-body">
-        {/* Launch surface: the hub stays fully readable. The note says what a router serves at launch and, once the page has the router's status, what this router reports. Sections outside core carry a "Built, not enabled at launch" line, which on a core router is replaced by the router's own marker (lib/launch-surface.js docs lists). */}
-        <LaunchSurfaceDocs />
+  return <Publication kind="docs" title="Developer guide" summary="Choose a model, request a USDC quote and verify the receipt for your first call." contents={topics}>
+        <ReferenceAnchors />
         <DocsSurfaceMarks />
         <section id="quickstart" className="docs-section">
-          <h2>Quickstart</h2>
-          <p>Use <code>https://trellischat.app/api/v1</code> as the base URL. Read the catalog and copy a chat model’s exact ID. This request only reads public information.</p>
+          <h2>Your first request</h2>
+          <p>Read the catalog and copy a chat model’s exact ID. The catalog is public.</p>
           <Code label="List models">{'curl -sS https://trellischat.app/api/v1/models'}</Code>
-          <p>Replace <code>MODEL_ID</code> below with that ID. Send this request without payment credentials to see the quote. HTTP 402 is the expected result. Read the accepted network, asset, amount and recipient before approving anything in a wallet.</p>
+          <p>Replace <code>MODEL_ID</code> with your chosen ID. An unpaid request returns HTTP 402. Check the network, asset, amount and recipient in the quote.</p>
           <Code label="Request a quote">{`curl -i https://trellischat.app/api/v1/chat/completions \\
   -H 'Content-Type: application/json' \\
   -d '{"model":"MODEL_ID","messages":[{"role":"user","content":"Say hello."}],"max_tokens":12,"stream":false}'`}</Code>
-          <p>To proceed, have an x402-compatible wallet client sign the accepted terms and retry the matching request with its payment payload. Keep the <code>PAYMENT-RESPONSE</code> and <code>X-Receipt-Id</code> headers when returned. Open <a className="inline-link" href="/verify/">Verify</a> with the receipt ID. If a paid response is interrupted, check payment recovery before authorizing another transfer.</p>
+          <p>To pay, sign the accepted terms with an x402 wallet client and retry the matching request with its payment payload. Save the <code>PAYMENT-RESPONSE</code> and <code>X-Receipt-Id</code> headers when returned. Use the ID to <a className="inline-link" href="/verify/">verify the receipt</a>. If the connection drops after payment, check recovery before authorizing another transfer.</p>
+        </section>
+        <ReferenceGroup id="account-guide" title="Account setup">
           <p>For account-based integrations, check the <a className="inline-link" href="/status/">current payment modes</a> before using a bearer-key example.</p>
           <Code label="Two lines change">{sampleRequest}</Code>
           <FirstCallDocs />
-        </section>
+        </ReferenceGroup>
+        <ReferenceGroup id="payment-reference" title="Payments and receipts">
         <PaymentsDocs />
         <GetUsdcDocs />
         <TabsDocs />
@@ -222,6 +188,9 @@ export default function Docs() {
         <ProofPackDocs />
         <LaneReportDocs />
 
+        </ReferenceGroup>
+        <ReferenceGroup id="routing-reference" title="Routing and privacy">
+          <nav className="topic-links" aria-label="Routing topics"><a href="#routing">Routing</a><a href="#lanes">Lanes</a><a href="#private">Private proxy</a></nav>
         <section id="routing" className="docs-section">
           <h2>Routing</h2>
           <p>A request names a model and, optionally, how to choose among the providers that serve it. Model ids are <code>author/model</code>, with the suffixes <code>:nitro</code> (sort by throughput), <code>:floor</code> (sort by price) and <code>:free</code>. <code>models</code> is an ordered fallback list tried when the first model cannot be served.</p>
@@ -265,6 +234,9 @@ export default function Docs() {
         <span id="e2ee-tee-cloud" aria-hidden="true" />{/* the router's capability module still links the encrypted-chat section by this older anchor */}
         <E2eeDocs />
         <GraftEncryptedChatDocs />
+        </ReferenceGroup>
+        <ReferenceGroup id="keys-reference" title="Keys and errors">
+          <nav className="topic-links" aria-label="Key and data topics"><a href="#key-management">API keys</a><a href="#key-log">Key log</a><a href="#keep">What we keep</a><a href="#errors">Errors</a></nav>
         <KeyProvisioningDocs />
         <UnusedKeysDocs />
 
@@ -284,6 +256,9 @@ export default function Docs() {
         <ModelAlternativesDocs />
         <StructuredOutputDocs />
 
+        </ReferenceGroup>
+        <ReferenceGroup id="api-reference" title="API and SDKs">
+          <nav className="topic-links" aria-label="API topics"><a href="#anthropic">Anthropic Messages</a><a href="#ollama">Ollama</a><a href="#responses">Responses</a><a href="#batches">Batches</a><a href="#characters">Characters</a><a href="#rag">Files</a><a href="#mcp">MCP</a><a href="#sdk">SDKs</a><a href="#teams">Teams</a></nav>
         <section id="anthropic" className="docs-section">
           <h2>Anthropic Messages API</h2><NotAtLaunch />
           <p><code>POST /v1/messages</code> (also at <code>/api/v1/messages</code>) is the Anthropic Messages API, for the Anthropic SDKs and Claude Code. The request is converted to a chat completion and sent through <code>/api/v1/chat/completions</code> inside the router, so the key, balance, limits, lane, signed receipt and response headers are those of a chat call. Authenticate with <code>x-api-key</code> or <code>Authorization: Bearer</code>. The model is a catalog id from <code>GET /v1/models</code>, or a name the operator mapped with <code>ANTHROPIC_MODEL_MAP</code>; an unmapped <code>claude-*</code> name is a 404 that says the router serves open models.</p>
@@ -372,6 +347,8 @@ export default function Docs() {
           <p>The audit log (<code>GET /api/v1/teams/{"{id}"}/audit</code>) records every change with the previous entry's hash; <code>/audit/roots</code> publishes hourly roots and <code>/audit/export</code> returns the log as JSON Lines or CSV. Verify an export offline with <code>node scripts/verify-audit.mjs &lt;file&gt;</code>, which recomputes the chain and compares it with the roots.</p>
         </section>
 
+        </ReferenceGroup>
+        <ReferenceGroup id="agents-reference" title="Agents and approvals">
         <ToolsMarketDocs />
         <DecisionTagDocs />
         <AgentRulebookDocs />
@@ -390,6 +367,8 @@ export default function Docs() {
         <AgentCertificateDocs />
         <AgentProfileDocs />
         <GraftedAgentDocs />
+        </ReferenceGroup>
+        <ReferenceGroup id="network-reference" title="Providers and network">
         <GraftNetworkDocs />
         <NetworkHostsDocs />
         <NetworkPolicyDocs />
@@ -413,8 +392,9 @@ export default function Docs() {
           <p><code>GET /api/v1/badge/{"{id}"}.svg</code> renders the same status as an image for an <code>&lt;img&gt;</code> tag or a Markdown image, with no script; an unknown id is still an image, reading Unverified.</p>
         </section>
 
-        <DocsFeatureIndex />
-      </article>
-    </div>
-  </main></PageFrame>;
+        </ReferenceGroup>
+        <ReferenceGroup id="whats-new" title="Feature index">
+          <nav aria-label="Feature reference" className="feature-reference-links"><DocsFeatureLinks /></nav>
+        </ReferenceGroup>
+  </Publication>;
 }

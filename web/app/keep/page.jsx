@@ -122,11 +122,10 @@ export default async function KeepPage() {
     <PageFrame>
       <main className="page-main" id="content">
         <div className="page-title" data-reveal>
-          <span className="eyebrow">Data inventory · generated from the schema</span>
-          <h1>What we keep.</h1>
+
+          <h1>Data inventory</h1>
           <p>
-            Every table and column the router stores, the Redis keys and log lines around them, and every place a request’s text or a caller’s address is read. It is written next to the code, checked against the schema by automated checks, and built into this
-            page from the schema when the site is built.
+            See which records Trellis keeps and which systems can read a request or a caller’s address.
           </p>
           <div className="button-row">
             <Button href="/keep/inventory.json">inventory.json</Button>
