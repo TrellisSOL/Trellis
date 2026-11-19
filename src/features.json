@@ -9,7 +9,7 @@
 
   "trls": {
     "update": 2,
-    "on": false,
+    "on": true,
     "title": "Pay in $TRLS",
     "summary": "Fund your balance with $TRLS as well as USDC. A deposit is credited at the token's price when it arrives, calls are charged in dollars as always, and $TRLS paid for inference is burned.",
     "includes": ["Deposit $TRLS to fund a key", "Credited at the price when the deposit arrives", "Calls priced in dollars, with no markup", "$TRLS paid for inference is burned"]
