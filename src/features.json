@@ -25,7 +25,7 @@
 
   "facilitator": {
     "update": 4,
-    "on": false,
+    "on": true,
     "title": "Hosted payment facilitator",
     "summary": "Other sellers can verify and settle per-call payments through this router, without running payment infrastructure of their own.",
     "includes": ["Verify a payment for another seller", "Settle it on chain", "Network fee paid by the router's relay key", "No facilitator fee"]
