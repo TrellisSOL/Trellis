@@ -64,4 +64,5 @@ EXPOSE 8787
 # Liveness of the API process. Workers override it with the heartbeat check (scripts/worker-healthcheck.sh); readiness
 # (GET /ready) is for monitoring, not for restarts: a failing dependency must not block the deploy that fixes it.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=30s CMD bun -e "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["bun", "src/index.ts"]
+# The API by default; scripts/start.sh starts a worker instead when RUNTIME_ROLE=worker (see that file).
+CMD ["sh", "scripts/start.sh"]
