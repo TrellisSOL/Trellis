@@ -115,7 +115,7 @@ function More({ current, surface, onNavigate }) {
 }
 
 /** The floating dock: the six pages as object icons, More, and either the chat composer (Chat) or search. */
-// Images and Video (update 6) are pages of their own (app/images, app/video): they join the dock once the router has
+// Images and Video (the media update) are pages of their own (app/images, app/video): they join the dock once the router has
 // released the update. Drawn icons, until the set has painted ones for them.
 const MEDIA_ICONS = {
   images: <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="13" r="2.2" fill="currentColor"/><path d="M6.5 22l6-6 4.5 4.5 3-3 5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>,

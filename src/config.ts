@@ -123,7 +123,7 @@ const schema = z.object({
   RUNTIME_ROLE: z.enum(["all", "api", "worker"]).default("all"),
   WORKER_JOBS: z.string().default(""),
   AUTO_MIGRATE: bool.default(true),
-  // Images and video (update 6): the id of the provider whose API carries image and video generation, and how many
+  // Images and video (the media update): the id of the provider whose API carries image and video generation, and how many
   // generations one account may order a minute.
   MEDIA_PROVIDER_ID: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).default("relay"),
   MEDIA_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(12),
@@ -692,7 +692,7 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
       const names = e.WORKER_JOBS.split(",").map((v) => v.trim()).filter(Boolean);
       const allowed = ["health-flush", "holds-expire", "catalog-refresh", "provider-registry", "health-probes", "canaries", "attestor", "receipts-anchor", "receipt-key-rotation", "settlement", "slasher", "chain-indexer", "paywith-aggregator", "escrow-indexer", "spend-watch", "alert-notifier", "telegram-bot", "measurements", "blind-key-rotation", "ipx-oracle", "dayzero", "ohttp-key-rotation", "host-anchor", "tlog", "batches", "skills-mirror", "sanctions-refresh", "tab-close"];
       allowed.push("weekly-summary"); // B120
-      allowed.push("media-jobs"); // update 6: follows pending image and video generations to their end
+      allowed.push("media-jobs"); // the media update: follows pending image and video generations to their end
       allowed.push("deposit-pings"); // B123
       allowed.push("low-balance-alerts"); // B119
       allowed.push("webhooks"); // V86: bounded event delivery.
@@ -822,7 +822,7 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
     surfaceIgnored: surface.ignored,
     /** Release switches: which prepared updates are on for this process (src/features.json, FEATURE_<NAME>, FEATURES). */
     updates,
-    /** Images and video (update 6, src/api/media.ts): the provider row that carries the media catalogue, and orders per account per minute. */
+    /** Images and video (the media update, src/api/media.ts): the provider row that carries the media catalogue, and orders per account per minute. */
     media: { providerId: e.MEDIA_PROVIDER_ID, perMinute: e.MEDIA_PER_MINUTE },
     adminAllowedSources: adminSources(e.ADMIN_ALLOWED_SOURCES),
     fastCredit: fastCreditSettings(e), // V97

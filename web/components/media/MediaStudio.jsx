@@ -17,7 +17,7 @@ const usd = n => (Number(n) < 0.01 ? '$' + Number(n).toFixed(4) : '$' + Number(n
 const priceOf = model => (model ? (model.pricing.min != null && model.pricing.min !== model.pricing.max ? `${usd(model.pricing.min)} to ${usd(model.pricing.max)}` : usd(model.pricing.max)) : '');
 
 /**
- * Images and Video (update 6): one page each, the same shape. The page orders a generation with the key this tab
+ * Images and Video (the media update): one page each, the same shape. The page orders a generation with the key this tab
  * holds, follows it until it is done, and shows the files, what they cost and the receipt. Nothing is stored here:
  * the list ends with the page, and the router serves a file for 24 hours.
  */

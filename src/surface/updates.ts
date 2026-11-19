@@ -17,7 +17,8 @@ import spec from "../features.json" with { type: "json" };
 type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
-export const UPDATE_NAMES = ["credits", "tabs", "facilitator", "sealed", "anchor", "media"] as const;
+/** In release order: the number of an update is its place here and in src/features.json. */
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -40,6 +41,28 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
   // answer 404 `not_enabled` while it is off, in every environment.
   media: [],
+  // Holder tiers, council, agent keys and the blind lane are outside the core launch surface as well, like program-mode
+  // anchoring and paying in the token (src/surface/config.ts NON_CORE_SETTINGS): a core production router refuses these
+  // settings whatever this file says, so each needs its review and its place on the surface before its switch can open
+  // it (UPDATES.md).
+  holders: [{ setting: "TRLS_TOKEN_ADDRESS" }, { setting: "HOLDER_TIERS" }],
+  council: [{ setting: "TRELLIS_FEATURE_COUNCIL", when: truthy }],
+  agents: [
+    { setting: "AGENT_POLICY_ENABLED", when: truthy }, { setting: "AGENT_GUARD_ENABLED", when: truthy }, { setting: "AGENT_PAY_ENABLED", when: truthy },
+    { setting: "AGENT_PROFILES_ENABLED", when: truthy }, { setting: "AGENT_RULEBOOK_WORDS_ENABLED", when: truthy },
+    { setting: "TELEGRAM_LINKING_ENABLED", when: truthy }, { setting: "TELEGRAM_BOT_TOKEN" }, { setting: "WEEKLY_SUMMARY_ENABLED", when: truthy },
+  ],
+  blind: [
+    { setting: "TRELLIS_FEATURE_BLIND", when: truthy }, { setting: "BLIND_MULTI_TOKEN_ENABLED", when: truthy },
+    { setting: "OHTTP_ENABLED", when: truthy }, { setting: "OHTTP_CHUNKED_ENABLED", when: truthy },
+    { setting: "ONION_ADDRESS" }, { setting: "ONION_PROXY_SECRET" }, { setting: "UNLINKABLE_VIA_ONION", when: truthy },
+  ],
+  // Paying in the token: deposits through the escrow path, priced from a pool, and the fee router that burns what was
+  // paid for inference. The token's address is a setting of holder tiers too; either update lets it through.
+  trls: [
+    { setting: "TRLS_TOKEN_ADDRESS" }, { setting: "PAYMENTS_MODE", when: (v) => v === "escrow" }, { setting: "ESCROW_ADDRESS" }, { setting: "ESCROW_TOKENS" },
+    { setting: "TRLS_POOL_LEGS" }, { setting: "TRLS_POOL_PROGRAM" }, { setting: "TRELLIS_FEE_ROUTER_PROGRAM_ID" },
+  ],
 };
 
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase()}`;
@@ -67,9 +90,12 @@ export function updateState(raw: Raw): UpdateState {
 export function resolveUpdates(raw: Raw): UpdateState {
   const state = updateState(raw);
   if (raw.TRELLIS_ENV !== "production") return state;
+  // A setting that more than one update uses (the token's address) is let through by any of them.
+  const released = new Set(UPDATE_NAMES.filter((name) => state[name]).flatMap((name) => UPDATE_SETTINGS[name].map((rule) => rule.setting)));
   for (const name of UPDATE_NAMES) {
     if (state[name]) continue;
     for (const rule of UPDATE_SETTINGS[name]) {
+      if (released.has(rule.setting)) continue;
       if (!(rule.when ? rule.when(raw[rule.setting]) : set(raw[rule.setting]))) continue;
       const u = UPDATES[name];
       throw new Error(`${rule.setting} switches on "${u.title}" (update ${u.update}), which this router has not released: src/features.json has \`${name}\` off. Remove ${rule.setting}, or release the update (merge ${branchName(name)}; ${overrideName(name)}=true for this server alone). UPDATES.md says what the update needs first.`);

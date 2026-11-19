@@ -28,7 +28,7 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   facilitator: ["GET /facilitator/supported", "POST /facilitator/settle", "POST /facilitator/verify"],
   chat: ["POST /api/v1/chat/completions", "POST /api/v1/completions", "POST /v1/chat/completions", "POST /v1/completions"],
   embeddings: ["POST /api/v1/embeddings", "POST /v1/embeddings"],
-  // Images and video (update 6, src/api/media.ts): registered, and answering 404 `not_enabled` until the `media`
+  // Images and video (the media update, src/api/media.ts): registered, and answering 404 `not_enabled` until the `media`
   // release switch is on (src/features.json). Prepaid keys only.
   media: ["GET /api/v1/images/generations/:id", "GET /api/v1/media/files/:id/:n", "GET /api/v1/media/models", "GET /api/v1/videos/generations/:id", "POST /api/v1/images/generations", "POST /api/v1/videos/generations"],
   // The catalogue. `ALL` is the early-access field middleware of the two list routes (inert without a holder token).
@@ -120,7 +120,7 @@ export const CORE_JOBS: readonly string[] = [
   "alert-notifier", // readiness-driven alerts (monitoring hook)
   "provider-reconcile", // R4-02: what each provider is owed against what the ledger collected, daily
   "tab-close", // posts the highest voucher of a tab near its cap or expiry with trellis_tab::close (joined 2026-11-04)
-  "media-jobs", // update 6: follows pending image and video generations to their end; registered only with the switch on
+  "media-jobs", // the media update: follows pending image and video generations to their end; registered only with the switch on
   "job-watchdog", // R4-01: liveness of every job above
 ];
 

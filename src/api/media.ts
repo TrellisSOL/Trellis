@@ -12,7 +12,7 @@ import { NOT_ENABLED } from "../surface/surface.ts";
 import { requireKey, requireRole } from "./auth.ts";
 import { readJson } from "./common.ts";
 
-// Images and video (update 6, `media` in src/features.json): generation through the upstream that carries a media
+// Images and video (the media update, `media` in src/features.json): generation through the upstream that carries a media
 // catalogue, paid from the caller's prepaid balance, with a signed receipt for every finished generation.
 //
 //   GET  /api/v1/media/models?type=image|video    the catalogue: ids, what each model accepts, its price range

@@ -13,7 +13,7 @@ export const PAGES = [
   { id: 'settings', label: 'Settings', icon: 'settings', ids: ['settings', 'keep', 'webhooks', 'account-export'] },
 ];
 
-/** Images and Video (update 6): pages of their own, shown in the dock once the router has released the update. */
+/** Images and Video (the media update): pages of their own, shown in the dock once the router has released the update. */
 export const MEDIA_PAGES = [
   { id: 'images', label: 'Images', href: '/images/' },
   { id: 'video', label: 'Video', href: '/video/' },

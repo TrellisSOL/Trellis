@@ -68,7 +68,7 @@ export function registerJobs(ctx: Ctx, router?: RouterCall, dispatch?: Dispatch)
   const chainOn = () => ["credits", "callPay", "payWithStock", "providerBond", "receiptAnchor", "royalty"].some((n) => ctx.chain.address(n as never));
   jobs.register("health-flush", 5_000, () => ctx.health.flush(ctx.db));
   jobs.register("holds-expire", 60_000, () => expireHolds(ctx.db));
-  if (cfg.updates.media) jobs.register(MEDIA_JOB, 30_000, () => runMediaJobs(ctx)); // update 6: pending image and video generations
+  if (cfg.updates.media) jobs.register(MEDIA_JOB, 30_000, () => runMediaJobs(ctx)); // the media update: pending image and video generations
   // x402 payment recovery: rows and sealed answers past their 24 hours are deleted.
   jobs.register("x402-recovery-expire", 3_600_000, () => expirePaidResults(ctx));
   if (cfg.agentPolicyEnabled) jobs.register("agent-ledger-retention", 3_600_000, () => pruneAgentLedgerLinks(ctx.db));

@@ -7,8 +7,16 @@
     "includes": ["Deposit USDC to a key's credit account", "Calls charged from the prepaid balance", "Closure refund to the depositing wallet after 72 hours", "Balance and deposits in the dashboard"]
   },
 
-  "tabs": {
+  "trls": {
     "update": 2,
+    "on": false,
+    "title": "Pay in $TRLS",
+    "summary": "Fund your balance with $TRLS as well as USDC. A deposit is credited at the token's price when it arrives, calls are charged in dollars as always, and $TRLS paid for inference is burned.",
+    "includes": ["Deposit $TRLS to fund a key", "Credited at the price when the deposit arrives", "Calls priced in dollars, with no markup", "$TRLS paid for inference is burned"]
+  },
+
+  "tabs": {
+    "update": 3,
     "on": false,
     "title": "Tabs",
     "summary": "Authorize a ceiling, pay for what you used, and get the rest back when the tab closes.",
@@ -16,7 +24,7 @@
   },
 
   "facilitator": {
-    "update": 3,
+    "update": 4,
     "on": false,
     "title": "Hosted payment facilitator",
     "summary": "Other sellers can verify and settle per-call payments through this router, without running payment infrastructure of their own.",
@@ -24,7 +32,7 @@
   },
 
   "sealed": {
-    "update": 4,
+    "update": 5,
     "on": false,
     "title": "Sealed lane",
     "summary": "Run a call on attested hardware and get the evidence with the answer: the measurement the router checked and the provider's own signed receipt.",
@@ -32,7 +40,7 @@
   },
 
   "anchor": {
-    "update": 5,
+    "update": 6,
     "on": false,
     "title": "Receipt roots in the anchor program",
     "summary": "The hourly receipt root is held by a program account instead of a memo, so anyone can read it from the chain's state without walking a key's history.",
@@ -40,10 +48,42 @@
   },
 
   "media": {
-    "update": 6,
+    "update": 7,
     "on": false,
     "title": "Images and video",
     "summary": "Generate images and short videos from a prompt, each in a tab of its own, paid from the same balance and with a signed receipt for every generation.",
     "includes": ["Images tab: one to four images per prompt", "Video tab: a clip from a prompt, ready in minutes", "Per-generation prices shown before you order", "Files served by the router for 24 hours"]
+  },
+
+  "holders": {
+    "update": 8,
+    "on": false,
+    "title": "Holder tiers",
+    "summary": "Wallets that hold $TRLS get membership levels: higher limits, priority on the sealed lane when it is busy, earlier access to newly listed models, an advisory vote and a profile badge. A tier never changes a price.",
+    "includes": ["Tiers by $TRLS held, with fixed thresholds", "Higher request and token limits per tier", "Sealed-lane priority and early access to new models", "Advisory vote and an opt-in badge"]
+  },
+
+  "council": {
+    "update": 9,
+    "on": false,
+    "title": "Council",
+    "summary": "Put one question to several models at once and have their answers judged against each other, or have a second provider check the first. Every model that answered has its own receipt.",
+    "includes": ["One prompt, several models", "A judged answer with the reasoning for it", "Dual verification: a second provider checks the first", "A receipt per model that took part"]
+  },
+
+  "agents": {
+    "update": 10,
+    "on": false,
+    "title": "Agent keys",
+    "summary": "Give an agent a key with a rulebook: a budget, per-call and daily caps, who it may pay, and a size above which it has to ask you first. Stop it at any time, and get its approvals and summaries in Telegram.",
+    "includes": ["Budgets and per-call and daily caps", "Payee allowlists and ask-first approvals", "Stop, resume and replay a rulebook on last week", "Telegram approvals and weekly summaries"]
+  },
+
+  "blind": {
+    "update": 11,
+    "on": false,
+    "title": "Blind lane",
+    "summary": "Pay with single-use tokens that cannot be linked to the wallet that bought them, and reach the router through an oblivious relay or its onion address, so a call cannot be tied to who paid for it or where it came from.",
+    "includes": ["Blind-signed single-use tokens", "Oblivious HTTP through a relay", "An onion address for the router", "Receipts that name the token, not an account"]
   }
 }
