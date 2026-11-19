@@ -1,5 +1,6 @@
 import { CORE_JOBS } from "./core-allowlist.ts";
 import { LAUNCH_SURFACES, SURFACE_ACK, type LaunchSurface } from "./surface.ts";
+import { releasedCoreSettings } from "./updates.ts";
 
 // Settings and the launch surface (see surface.ts). Routes and jobs are fenced where they are registered. Some non-core
 // features are not routes at all but branches inside a core path (a pay-with header on a chat call, a blind token as
@@ -144,7 +145,10 @@ export function resolveSurface(raw: Raw): SurfaceSettings {
   }
   const env: Raw = { ...raw };
   const ignored: SurfaceSettings["ignored"] = [];
+  // A released update admits its own settings on the core surface (src/surface/updates.ts CORE_WHEN_RELEASED).
+  const released = releasedCoreSettings(raw);
   for (const [setting, rule] of Object.entries(NON_CORE_SETTINGS)) {
+    if (released.has(setting)) continue;
     const v = raw[setting];
     if (!(rule.when ? rule.when(v) : on(v))) continue;
     if (production)

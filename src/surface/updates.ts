@@ -41,10 +41,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
   // answer 404 `not_enabled` while it is off, in every environment.
   media: [],
-  // Holder tiers, council, agent keys and the blind lane are outside the core launch surface as well, like program-mode
+  // Holder tiers, agent keys and the blind lane are outside the core launch surface as well, like program-mode
   // anchoring and paying in the token (src/surface/config.ts NON_CORE_SETTINGS): a core production router refuses these
   // settings whatever this file says, so each needs its review and its place on the surface before its switch can open
-  // it (UPDATES.md).
+  // it (UPDATES.md). Council has that place: CORE_WHEN_RELEASED below.
   holders: [{ setting: "TRLS_TOKEN_ADDRESS" }, { setting: "HOLDER_TIERS" }],
   council: [{ setting: "TRELLIS_FEATURE_COUNCIL", when: truthy }],
   agents: [
@@ -64,6 +64,21 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
     { setting: "TRLS_POOL_LEGS" }, { setting: "TRLS_POOL_PROGRAM" }, { setting: "TRELLIS_FEE_ROUTER_PROGRAM_ID" },
   ],
 };
+
+/**
+ * Settings of a feature outside the core launch surface that an update admits there once it is released
+ * (src/surface/config.ts reads this). An update that is not named here cannot be opened in core by its switch.
+ * Council: the `council` and `verify` request fields and the model `trellis/council` (src/surface/request.ts).
+ */
+export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> = {
+  council: ["TRELLIS_FEATURE_COUNCIL"],
+};
+
+/** The non-core settings the released updates admit on the core surface, for this environment. */
+export function releasedCoreSettings(raw: Raw): Set<string> {
+  const state = updateState(raw);
+  return new Set(UPDATE_NAMES.filter((name) => state[name]).flatMap((name) => CORE_WHEN_RELEASED[name] ?? []));
+}
 
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase()}`;
 export const branchName = (name: UpdateName) => `update/${UPDATES[name].update}-${name}`;

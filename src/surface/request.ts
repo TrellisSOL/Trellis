@@ -43,6 +43,10 @@ const NON_CORE_BODY_FIELDS: Record<string, string> = {
   debug: "Debug output (`debug`)",
 };
 const NON_CORE_MODEL_PREFIXES: [string, string][] = [["@route/", "Saved routes"], ["@preset/", "Presets"], ["@character/", "Characters"], ["trellis/council", "Council mode"]];
+const COUNCIL_FIELDS: ReadonlySet<string> = new Set(["council", "verify"]);
+const COUNCIL_PREFIX = "trellis/council";
+/** Council and dual verification on a core router: the update is released here and its setting is on. */
+export const councilInCore = (ctx: Ctx) => ctx.cfg.updates?.council === true && ctx.cfg.features?.council === true;
 /** `provider` preference keys core accepts: routing order and filters, the lane and the disclosure ceiling. */
 const CORE_PROVIDER_PREFS = new Set(["order", "only", "ignore", "allow_fallbacks", "sort", "quantizations", "data_collection", "require_parameters", "max_price", "zdr", "private", "lane", "disclosure", "lane_downgrade", "preferred_min_throughput", "preferred_max_latency"]);
 
@@ -76,13 +80,15 @@ const CORE_BODY_FIELDS: ReadonlySet<string> = new Set([
 /** The body half: called before the request is validated or anything about it is looked up. */
 export function enforceCoreBody(ctx: Ctx, body: Record<string, unknown>): void {
   if (!ctx.surface?.core) return;
-  for (const [field, what] of Object.entries(NON_CORE_BODY_FIELDS)) if (body[field] !== undefined && body[field] !== null) notEnabled(what);
-  for (const k of Object.keys(body)) if (!CORE_BODY_FIELDS.has(k) && body[k] !== undefined && body[k] !== null) throw new ApiError(400, `The parameter \`${k.slice(0, 40)}\` is not accepted by this router: only parameters it knows how to bound and price are forwarded to a provider.`, "unsupported_parameter", { parameter: k.slice(0, 40) });
+  // The council update, once released and switched on, admits its two request fields and its model name here.
+  const council = councilInCore(ctx);
+  for (const [field, what] of Object.entries(NON_CORE_BODY_FIELDS)) if (body[field] !== undefined && body[field] !== null && !(council && COUNCIL_FIELDS.has(field))) notEnabled(what);
+  for (const k of Object.keys(body)) if (!CORE_BODY_FIELDS.has(k) && !(council && COUNCIL_FIELDS.has(k)) && body[k] !== undefined && body[k] !== null) throw new ApiError(400, `The parameter \`${k.slice(0, 40)}\` is not accepted by this router: only parameters it knows how to bound and price are forwarded to a provider.`, "unsupported_parameter", { parameter: k.slice(0, 40) });
   const models = [body.model, ...(Array.isArray(body.models) ? body.models : [])];
   for (const m of models) {
     if (typeof m !== "string") continue;
     if (m.length > 256) throw new ApiError(400, "A model id is at most 256 characters.", "invalid_request");
-    for (const [prefix, what] of NON_CORE_MODEL_PREFIXES) if (m.startsWith(prefix)) notEnabled(what);
+    for (const [prefix, what] of NON_CORE_MODEL_PREFIXES) if (m.startsWith(prefix) && !(council && prefix === COUNCIL_PREFIX)) notEnabled(what);
   }
   const provider = body.provider;
   if (provider && typeof provider === "object" && !Array.isArray(provider))
