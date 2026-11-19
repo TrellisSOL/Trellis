@@ -149,7 +149,7 @@ Authorization: Bearer $TRELLIS_API_KEY
 
 export default function Docs() {
   return <PageFrame><main className="page-main" id="content">
-    <div className="page-title" data-reveal><span className="eyebrow">Docs / Developer documentation</span><h1>Build on<br/>one API.</h1><p>Change the base URL and the key. Every call returns a signed receipt. Payments are USDC on Solana; the lanes say where a prompt may run; the sections below say what the router does and does not do.</p></div>
+    <div className="page-title" data-reveal><span className="eyebrow">Docs / Developer documentation</span><h1>Build on<br/>one API.</h1><p>Choose a model, inspect a payment quote and check a receipt. Start here for the public API, read the <a className="inline-link" href="/whitepaper/">whitepaper</a> for the protocol, or see the <a className="inline-link" href="/roadmap/">roadmap</a> for upcoming capabilities.</p></div>
     <div className="side-layout">
       <nav className="side-nav" aria-label="Documentation sections" data-reveal="fade">
         <span className="side-nav-label">On this page</span>
@@ -199,7 +199,14 @@ export default function Docs() {
         <DocsSurfaceMarks />
         <section id="quickstart" className="docs-section">
           <h2>Quickstart</h2>
-          <p>Trellis speaks the OpenAI-compatible chat API. Point an existing client at <code>/api/v1</code> and use a Trellis key.</p>
+          <p>Use <code>https://trellischat.app/api/v1</code> as the base URL. Read the catalog and copy a chat model’s exact ID. This request only reads public information.</p>
+          <Code label="List models">{'curl -sS https://trellischat.app/api/v1/models'}</Code>
+          <p>Replace <code>MODEL_ID</code> below with that ID. Send this request without payment credentials to see the quote. HTTP 402 is the expected result. Read the accepted network, asset, amount and recipient before approving anything in a wallet.</p>
+          <Code label="Request a quote">{`curl -i https://trellischat.app/api/v1/chat/completions \\
+  -H 'Content-Type: application/json' \\
+  -d '{"model":"MODEL_ID","messages":[{"role":"user","content":"Say hello."}],"max_tokens":12,"stream":false}'`}</Code>
+          <p>To proceed, have an x402-compatible wallet client sign the accepted terms and retry the matching request with its payment payload. Keep the <code>PAYMENT-RESPONSE</code> and <code>X-Receipt-Id</code> headers when returned. Open <a className="inline-link" href="/verify/">Verify</a> with the receipt ID. If a paid response is interrupted, check payment recovery before authorizing another transfer.</p>
+          <p>For account-based integrations, check the <a className="inline-link" href="/status/">current payment modes</a> before using a bearer-key example.</p>
           <Code label="Two lines change">{sampleRequest}</Code>
           <FirstCallDocs />
         </section>

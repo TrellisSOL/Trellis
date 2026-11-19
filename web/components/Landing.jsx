@@ -10,7 +10,7 @@ import { FirstCall } from './landing/Previews';
 // The same examples the site has always listed as routable models.
 const MODELS = ['llama-3.3-70b', 'qwen3-32b', 'deepseek-r1', 'mistral-small', 'gemma-3-27b', 'kimi-k2', 'glm-4.6', 'gpt-oss-120b'];
 
-const STATS = [['0%', 'Router markup on the price of inference'], ['1 h', 'Between receipt roots written to Solana'], ['Ed25519', 'Signature on every receipt'], ['3', 'Ways to pay: credits, per call or a tab']];
+const STATS = [['0%', 'Router markup on the price of inference'], ['1 h', 'Between receipt roots written to Solana'], ['Ed25519', 'Signature on every receipt'], ['x402', 'Pay per call in USDC on Solana']];
 
 const RECEIPT = `{
   "v": 2,
@@ -18,39 +18,36 @@ const RECEIPT = `{
   "node": { "provider": "<provider id>" },
   "lane": "public",
   "credit": {
-    "mode": "prepaid",
+    "mode": "per_call",
     "cost_units": 812
   }
 }`;
 
 const STEPS = [
-  ['Create a key', 'Sign in with a Solana wallet or create a key. No email, no password.'],
-  ['Add funds', 'Top up from 1 USDC, or skip the balance and pay per call with x402.'],
-  ['Call any model', 'Use the SDK you already have. Each answer returns with its receipt id.'],
+  ['Choose a model', 'Read the catalog and select a chat model that supports your request.'],
+  ['Review the quote', 'An unpaid call returns payment terms. Check the network, asset, recipient and amount.'],
+  ['Approve the call', 'Use an x402 wallet client to authorize payment. Keep the receipt ID with the answer.'],
 ];
 
 const PRICING = [
-  ['Router markup', 'None. You pay what the provider charges.'],
-  ['Prepaid credits', 'Top up from 1 USDC, from any Solana wallet.'],
-  ['Per call (x402)', '0.03 USDC minimum. The Solana network fee is passed on at cost, on its own line.'],
-  ['Tabs', 'Up to 500 USDC, drawn per call and settled when the tab closes.'],
-  ['Launch limit', 'Up to 5,000 USDC of credits per key.'],
-  ['Leaving', 'Close the account and what is left goes back to the wallet that paid it.'],
+  ['Inference', 'Check the input and output rates for your model in the catalog.'],
+  ['Per call', 'Review the USDC quote before authorizing an x402 payment.'],
+  ['Network fee', 'The quote includes the pass-through network fee.'],
 ];
 
 const SCOPE = [
-  ['Available at launch', ['Chat, completions and embeddings', 'The model catalogue and API keys', 'Prepaid credits, x402 per call and tabs', 'Signed receipts with hourly roots on Solana', 'The sealed lane, through an attested gateway']],
-  ['Enabled after review', ['The blind lane, paid with single-use tokens', 'Agent rulebooks and approvals', 'Teams, webhooks and batches', 'Bonded hosts on the open network']],
+  ['Available at launch', ['Public-route inference', 'Model catalog and pricing', 'Per-call USDC payments', 'Signed receipts and memo anchors']],
+  ['Planned', ['Prepaid credits and capped tabs', 'Hosted payment facilitator', 'Sealed inference', 'Program-based receipt roots']],
 ];
 
 const QUESTIONS = [
   ['What is Trellis?', 'An inference router for open models, paid in USDC on Solana. It speaks the OpenAI and OpenRouter APIs, so the SDK you already use works, and every answer comes with a signed receipt.'],
-  ['Do I need an account?', 'No email and no password. Create a key, or sign in with a Solana wallet by signing a message. Signing in moves no funds; a top-up is its own transaction that you approve.'],
-  ['How is a call priced?', 'Before a call, a hold covers the most it can cost. Afterwards you are charged actual usage, never more than the hold. A provider failure that produced no tokens costs nothing.'],
+  ['Do I need an account?', 'No email and no password. Create a key, or sign in with a Solana wallet by signing a message. The wallet separately authorizes per-call payments.'],
+  ['How is a call priced?', 'The catalog lists model rates. Request an x402 quote to see the payment terms for a particular call.'],
   ['What does a receipt prove?', 'That the router signed this record of the call: the model, the provider, the token buckets and the cost. The hourly Merkle root on Solana lets anyone show that the receipt is in that hour’s tree.'],
   ['What happens if a provider fails?', 'The call can fall back to another provider serving the same model, and the receipt names the one that answered.'],
-  ['Who can read my prompts?', 'On the open lane the router reads the request in memory to route and meter it, and the provider that answers reads it too. The sealed lane sends it to a confidential gateway whose attestation the router checks first.'],
-  ['Can I withdraw my balance?', 'Yes. Close the account and what is left goes back to the wallet that paid it, at most what that wallet put in. The key stops spending as soon as you ask.'],
+  ['Who can read my prompts?', 'On the open lane the router reads the request in memory to route and meter it, and the provider that answers reads it too. Sealed inference is planned.'],
+  ['Do I need to deposit funds?', 'At launch you can pay for each call directly from your wallet. Prepaid balances are planned.'],
 ];
 
 const TRUST = [
@@ -109,13 +106,13 @@ export default function Landing() {
           </article>
           <article className={styles.card}>
             <p className={styles.cardLabel}>At cost</p>
-            <h3>One USDC balance</h3>
+            <h3>Pay for a call</h3>
             <dl className={styles.ways}>
-              <div><dt>Prepaid credits</dt><dd>from 1 USDC</dd></div>
+              <div><dt>Asset</dt><dd>USDC on Solana</dd></div>
               <div><dt>Per call, x402</dt><dd>0.03 USDC min.</dd></div>
-              <div><dt>Tab</dt><dd>up to 500 USDC</dd></div>
+              <div><dt>Approval</dt><dd>Per quote</dd></div>
             </dl>
-            <p>Prepay from any Solana wallet and spend on any model, or pay per call with x402. What is left goes back to the wallet that paid it.</p>
+            <p>Review the quote for your request, then authorize it with an x402-compatible wallet client.</p>
             <a className={styles.link} href="/dashboard/">Open the dashboard <Arrow className={styles.arrow}/></a>
           </article>
         </div>
@@ -163,8 +160,8 @@ export default function Landing() {
         <div className={styles.sealed}>
           <div>
             <p className={styles.kicker}>Sealed lane</p>
-            <h2 id="sealed-title">Confidential inference you can verify.</h2>
-            <p>The sealed lane sends requests to a confidential gateway running on attested hardware, paid per token from the same balance.</p>
+            <h2 id="sealed-title">Sealed inference is planned.</h2>
+            <p>The planned sealed lane would check hardware evidence before sending the request. The launch catalog offers public routes.</p>
             <a className={styles.btnLight} href="/trust/">Open the trust center</a>
           </div>
           <ol className={styles.checks} aria-label="What the router checks before a sealed call">
@@ -180,7 +177,7 @@ export default function Landing() {
       <div className={`${styles.wrap} ${styles.split}`}>
         <div>
           <h2 id="pricing-title">Priced at cost.</h2>
-          <p className={styles.body}>Trellis adds nothing to the price of inference. Before a call, a hold covers the most it can cost; afterwards you are charged actual usage, never more than the hold.</p>
+          <p className={styles.body}>Trellis adds nothing to the price of inference. The catalog lists model rates and each x402 request has its own quote.</p>
           <a className={styles.link} href="/cost/">Estimate a call <Arrow className={styles.arrow}/></a>
         </div>
         <dl className={styles.table}>{PRICING.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
@@ -191,7 +188,7 @@ export default function Landing() {
       <div className={styles.wrap}>
         <div className={styles.head}>
           <h2 id="scope-title">What is live at launch.</h2>
-          <p>Each feature outside the core joins only after its own security review. <a className={styles.inline} href="/how-it-works/">Take the full tour</a></p>
+          <p>Check the milestones for each planned feature. <a className={styles.inline} href="/roadmap/">Read the roadmap</a></p>
         </div>
         <div className={styles.scope}>{SCOPE.map(([title, items], i) => <div key={title}>
           <h3><span className={i ? styles.dotLater : styles.dotLive} aria-hidden="true"/>{title}</h3>
@@ -216,7 +213,7 @@ export default function Landing() {
         <div>
           <WovenMark className={styles.closingMark}/>
           <h2 id="closing-title">Start with one key.</h2>
-          <p className={styles.body}>Add a few dollars of USDC and call any open model.</p>
+          <p className={styles.body}>Choose a model and review a USDC quote before your first call.</p>
           <div className={styles.actions}>
             <a className={styles.btnDark} href="/dashboard/">Get an API key</a>
             <a className={styles.link} href="/how-it-works/">How it works <Arrow className={styles.arrow}/></a>
@@ -230,7 +227,7 @@ export default function Landing() {
 
 const COLUMNS = [
   ['Product', [['Models', '/models/'], ['Pricing', '/cost/'], ['Dashboard', '/dashboard/'], ['How it works', '/how-it-works/']]],
-  ['Developers', [['Docs', '/docs/'], ['Quickstart', '/docs/#quickstart'], ['SDKs', '/docs/#sdk'], ['Protocol spec', '/spec/']]],
+  ['Developers', [['Docs', '/docs/'], ['Whitepaper', '/whitepaper/'], ['Roadmap', '/roadmap/'], ['Quickstart', '/docs/#quickstart'], ['SDKs', '/docs/#sdk'], ['Protocol spec', '/spec/']]],
   ['Trust', [['Check a receipt', '/verify/'], ['Trust center', '/trust/'], ['Status', '/status/'], ['Terms', '/legal/terms/'], ['Privacy', '/legal/privacy/']]],
 ];
 

@@ -85,7 +85,8 @@ export const TASKS = [
   task('proof-time', 'verify', 'Inspect proof freshness', 'Read proof-time observations and what they establish.', '/status/#proof-time', 'proof time, freshness, evidence'),
 
   task('docs', 'learn', 'Read the docs', 'Browse guides and reference sections for Trellis tools.', '/docs/', 'documentation, guide, help', true),
-  task('roadmap', 'learn', 'See the roadmap', 'See what is available and what comes next.', '/how-it-works/#roadmap', 'roadmap, planned, future'),
+  task('whitepaper', 'learn', 'Read the whitepaper', 'Understand routing, per-call payments and receipt verification.', '/whitepaper/', 'protocol, whitepaper, evidence'),
+  task('roadmap', 'learn', 'See the roadmap', 'See what is available and what comes next.', '/roadmap/', 'roadmap, planned, future'),
   task('about', 'learn', 'Learn about Trellis', 'Read the project’s purpose and approach.', '/how-it-works/#about', 'about, purpose, project'),
   task('privacy-notice', 'learn', 'Read the data notice', 'Read the site’s data-handling notice and privacy limits.', '/legal/privacy/', 'legal, privacy notice, data notice'),
   task('terms', 'learn', 'Read the terms', 'Read the terms for using Trellis.', '/legal/terms/', 'legal, terms, conditions'),

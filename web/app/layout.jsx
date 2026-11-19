@@ -7,7 +7,7 @@ import './calm.css';
 import './mobile.css';
 import HomeScreenHint from '../components/HomeScreenHint';
 import { startupImages } from '../lib/splash-screens.js';
-export const metadata={title:'Trellis — Every open model. One line of code. Proof on every call.',description:'The inference router on Solana: USDC payments, signed receipts, encrypted chat, agent rulebooks and a network open for early hosts.',manifest:'/manifest.webmanifest',appleWebApp:{capable:true,title:'Trellis',statusBarStyle:'black-translucent',startupImage:startupImages()},formatDetection:{telephone:false},other:{'apple-mobile-web-app-capable':'yes'},icons:{apple:'/pwa/apple-touch-icon.png',icon:[{url:'/brand/trellis-mark.svg',type:'image/svg+xml'}]}};
+export const metadata={title:'Trellis — Every open model. One line of code. Proof on every call.',description:'Explore models, pay per call in USDC on Solana, and verify signed inference receipts.',manifest:'/manifest.webmanifest',appleWebApp:{capable:true,title:'Trellis',statusBarStyle:'black-translucent',startupImage:startupImages()},formatDetection:{telephone:false},other:{'apple-mobile-web-app-capable':'yes'},icons:{apple:'/pwa/apple-touch-icon.png',icon:[{url:'/brand/trellis-mark.svg',type:'image/svg+xml'}]}};
 export const viewport={themeColor:'#09090b',viewportFit:'cover'};
 // The inline script marks a Home Screen launch (html[data-standalone], app/mobile.css) and, on iPhone and iPad, adds
 // maximum-scale=1: iOS still lets people pinch-zoom, but stops zooming the page in when a small input is focused.

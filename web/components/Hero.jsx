@@ -16,7 +16,7 @@ export default function Hero() {
       <div className={styles.heroCopy}>
         <p className={styles.heroKicker}>The open inference router</p>
         <h1 id="hero-title">Every open model.<br/>One key.</h1>
-        <p className={styles.heroLede}>One OpenAI-compatible API for the open models, one prepaid balance in USDC, and a signed receipt for every answer.</p>
+        <p className={styles.heroLede}>One OpenAI-compatible API for the open models, per-call USDC payments on Solana, and a signed receipt for every answer.</p>
         <div className={styles.actions}>
           <a className={styles.btnLight} href="/dashboard/">Get an API key</a>
           <a className={styles.btnGhost} href="/docs/">Read the docs <Arrow className={styles.arrow}/></a>

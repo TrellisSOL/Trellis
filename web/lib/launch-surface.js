@@ -75,14 +75,14 @@ export const servedBy = (kind, ids, routes = ROUTER_CORE_ROUTES) => ids.filter(i
 
 export const CORE = {
   // Pages, as app/**/page.jsx routes. /graft/ and /spec/ are reference reading: they stay open and carry one marker.
-  page: servedBy('page', ['/', '/how-it-works/', '/cost/', '/dashboard/', '/docs/', '/graft/', '/harness/', '/holders/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
+  page: servedBy('page', ['/', '/how-it-works/', '/cost/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
     '/registry/', '/registry/[id]/', '/spec/', '/spec/[doc]/', '/status/', '/tabs/', '/trust/', '/verify/']),
   // Menu, homepage-map, footer and search entries (lib/site-map.js TASKS).
   nav: ['chat', 'images', 'vision', 'voice', 'history', 'install', 'models', 'model-alternatives', 'prompt-library',
     'dashboard', 'api', 'cost', 'payments', 'lanes', 'registry', 'playground', 'settings', 'get-usdc', 'account-keys', 'account-payments', 'key-management',
     'unused-keys', 'deposit-countdown', 'tabs',
     'receipt', 'trust', 'status', 'keep', 'provider-check', 'proof-time', 'proof-pack-check',
-    'docs', 'roadmap', 'about', 'privacy-notice', 'terms', 'holders'],
+    'docs', 'whitepaper', 'roadmap', 'about', 'privacy-notice', 'terms', 'holders'],
   // Account sections (lib/site-map.js ACCOUNT_SECTIONS, by task id): Home, Playground, Models, Providers, API keys, Payments, Receipts, Settings, What we keep.
   section: servedBy('section', ['dashboard', 'playground', 'models', 'providers', 'account-keys', 'account-payments', 'api-receipts', 'settings', 'keep']),
   // Search actions (lib/site-map.js ACTIONS).
