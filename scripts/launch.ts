@@ -1,21 +1,31 @@
-// One command to run all of Trellis on this machine: three mock model providers, the router, and the website
-// served at /. TODO(solana): a local validator with the Anchor programs deployed; until then payments are placeholders.
+// One command to run all of Trellis on this machine: a local validator with the Trellis programs, three mock model
+// providers, the router, and the website served at /. With the chain up the paid flow works end to end: the dashboard's
+// test faucet deposits test USDC through trellis_credits, calls are charged, receipts are signed and rooted.
 //   bun run launch              # http://127.0.0.1:8787
-//   bun run launch --fresh      # wipe the local database first
+//   bun run launch --fresh      # wipe the local database first (with a chain, every launch starts empty anyway)
+//   bun run launch --no-chain   # no validator: payments are placeholders and model calls answer 402
+//   LAUNCH_TIER=minimal bun run launch   # the launch without a program: pay per call (x402) only, core surface;
+//                                        # pay for a call with `bun scripts/demo/local-x402.ts`
 //   bun run launch --open       # also open the site in the default browser
 //   bun run launch --port 8800  # serve on another port
 // If it is already running, it prints the address instead of starting a second copy.
 // The database and the admin token persist in .data/ between runs. Everything here is local test
 // infrastructure: mock providers and mock models.
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import type { Subprocess } from "bun";
+import { planLocalChain, prepareLocalChain, toolPath, type LocalChain } from "./lib/local-chain.ts";
+
+// The launcher may be started from a shell that has not loaded the profile (an editor, a preview pane): find bun, cargo
+// and the Solana tools where they are usually installed.
+process.env.PATH = toolPath();
 
 const ROOT = resolve(import.meta.dir, "..");
 const DATA = resolve(ROOT, ".data");
 const WEB = resolve(ROOT, "web");
-const CHAIN_ID = 101; // wallet-adapter id of mainnet-beta; the local launch has no chain yet (TODO(solana): solana-test-validator)
+const CHAIN_ID = 101; // wallet-adapter id the router reports without a chain (--no-chain)
+const CHAIN_PORT = Number(process.env.LAUNCH_CHAIN_PORT ?? 8899);
 const DB_DIR = resolve(DATA, "pglite-launch");
 const SECRETS_FILE = resolve(DATA, "launch.env");
 const ENV_LOCAL = resolve(ROOT, ".env.local");
@@ -24,6 +34,8 @@ const PROVIDER_PORTS = [9101, 9102, 9103];
 const args = process.argv.slice(2);
 const fresh = args.includes("--fresh");
 const openBrowser = args.includes("--open");
+const noChain = args.includes("--no-chain");
+const TIER = process.env.LAUNCH_TIER === "minimal" ? "minimal" : "credits";
 const portArg = args.indexOf("--port");
 const PORT_FIXED = portArg >= 0 || !!process.env.PORT;
 let PORT = portArg >= 0 ? Number(args[portArg + 1]) : Number(process.env.PORT ?? 8787);
@@ -136,7 +148,7 @@ async function runningInstance(): Promise<string | null> {
     try {
       const r = await fetch(`http://127.0.0.1:${port}/api/v1/status`, { signal: AbortSignal.timeout(1500) });
       const d = ((await r.json()) as { data?: { dev_faucet?: boolean; chain?: { chain_id?: number } } }).data;
-      if (d?.dev_faucet && d.chain?.chain_id === CHAIN_ID) return `http://127.0.0.1:${port}`;
+      if (d?.dev_faucet || d?.chain?.chain_id === CHAIN_ID) return `http://127.0.0.1:${port}`;
     } catch {
       /* not ours */
     }
@@ -174,11 +186,37 @@ async function main() {
 
   await buildWebsite();
 
-  // ---- chain
-  // TODO(solana): start a local validator (solana-test-validator) and deploy the Anchor programs here. Until then the
-  // router runs with the Solana placeholder layer: no deposits, no per-call payments, so every key's balance stays 0.
-  // The paid flow (deposit, call, receipt, tab) runs against devnet: scripts/demo/README.md.
-  say("no local chain yet: payments run as placeholders (TODO(solana))");
+  // ---- chain: a local validator with the programs loaded (scripts/lib/local-chain.ts). Without the Solana tools or the
+  // program builds the router runs with the placeholder layer: no deposits, no per-call payments, every balance stays 0.
+  let chain: LocalChain | null = null;
+  if (noChain) say("--no-chain: payments run as placeholders");
+  else {
+    // The chain starts from an empty ledger on every launch: a test validator restarted on an old ledger no longer
+    // serves the transactions the router's indexer has already read, and the indexer then cannot find its place. A
+    // database belongs to one ledger (balances, cursors, receipts name its transactions), so it starts over as well.
+    const plan = planLocalChain(ROOT, DATA, CHAIN_PORT);
+    if (!plan.ok) say(`no local chain: ${plan.why}. Payments run as placeholders`);
+    else if (await listening(CHAIN_PORT)) die(`port ${CHAIN_PORT} (the local validator) is already in use. Stop the other validator, set LAUNCH_CHAIN_PORT, or pass --no-chain.`);
+    else {
+      const marker = resolve(plan.dir, "database-belongs-to-this-chain");
+      if (existsSync(DB_DIR)) {
+        if (existsSync(marker)) rmSync(DB_DIR, { recursive: true, force: true });
+        else {
+          // A database from before the launcher had a chain: not this launcher's to delete.
+          const aside = `${DB_DIR}.before-chain-${Date.now()}`;
+          say(`keeping the earlier launch database at ${aside}`);
+          renameSync(DB_DIR, aside);
+        }
+      }
+      writeFileSync(marker, "The launch database next to this directory was made for this local chain and is removed with it.\n");
+      say("the local chain and its database start empty (test validator; nothing here outlives a launch)");
+      say(`starting a local validator with the Trellis programs (port ${CHAIN_PORT})`);
+      spawn("validator", plan.validatorArgs, { log: resolve(DATA, "launch-validator.log"), signal: "SIGINT" });
+      await waitFor("the local validator", async () => (await fetch(plan.rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getHealth" }) }).then((r) => r.json()) as { result?: string }).result === "ok", 120_000);
+      say("preparing the chain: keys funded, test USDC mint, trellis_credits initialised");
+      chain = await prepareLocalChain(plan.dir, plan.rpc, TIER);
+    }
+  }
 
   // ---- secrets for this local install (never committed; .data/ is ignored)
   if (!existsSync(SECRETS_FILE)) {
@@ -203,6 +241,9 @@ async function main() {
     PAYWITH_THRESHOLD_USD: "0.000001",
     LOG_LEVEL: process.env.LOG_LEVEL ?? "warn",
     WEB_DIR: resolve(WEB, "out"),
+    // The test faucet is outside the core launch surface, so the local chain runs the full one unless told otherwise.
+    // Tier minimal has no faucet (no credits program), so it runs the core surface: the launch as it would be served.
+    ...(chain ? { LAUNCH_SURFACE: process.env.LAUNCH_SURFACE ?? local.LAUNCH_SURFACE ?? (chain.tier === "minimal" ? "core" : "all"), ...chain.env } : {}),
   };
 
   // ---- mock providers, then seed them (the database is single-process, so seed before the router)
@@ -222,14 +263,20 @@ async function main() {
     Website    ${URL_BASE}/
     Dashboard  ${URL_BASE}/dashboard/
     API        ${URL_BASE}/api/v1   (OpenAI/OpenRouter-compatible)
-    Chain      none yet (chain id ${CHAIN_ID}; payments are placeholders)
+    Chain      ${chain ? `local validator on port ${CHAIN_PORT} (${chain.network}); test USDC ${chain.usdcMint}` : `none (chain id ${CHAIN_ID}; payments are placeholders)`}
 
-  Try it: the website, docs, model list and dashboard, and creating a key. Model calls answer 402 (no balance):
-  with no local chain there is nothing to deposit on. The paid flow runs against devnet (scripts/demo/README.md).
-  All money and models here are test fixtures.
+  ${chain
+    ? chain.tier === "minimal"
+      ? `Tier minimal: pay per call only. Pay for one call with the local test wallet (it holds test USDC and no SOL):
+      bun scripts/demo/local-x402.ts${PORT === 8787 ? "" : ` --url ${URL_BASE}`}
+  All money and models here are test fixtures.`
+      : `Try it: create a key in the dashboard, press the test faucet to deposit test USDC through trellis_credits, call a
+  model and open its signed receipt. All money and models here are test fixtures.`
+    : `Try it: the website, docs, model list and dashboard, and creating a key. Model calls answer 402 (no balance):
+  without a local chain there is nothing to deposit on. All money and models here are test fixtures.`}
 
   Local credentials are stored in .data/launch.env.
-  Your chain, keys and balances are kept in .data/ between runs; "bun run launch --fresh" starts over.
+  ${chain ? "The local chain, its keys and balances start empty on every launch." : 'Keys and balances are kept in .data/ between runs; "bun run launch --fresh" starts over.'}
   Press Ctrl-C to stop everything.
 `);
   if (openBrowser) openUrl(URL_BASE + "/");
