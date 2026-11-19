@@ -17,7 +17,7 @@ import spec from "../features.json" with { type: "json" };
 type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
-export const UPDATE_NAMES = ["credits", "tabs", "facilitator", "sealed", "anchor"] as const;
+export const UPDATE_NAMES = ["credits", "tabs", "facilitator", "sealed", "anchor", "media"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -37,6 +37,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   facilitator: [{ setting: "FACILITATOR_ENABLED", when: truthy }, { setting: "FACILITATOR_RELAY_PRIVATE_KEY" }],
   sealed: [{ setting: "PRIVATE_AI_BASE_URL" }, { setting: "PRIVATE_AI_ATTESTATION_URL" }],
   anchor: [{ setting: "TRELLIS_ANCHOR_PROGRAM_ID" }, { setting: "RECEIPT_ANCHOR_ADDRESS" }, { setting: "ANCHOR_MODE", when: (v) => v === "program" }],
+  // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
+  // answer 404 `not_enabled` while it is off, in every environment.
+  media: [],
 };
 
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase()}`;

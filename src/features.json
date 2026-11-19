@@ -37,5 +37,13 @@
     "title": "Receipt roots in the anchor program",
     "summary": "The hourly receipt root is held by a program account instead of a memo, so anyone can read it from the chain's state without walking a key's history.",
     "includes": ["One root account per hour", "Receipt signing keys published and rotated on chain", "Proofs checked against program state", "Earlier memo roots stay verifiable as memos"]
+  },
+
+  "media": {
+    "update": 6,
+    "on": false,
+    "title": "Images and video",
+    "summary": "Generate images and short videos from a prompt, each in a tab of its own, paid from the same balance and with a signed receipt for every generation.",
+    "includes": ["Images tab: one to four images per prompt", "Video tab: a clip from a prompt, ready in minutes", "Per-generation prices shown before you order", "Files served by the router for 24 hours"]
   }
 }

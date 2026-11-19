@@ -93,6 +93,7 @@ import { dayzeroRoutes } from "./api/dayzero.ts";
 import { creatorClaimRoutes } from "./api/creator-claims.ts";
 import { publicRoutes } from "./api/public.ts";
 import { embeddingsRoutes } from "./api/embeddings.ts";
+import { mediaRoutes } from "./api/media.ts";
 import { batchesRoutes } from "./api/batches.ts";
 import { rerankRoutes } from "./api/rerank.ts";
 import { adminRoutes } from "./admin/trpc.ts";
@@ -216,6 +217,7 @@ export async function createApp(opts: AppOptions = {}) {
   mount("chat", () => { chatRoutes(app, ctx); });
   mount("e2ee", () => { e2eeRoutes(app, ctx); });
   mount("embeddings", () => { embeddingsRoutes(app, ctx); });
+  mount("media", () => { mediaRoutes(app, ctx); }); // update 6: images and video; 404 not_enabled until its switch is on
   mount("batches", () => { batchesRoutes(app, ctx); });
   mount("rerank", () => { rerankRoutes(app, ctx); });
   mount("models", () => { modelsRoutes(app, ctx); });

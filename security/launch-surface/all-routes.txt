@@ -195,6 +195,12 @@ mcp	GET /mcp
 mcp	POST /mcp
 measurements	GET /api/v1/measurements/bundles/:providerId
 measurements	GET /api/v1/measurements/key
+media	GET /api/v1/images/generations/:id
+media	GET /api/v1/media/files/:id/:n
+media	GET /api/v1/media/models
+media	GET /api/v1/videos/generations/:id
+media	POST /api/v1/images/generations
+media	POST /api/v1/videos/generations
 memory	DELETE /api/v1/memory
 memory	DELETE /api/v1/memory/:id
 memory	GET /api/v1/memory

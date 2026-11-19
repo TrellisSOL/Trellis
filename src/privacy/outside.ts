@@ -217,6 +217,14 @@ const redisFamilies: RedisFamily[] = [
     evidence: [ev("src/api/chat.ts", "await limitOrThrow(ctx, `acct:${key.accountId}`"), ev("src/api/embeddings.ts", "await ctx.limiter.take(`acct:${key.accountId}`")],
   }),
   limit({
+    prefix: "media:",
+    shape: "media:<account id>",
+    purpose: "Image and video generations one account may order a minute (MEDIA_PER_MINUTE; update 6, off until its release switch is on). Keyed by the account id; no address is read, because a generation is ordered with a key.",
+    holds: "account",
+    seconds: 60,
+    evidence: [ev("src/api/media.ts", "await ctx.limiter.take(`media:${key.accountId}`")],
+  }),
+  limit({
     prefix: "slow-k:",
     shape: "slow-k:<first 32 hex characters of the SHA-256 of the presented key>",
     purpose: "Inference calls of one API key that the router had to cut off (its timeout, an answer above the size it reads) inside ten minutes (SLOW_CALLS_PER_10MIN; security review R5-04); past the limit further calls of that key are refused until the window ends. A count; nothing of the calls themselves.",
@@ -545,6 +553,14 @@ const bodyReaders: ExternalDoc["bodyReaders"] = [
     then: "Sent to the provider chosen and the vectors returned.",
     kept: "Not stored; a generation row and receipt with hashes and counts are written.",
     evidence: [ev("src/api/embeddings.ts", "const body = await readJson(c);")],
+  },
+  {
+    file: "src/api/media.ts",
+    carries: "prompt-or-answer",
+    reads: "The JSON body of an image or video order: the prompt, the model and the generation settings, and optionally the address of a source image (update 6; refused with 404 until its release switch is on).",
+    then: "Checked, then the fields the upstream accepts are sent to it. The files it makes are not copied: the router keeps their addresses with the job and passes the bytes through when the caller reads them, for 24 hours.",
+    kept: "The prompt is not stored. The job record keeps the SHA-256 of the request, the model, the count, the amounts held and charged and the addresses of the result files; a generation row and receipt with hashes and the cost are written when it finishes.",
+    evidence: [ev("src/api/media.ts", "const body = (await readJson(c)) as Record<string, unknown>;"), ev("src/api/media.ts", "requestSha256: sha256(JSON.stringify(body))")],
   },
   {
     file: "src/api/rerank.ts",

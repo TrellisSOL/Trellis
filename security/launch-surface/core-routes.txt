@@ -45,6 +45,12 @@ keys	POST /api/v1/credits/owner-tx
 keys	POST /api/v1/credits/refund-destination-tx
 keys	POST /api/v1/keys
 makegood	GET /api/v1/refunds
+media	GET /api/v1/images/generations/:id
+media	GET /api/v1/media/files/:id/:n
+media	GET /api/v1/media/models
+media	GET /api/v1/videos/generations/:id
+media	POST /api/v1/images/generations
+media	POST /api/v1/videos/generations
 models	ALL /api/v1/models
 models	ALL /v1/models
 models	GET /api/v1/models

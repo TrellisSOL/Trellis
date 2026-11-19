@@ -8,6 +8,7 @@ health-probes
 holds-expire
 job-watchdog
 low-balance-alerts
+media-jobs
 provider-reconcile
 provider-registry
 receipt-key-rotation

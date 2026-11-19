@@ -113,6 +113,8 @@
 .dock[data-chat] .dockNav{gap:2px;padding-right:12px;align-self:flex-end}
 .dockItem{position:relative;display:grid;place-items:center;width:52px;height:51px;padding:0;border:0;border-radius:8px;background:none;color:#eceee8;text-decoration:none}
 .dockItem img{width:44px;height:44px;object-fit:contain;opacity:.96;filter:drop-shadow(0 1px .4px #0007)}
+.dockItem svg{width:30px;height:30px;opacity:.92}
+.dock[data-chat] .dockItem svg{width:22px;height:22px}
 .dock[data-chat] .dockItem{width:44px;height:44px}
 .dock[data-chat] .dockItem img{width:29px;height:29px}
 .dockItem:hover{background:#ffffff0c}

@@ -5,7 +5,8 @@ import SiteSearch from '../nav/SiteSearch';
 import { openSiteSearch } from '../nav/SearchButton';
 import { Lockup } from '../landing/Mark';
 import { ACCOUNT_SECTIONS } from '../../lib/site-map.js';
-import { PAGES, moreGroups, pageOf, pageSections } from './workspace-map.js';
+import { MEDIA_PAGES, PAGES, moreGroups, pageOf, pageSections } from './workspace-map.js';
+import { useUpdate } from '../media/useUpdate.js';
 import '../nav/nav.css'; // The search dialog's styles; the site header usually brings them.
 import w from './Workspace.module.css';
 
@@ -114,8 +115,16 @@ function More({ current, surface, onNavigate }) {
 }
 
 /** The floating dock: the six pages as object icons, More, and either the chat composer (Chat) or search. */
-export function Dock({ current, surface, onNavigate, chat, slotRef }) {
+// Images and Video (update 6) are pages of their own (app/images, app/video): they join the dock once the router has
+// released the update. Drawn icons, until the set has painted ones for them.
+const MEDIA_ICONS = {
+  images: <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="13" r="2.2" fill="currentColor"/><path d="M6.5 22l6-6 4.5 4.5 3-3 5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>,
+  video: <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="8" width="17" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M21 14l7-4v12l-7-4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>,
+};
+
+export function Dock({ current, surface, onNavigate, chat, slotRef, mediaHere }) {
   const here = pageOf(current);
+  const media = useUpdate('media')?.on;
   return <div className={w.dock} data-chat={chat ? '' : undefined}>
     <nav className={w.dockNav} aria-label="Workspace">
       {PAGES.map(page => {
@@ -125,6 +134,7 @@ export function Dock({ current, surface, onNavigate, chat, slotRef }) {
           <img src={`/dashboard-icons/${page.icon}.png`} alt="" width="44" height="44"/>
         </a>;
       })}
+      {media && MEDIA_PAGES.map(page => <a key={page.id} className={w.dockItem} href={page.href} title={page.label} aria-label={page.label} aria-current={mediaHere === page.id ? 'page' : undefined}>{MEDIA_ICONS[page.id]}</a>)}
       <More current={current} surface={surface} onNavigate={onNavigate}/>
     </nav>
     {chat

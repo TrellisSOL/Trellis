@@ -13,6 +13,12 @@ export const PAGES = [
   { id: 'settings', label: 'Settings', icon: 'settings', ids: ['settings', 'keep', 'webhooks', 'account-export'] },
 ];
 
+/** Images and Video (update 6): pages of their own, shown in the dock once the router has released the update. */
+export const MEDIA_PAGES = [
+  { id: 'images', label: 'Images', href: '/images/' },
+  { id: 'video', label: 'Video', href: '/video/' },
+];
+
 const byId = id => ACCOUNT_SECTIONS.find(section => section.taskId === id);
 /** The sections of a page that this router offers (all of them until the router has said it runs the core surface). */
 export const pageSections = (page, surface) => page.ids.map(byId).filter(section => section && enabled('section', section.taskId, surface));
