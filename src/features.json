@@ -17,7 +17,7 @@
 
   "tabs": {
     "update": 3,
-    "on": false,
+    "on": true,
     "title": "Tabs",
     "summary": "Authorize a ceiling, pay for what you used, and get the rest back when the tab closes.",
     "includes": ["Open a tab with a spending cap", "Session-key vouchers per call", "The unused part returned at close", "Tab close posted by the router near the cap or expiry"]
