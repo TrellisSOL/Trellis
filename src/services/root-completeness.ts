@@ -42,7 +42,7 @@ export type RootReconciliation = {
     settled_within_total: boolean;
     funded_usdc: string;
     withdrawn_usdc: string;
-    /** Indexed Credits funding events and the ledger credits they produced agree one-to-one. */
+    /** The ledger against the indexed funding events: keys credited less than their processed events, rows above their event, rows with no event. */
     processed_without_credit: number;
     credit_amount_mismatches: number;
     credits_without_event: number;
@@ -70,19 +70,32 @@ export async function reconcileSpentRoots(db: Db, opts: { graceMs: number; now?:
       .where(and(eq(chainEvents.contract, "credits"), eq(chainEvents.event, "Withdrawn")))
       .groupBy(keyHash),
     db.select().from(spentRoots).orderBy(desc(spentRoots.epoch)).limit(1),
-    // The indexer writes ledger ref dep:/cred:<tx>:<logIndex> for each funding event it applies.
+    // The ledger against the funding events, by the rules of the credits indexer (src/solana/credits-indexer.ts). It
+    // writes one ledger row per Deposited event it credits (ref deposit:<signature>:<log index>) and, for deposits read
+    // from chain state before their event, one per total reached (ref deposit:state:<key>:<total>). An event is marked
+    // processed only while the key's ledger deposits cover every processed event of that key, and a row never credits
+    // more than its own event. So, per key and per row:
+    //   - a key whose ledger deposits are below the sum of its processed Deposited events was marked without its credit;
+    //   - a row above its event's amount credited more than was deposited.
+    // (An event may be processed with no row of its own: its deposit was already credited from chain state.)
     db.execute(sql`
       SELECT
-        count(*) FILTER (WHERE e.processed AND l.id IS NULL)::int AS processed_without_credit,
-        count(*) FILTER (WHERE l.id IS NOT NULL AND l.amount::numeric <> (e.args->>'amount')::numeric * 1000000)::int AS amount_mismatches
-      FROM chain_events e
-      LEFT JOIN ledger l ON l.ref = (CASE WHEN e.event = 'Deposited' THEN 'dep:' ELSE 'cred:' END) || e.tx_hash || ':' || e.log_index
-      WHERE e.contract = 'credits' AND e.event IN ('Deposited', 'Credited')`).then((r) => rowsOf<{ processed_without_credit: number; amount_mismatches: number }>(r)),
+        (SELECT count(*) FROM (
+            SELECT lower(e.args->>'keyHash') AS chain_key, sum((e.args->>'amount')::numeric) AS units
+            FROM chain_events e
+            WHERE e.contract = 'credits' AND e.event = 'Deposited' AND e.processed
+            GROUP BY 1) ev
+          WHERE ev.units * 1000000 > coalesce((
+            SELECT sum(l.amount::numeric) FROM ledger l JOIN keys k ON k.key_hash = l.key_hash
+            WHERE l.kind = 'deposit' AND l.ref LIKE 'deposit:%' AND '0x' || lower(k.chain_key_hash) = ev.chain_key), 0))::int AS processed_without_credit,
+        (SELECT count(*) FROM chain_events e JOIN ledger l ON l.ref = 'deposit:' || e.tx_hash || ':' || e.log_index
+          WHERE e.contract = 'credits' AND e.event = 'Deposited' AND l.amount::numeric > (e.args->>'amount')::numeric * 1000000)::int AS amount_mismatches`).then((r) => rowsOf<{ processed_without_credit: number; amount_mismatches: number }>(r)),
+    // A row for one event (not one from chain state) whose event is not on file.
     db.execute(sql`
       SELECT count(*)::int AS n FROM ledger l
-      WHERE (l.ref LIKE 'dep:%' OR l.ref LIKE 'cred:%') AND NOT EXISTS (
-        SELECT 1 FROM chain_events e WHERE e.contract = 'credits'
-          AND l.ref = (CASE WHEN e.event = 'Deposited' THEN 'dep:' ELSE 'cred:' END) || e.tx_hash || ':' || e.log_index)`).then((r) => rowsOf<{ n: number }>(r)),
+      WHERE l.kind = 'deposit' AND l.ref LIKE 'deposit:%' AND l.ref NOT LIKE 'deposit:state:%' AND NOT EXISTS (
+        SELECT 1 FROM chain_events e WHERE e.contract = 'credits' AND e.event = 'Deposited'
+          AND l.ref = 'deposit:' || e.tx_hash || ':' || e.log_index)`).then((r) => rowsOf<{ n: number }>(r)),
     db.select({ n: sql<number>`count(*)::int` }).from(chainEvents).where(and(eq(chainEvents.contract, "credits"), eq(chainEvents.event, "AbsenceProven"))),
   ]);
 
@@ -150,8 +163,8 @@ export async function reconcileSpentRoots(db: Db, opts: { graceMs: number; now?:
   const processedWithoutCredit = Number(ledgerCheck?.processed_without_credit ?? 0);
   const amountMismatches = Number(ledgerCheck?.amount_mismatches ?? 0);
   const creditsWithoutEvent = Number(orphanCredits?.n ?? 0);
-  if (processedWithoutCredit) failures.push(`${processedWithoutCredit} processed funding event(s) have no ledger credit`);
-  if (amountMismatches) failures.push(`${amountMismatches} ledger credit(s) differ from their funding event`);
+  if (processedWithoutCredit) failures.push(`${processedWithoutCredit} key(s) hold less ledger credit than their processed funding events`);
+  if (amountMismatches) failures.push(`${amountMismatches} ledger credit(s) exceed their funding event`);
   if (creditsWithoutEvent) failures.push(`${creditsWithoutEvent} ledger funding credit(s) have no indexed event`);
 
   const sum = (m: Map<string, bigint>) => [...m.values()].reduce((a, b) => a + b, 0n).toString();
