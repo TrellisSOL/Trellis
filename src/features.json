@@ -81,7 +81,7 @@
 
   "blind": {
     "update": 11,
-    "on": false,
+    "on": true,
     "title": "Blind lane",
     "summary": "Pay with single-use tokens that cannot be linked to the wallet that bought them, and reach the router through an oblivious relay or its onion address, so a call cannot be tied to who paid for it or where it came from.",
     "includes": ["Blind-signed single-use tokens", "Oblivious HTTP through a relay", "An onion address for the router", "Receipts that name the token, not an account"]
