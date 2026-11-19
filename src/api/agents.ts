@@ -11,6 +11,7 @@ import { fail } from "../lib/errors.ts";
 import { picoToUsd } from "../lib/money.ts";
 import { requireKey, requireRole, type KeyRow } from "./auth.ts";
 import { readJson } from "./common.ts";
+import { enforceCoreRulebook } from "../surface/request.ts";
 import { agentIntentSchema, agentPolicySchema } from "../agents/policy.ts";
 import { agentPolicies, agentPolicyEvents, playbooks } from "../agents/schema.ts";
 import { configureAgentPolicies } from "../agents/enforce.ts";
@@ -75,7 +76,8 @@ export function agentsRoutes(app: Hono, ctx: Ctx) {
       const descriptions = await describe(ctx, key, policies, new Date());
       const own = descriptions.find(p => !p.inherited) ?? descriptions[0];
       const uncapped = own ? null : await policyState(ctx.db, { keyHash: key.keyHash, killed: false }, new Date());
-      return { key_hash: key.keyHash, name: key.name, has_policy: !!own, killed: descriptions.some(p => p.killed), ...combinedStopFields(descriptions), policy_sha256: own?.sha256 ?? null, ...followed(books, own), spent: own?.spent ?? Object.fromEntries(Object.entries(uncapped!.spent_pico).map(([w, v]) => [w, picoToUsd(v)])), caps: own?.effective_caps ?? own?.policy.caps ?? {}, policies: descriptions }; // B117
+      // `management`: a key that manages its account can change its own rulebook, so the page says a rulebook on it limits nothing.
+      return { key_hash: key.keyHash, name: key.name, management: key.management, has_policy: !!own, killed: descriptions.some(p => p.killed), ...combinedStopFields(descriptions), policy_sha256: own?.sha256 ?? null, ...followed(books, own), spent: own?.spent ?? Object.fromEntries(Object.entries(uncapped!.spent_pico).map(([w, v]) => [w, picoToUsd(v)])), caps: own?.effective_caps ?? own?.policy.caps ?? {}, policies: descriptions }; // B117
     }));
     return c.json({ data });
   });
@@ -112,6 +114,7 @@ export function agentsRoutes(app: Hono, ctx: Ctx) {
     const caller = await principal(ctx, c);
     const key = await ownedKey(ctx, caller, c.req.param("key_hash"));
     const policy = agentPolicySchema.parse(await readJson(c));
+    enforceCoreRulebook(ctx, policy); // LAUNCH_SURFACE=core: the rules a core router applies, nothing else
     return c.json({ data: jsonPolicy(await setPolicy(ctx.db, key.accountId, key.keyHash, policy, caller.keyHash)) });
   });
   // Replay a draft rulebook on the key's last days of recorded calls and Guard action checks. Same permissions as saving

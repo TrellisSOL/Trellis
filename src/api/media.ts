@@ -6,6 +6,7 @@ import { fail } from "../lib/errors.ts";
 import { picoToUsd, picoToUsdString, usdToPico, type Pico } from "../lib/money.ts";
 import { decrypt, genId, log, sha256 } from "../lib/util.ts";
 import { release, reserve, settle } from "../ledger/ledger.ts";
+import { agentReservation } from "../agents/enforce.ts";
 import { boundedJson, providerFetch } from "../providers/network.ts";
 import { receiptLeaf } from "../receipts/merkle.ts";
 import { NOT_ENABLED } from "../surface/surface.ts";
@@ -255,7 +256,10 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
     const id = genId();
     sent.client_request_id = id; // the upstream's idempotency key: a generation is made, and billed, once
     const hold = usdToPico((model!.pricing.max * count).toFixed(6)) + 1n;
-    await reserve(ctx.db, { id, accountId: key.accountId, keyHash: key.keyHash, amount: hold, ttlMs: MEDIA_JOB_MAX_AGE_MS }); // as long as the job is followed: a hold that lapsed sooner let the same balance order again
+    // A key's rulebook applies to an image or a video as to any model call: its model rules, its caps (against this
+    // hold), its ask-first size. Without the model named here the order was checked for a stop and nothing else.
+    // The hold lives as long as the job is followed: one that lapsed sooner let the same balance order again.
+    await reserve(ctx.db, { ...agentReservation(ctx, () => ({ models: [model!.id], lane: "public", max_output_tokens: 0, body: {} })), id, accountId: key.accountId, keyHash: key.keyHash, amount: hold, ttlMs: MEDIA_JOB_MAX_AGE_MS });
     const job: Job = { id, kind, status: "pending", accountId: key.accountId, keyHash: key.keyHash, payer: key.chainKeyHash ?? null, model: model!.id, count, upstreamId: null, holdPico: hold.toString(), chargedPico: null, requestSha256: sha256(JSON.stringify(body)), files: [], reason: null, createdAt: new Date().toISOString(), finishedAt: null, receipt: null };
     return { job, sent };
   };

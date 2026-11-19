@@ -164,12 +164,16 @@ function maxOutFor(ctx: Ctx, targets: RouteTarget[], body: Record<string, unknow
 
 /** Reserve every hold or none: a failure part-way releases what was already held. */
 async function reserveAll(ctx: Ctx, billing: Chat.Billing, holds: { holdId: string; hold: Pico; targets: RouteTarget[]; body: Record<string, unknown>; promptTokens: number }[], paywithNote: string | undefined, lane: "public" | "attested" | "unlinkable") {
-  if (!ctx.cfg.agentPolicyEnabled) return reserveAllUnchecked(ctx, billing, holds, paywithNote, lane);
-  return enforceAgentCouncil(ctx, billing, () => holds.map(h => ({ ...h, models: h.targets.map(t => t.model.id), max_output_tokens: maxOutFor(ctx, h.targets, h.body, h.promptTokens) })), lane, ctx => reserveAllUnchecked(ctx, billing, holds, paywithNote, lane));
-}
-async function reserveAllUnchecked(ctx: Ctx, billing: Chat.Billing, holds: { holdId: string; hold: Pico; targets: RouteTarget[]; body: Record<string, unknown>; promptTokens: number }[], paywithNote: string | undefined, lane: "public" | "attested" | "unlinkable") {
-  const held: string[] = [];
   const ttlMs = holdTtlMs({ providerTimeoutMs: ctx.cfg.routing.providerTimeoutMs, maxAttempts: ctx.cfg.routing.maxAttempts, queueWaitMs: lane === "attested" ? ctx.cfg.holders.sealed.queueMaxWaitMs : 0, candidates: holds.flatMap((h) => h.targets.flatMap((t) => t.ordered)), calls: 2 });
+  if (!ctx.cfg.agentPolicyEnabled) await reserveAllUnchecked(ctx, billing, holds, paywithNote, lane, ttlMs);
+  else await enforceAgentCouncil(ctx, billing, () => holds.map(h => ({ ...h, models: h.targets.map(t => t.model.id), max_output_tokens: maxOutFor(ctx, h.targets, h.body, h.promptTokens) })), lane, ctx => reserveAllUnchecked(ctx, billing, holds, paywithNote, lane, ttlMs));
+  // The heartbeats start once every hold exists, on the router's own database handle. Under a rulebook the holds are
+  // made inside the rulebook's transaction, and a heartbeat started there kept that transaction's handle, which ends
+  // with it: a renewal through it fails on the embedded database, and is not something to rely on anywhere.
+  for (const h of holds) keepHoldAlive(ctx.db, h.holdId, ttlMs, ctx.cfg.holds.maxLifetimeMs);
+}
+async function reserveAllUnchecked(ctx: Ctx, billing: Chat.Billing, holds: { holdId: string; hold: Pico; targets: RouteTarget[]; body: Record<string, unknown>; promptTokens: number }[], paywithNote: string | undefined, lane: "public" | "attested" | "unlinkable", ttlMs: number) {
+  const held: string[] = [];
   try {
     for (const h of holds) {
       await reserve(ctx.db, {
@@ -184,7 +188,6 @@ async function reserveAllUnchecked(ctx: Ctx, billing: Chat.Billing, holds: { hol
         ttlMs,
         creditLine: billing.mode === "paywith" ? billing.grant.creditLine : 0n,
       });
-      keepHoldAlive(ctx.db, h.holdId, ttlMs, ctx.cfg.holds.maxLifetimeMs);
       held.push(h.holdId);
     }
   } catch (e) {

@@ -33,9 +33,15 @@ const TOKEN_ROUTES: ReadonlySet<string> = new Set([
   "POST /api/v1/embeddings", "POST /v1/embeddings", "GET /api/v1/generation",
 ]);
 
+const APPROVAL_HEADER = "x-agent-approval";
+/** Agent keys on a core router: the update is released here and rulebooks are switched on. */
+export const agentsInCore = (ctx: Ctx) => ctx.cfg.updates?.agents === true && ctx.cfg.agentPolicyEnabled === true;
+
 /** Mounted only in core (src/app.ts): refuses the headers above and any credential scheme other than a key. */
 export const coreRequestMiddleware = (ctx: Ctx): MiddlewareHandler => async (c, next) => {
-  for (const [header, what] of Object.entries(NON_CORE_HEADERS)) if (c.req.header(header) !== undefined) notEnabled(what);
+  // The agent keys update, once released and switched on, admits the header that names an approved call.
+  const approvals = agentsInCore(ctx);
+  for (const [header, what] of Object.entries(NON_CORE_HEADERS)) if (c.req.header(header) !== undefined && !(approvals && header === APPROVAL_HEADER)) notEnabled(what);
   const auth = c.req.header("authorization");
   // Bearer keys only. `PrivateToken` (one blind token) is a credential where the blind update is released and switched
   // on, on the routes above; anything else is not a core credential.
@@ -131,6 +137,32 @@ const CORE_KEY_FIELDS = new Set(["name", "limit", "budget_usd", "limit_reset", "
 export function enforceCoreKeySpec(ctx: Ctx, raw: Record<string, unknown>): void {
   if (!ctx.surface?.core) return;
   for (const [k, v] of Object.entries(raw)) if (v !== undefined && !CORE_KEY_FIELDS.has(k)) notEnabled(`The key setting \`${k.slice(0, 40)}\``);
+}
+
+/**
+ * The parts of a rulebook (PUT /api/v1/agents/:key_hash/policy) a core router applies: models, lanes, caps, the ask-first
+ * size, time windows, the declared-tool lists and what a breach does. The rest belongs to features that are not on the
+ * core surface, and a rulebook that names one is refused, not saved without it: its owner would believe a rule is in
+ * force that this router never applies (alerts nobody delivers), or would switch on a path the launch did not review
+ * (caps that grow with a clean record, circuit breakers, a default route, Guard's action rules, paid-tool prices).
+ */
+const NON_CORE_RULEBOOK_FIELDS: Record<string, string> = {
+  route_default: "A rulebook's default route (`route_default`)",
+  breakers: "Rulebook circuit breakers (`breakers`)",
+  autonomy: "Rulebook caps that grow over time (`autonomy`)",
+  alerts: "Rulebook alerts (`alerts`)",
+  actions: "Agent Guard action rules (`actions`)",
+};
+const NON_CORE_RULEBOOK_TOOL_FIELDS = ["max_price_per_call", "daily_budget", "pass_to_models"];
+
+/** Refuse a rulebook that sets anything a core router does not apply. Does nothing outside core. */
+export function enforceCoreRulebook(ctx: Ctx, raw: unknown): void {
+  if (!ctx.surface?.core || !raw || typeof raw !== "object" || Array.isArray(raw)) return;
+  const spec = raw as Record<string, unknown>;
+  for (const [field, what] of Object.entries(NON_CORE_RULEBOOK_FIELDS)) if (spec[field] !== undefined) notEnabled(what);
+  const tools = spec.tools;
+  if (tools && typeof tools === "object" && !Array.isArray(tools))
+    for (const field of NON_CORE_RULEBOOK_TOOL_FIELDS) if ((tools as Record<string, unknown>)[field] !== undefined) notEnabled(`Paid-tool rules in a rulebook (\`tools.${field}\`)`);
 }
 
 export const isNotEnabled = (c: Context, e: unknown) => e instanceof ApiError && e.type === NOT_ENABLED && !!c;

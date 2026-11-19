@@ -1,6 +1,22 @@
 # Routes registered by a LAUNCH_SURFACE=core router: <group>\t<METHOD> <path>. Checked by test/launch-surface.test.ts.
 account-runway	GET /api/v1/account/low-balance
 account-runway	PATCH /api/v1/account/low-balance
+agent-approvals	ALL /api/v1/agents/approvals
+agent-approvals	ALL /api/v1/agents/approvals/*
+agent-approvals	GET /api/v1/agents/approvals
+agent-approvals	GET /api/v1/agents/approvals/:id
+agent-approvals	POST /api/v1/agents/approvals/:id/approve
+agent-approvals	POST /api/v1/agents/approvals/:id/deny
+agent-ledger	GET /api/v1/agents/:key_hash/ledger
+agents	ALL /api/v1/agents
+agents	ALL /api/v1/agents/*
+agents	DELETE /api/v1/agents/:key_hash/policy
+agents	GET /api/v1/agents
+agents	GET /api/v1/agents/:key_hash/events
+agents	GET /api/v1/agents/:key_hash/policy
+agents	POST /api/v1/agents/:key_hash/kill
+agents	POST /api/v1/agents/:key_hash/resume
+agents	PUT /api/v1/agents/:key_hash/policy
 attestation	GET /api/v1/attestation/:providerId
 attestation-history	GET /api/v1/attestation/:providerId/history
 attestation-history	GET /api/v1/attestation/summary
@@ -12,6 +28,8 @@ chat	POST /v1/chat/completions
 chat	POST /v1/completions
 deposits	GET /api/v1/credits/deposits
 deposits	POST /api/v1/credits/deposits
+edge.agent-approval	ALL /*
+edge.agent-ledger	ALL /*
 edge.budget	ALL /*
 edge.core-request	ALL /*
 edge.cors	ALL /api/*

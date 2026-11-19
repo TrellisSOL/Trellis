@@ -31,7 +31,10 @@ const API_BASE = (process.env.NEXT_PUBLIC_TRELLIS_API_URL || '').replace(/\/$/, 
 // (create, list, revoke, limits), prepaid credits (deposit, deposit status, low-balance alert, account closure), wallet
 // sign-in, x402 per call, receipts (lookup, proof, verify, the receipt key document, proof-pack checks in the browser),
 // attestation records, status, the data inventory, holder tiers (the table, and a wallet's own tier where the router
-// has released them: app/holders/Holders.jsx asks the router's release switches, not this list) and the docs.
+// has released them: app/holders/Holders.jsx asks the router's release switches, not this list) and the docs. With the
+// agent keys update released on the router, also a rulebook per key (caps, an ask-first amount, models, lanes, hours),
+// Stop and Resume, approvals, the event log and the activity ledger: the /agents/ page, which says so itself where the
+// update is not released.
 //
 // The router's side of this is its reviewed route table, security/launch-surface/core-routes.txt. This site holds a
 // copy of it, lib/core-routes.generated.json (written by scripts/gen-core-routes.mjs; tests/launch-surface.test.mjs
@@ -47,6 +50,8 @@ export const ROUTER_CORE_ROUTES = ROUTER_CORE.map(line => line.slice(line.indexO
 /** The router routes a core page or account section cannot work without. An entry that is not named needs none. */
 export const NEEDS = {
   page: {
+    '/agents/': ['GET /api/v1/agents', 'GET /api/v1/agents/:key_hash/policy', 'PUT /api/v1/agents/:key_hash/policy', 'POST /api/v1/agents/:key_hash/kill', 'POST /api/v1/agents/:key_hash/resume',
+      'GET /api/v1/agents/:key_hash/events', 'GET /api/v1/agents/:key_hash/ledger', 'GET /api/v1/agents/approvals', 'POST /api/v1/agents/approvals/:id/approve', 'POST /api/v1/agents/approvals/:id/deny'],
     '/cost/': ['GET /api/v1/models'],
     '/dashboard/': ['GET /api/v1/key', 'GET /api/v1/keys', 'GET /api/v1/credits', 'GET /api/v1/generations'],
     '/harness/': ['POST /api/v1/chat/completions', 'GET /api/v1/models'],
@@ -71,6 +76,7 @@ export const NEEDS = {
     'account-keys': ['GET /api/v1/keys', 'POST /api/v1/keys'],
     'account-payments': ['GET /api/v1/credits', 'POST /api/v1/credits/deposit-tx', 'GET /api/v1/credits/deposits'],
     'api-receipts': ['GET /api/v1/generations'],
+    rulebook: ['GET /api/v1/agents', 'PUT /api/v1/agents/:key_hash/policy'],
   },
 };
 /** `ids` less the entries that need a route the table does not have (exact `METHOD /path`; default: the router's table). */
@@ -78,16 +84,18 @@ export const servedBy = (kind, ids, routes = ROUTER_CORE_ROUTES) => ids.filter(i
 
 export const CORE = {
   // Pages, as app/**/page.jsx routes. /graft/ and /spec/ are reference reading: they stay open and carry one marker.
-  page: servedBy('page', ['/', '/how-it-works/', '/cost/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/images/', '/video/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
+  page: servedBy('page', ['/', '/how-it-works/', '/agents/', '/cost/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/images/', '/video/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
     '/registry/', '/registry/[id]/', '/spec/', '/spec/[doc]/', '/status/', '/tabs/', '/trust/', '/verify/']),
   // Menu, homepage-map, footer and search entries (lib/site-map.js TASKS).
   nav: ['chat', 'images', 'media-images', 'media-video', 'vision', 'voice', 'history', 'install', 'models', 'model-alternatives', 'prompt-library',
     'dashboard', 'api', 'cost', 'payments', 'lanes', 'registry', 'playground', 'settings', 'get-usdc', 'account-keys', 'account-payments', 'key-management',
     'unused-keys', 'deposit-countdown', 'tabs',
     'receipt', 'trust', 'status', 'keep', 'provider-check', 'proof-time', 'proof-pack-check',
-    'docs', 'whitepaper', 'roadmap', 'about', 'privacy-notice', 'terms', 'holders'],
-  // Account sections (lib/site-map.js ACCOUNT_SECTIONS, by task id): Home, Playground, Models, Providers, API keys, Payments, Receipts, Settings, What we keep.
-  section: servedBy('section', ['dashboard', 'playground', 'models', 'providers', 'account-keys', 'account-payments', 'api-receipts', 'settings', 'keep']),
+    'docs', 'whitepaper', 'roadmap', 'about', 'privacy-notice', 'terms', 'holders',
+    // Agent keys (the /agents/ page): a budget and rules for a key, and the requests waiting for the owner.
+    'rulebook', 'approvals'],
+  // Account sections (lib/site-map.js ACCOUNT_SECTIONS, by task id): Home, Playground, Models, Providers, API keys, Payments, Receipts, Agents, Settings, What we keep.
+  section: servedBy('section', ['dashboard', 'playground', 'models', 'providers', 'account-keys', 'account-payments', 'api-receipts', 'rulebook', 'settings', 'keep']),
   // Search actions (lib/site-map.js ACTIONS).
   action: ['add-funds', 'new-key', 'open-receipt', 'chat-model'],
   // Homepage feature cards (components/FeatureGrid.jsx).
@@ -102,17 +110,17 @@ export const CORE = {
 export const EXTRA = {
   // /tokens/ stays here although the router's table has the two blind routes: the page pays a one-time key through the
   // credits program (POST /api/v1/credits/deposit-tx with a program configured), which a router without it cannot take.
-  page: ['/admin/', '/agents/', '/agents/directory/', '/agents/profile/', '/arena/', '/ask/', '/dashboard/webhooks/', '/hosts/', '/network/', '/tokens/', '/tools/'],
+  page: ['/admin/', '/agents/directory/', '/agents/profile/', '/arena/', '/ask/', '/dashboard/webhooks/', '/hosts/', '/network/', '/tokens/', '/tools/'],
   nav: ['compare', 'files', 'encrypted', 'chat-limits',
     'account-activity', 'inbox', 'tokens', 'graft', 'unlinkable', 'proxy', 'spec', 'providers', 'routing', 'json-check', 'presets', 'characters', 'batches', 'teams', 'tracing',
     'evals', 'skills', 'spend', 'api-receipts', 'mcp', 'make-good', 'balance-runway', 'paid-tools', 'insights', 'webhooks', 'statements', 'account-export', 'operations',
-    'agent-guard', 'rulebook', 'sessions', 'approvals', 'telegram', 'activity', 'alerts', 'breakers', 'autonomy', 'certificates', 'directory', 'profile', 'sealed', 'weekly-summary',
+    'agent-guard', 'sessions', 'telegram', 'activity', 'alerts', 'breakers', 'autonomy', 'certificates', 'directory', 'profile', 'sealed', 'weekly-summary',
     'stop-until', 'starter-setups', 'replay-rules', 'pay-agent', 'request-check', 'playbooks', 'auto-topup', 'approve-and-allow', 'rulebook-words',
     'network', 'join', 'readiness', 'hosts', 'policy', 'interest',
     'key-log', 'inventory-log', 'badge', 'decision-tags', 'lane-report',
     // Route explanations are a setting the core surface refuses (ROUTE_EXPLAIN_ENABLED): no route of their own.
     'why-this-route'],
-  section: ['insights', 'webhooks', 'inbox', 'account-activity', 'routing', 'presets', 'characters', 'evals', 'batches', 'skills', 'rulebook', 'playbooks', 'sessions', 'directory', 'spend',
+  section: ['insights', 'webhooks', 'inbox', 'account-activity', 'routing', 'presets', 'characters', 'evals', 'batches', 'skills', 'playbooks', 'sessions', 'directory', 'spend',
     'teams', 'statements', 'account-export'],
   action: ['set-limit', 'stop-agent', 'resume-agent', 'default-route'],
   card: ['keys', 'profiles', 'sealed', 'telegram', 'shield', 'bond', 'otel', 'royalty', 'team'],
@@ -125,13 +133,20 @@ export const EXTRA = {
     // Sub-headings inside a core section that describe something core does not serve.
     'payments-blind-tokens', 'payments-pay-with', 'payments-byok', 'holder-votes', 'balance-runway-estimate'],
   // What a core page leaves out in core: a panel, a card, or a read of a route that is not served.
-  part: ['agents', 'spend', 'activity', 'runway', 'inbox', 'pay-with', 'tracing', 'key-topup', 'telegram', 'saved-routes', 'chat-limits', 'holder-tier', 'holder-polls', 'badge',
+  // `agent-extras`: the panels of the /agents/ page a core router has no route for (setups, the replay, the request
+  // check, paying another agent, Telegram, playbooks, autonomy, alerts, breakers, the default route, allow-next-time).
+  part: ['agents', 'agent-extras', 'spend', 'activity', 'runway', 'inbox', 'pay-with', 'tracing', 'key-topup', 'telegram', 'saved-routes', 'chat-limits', 'holder-tier', 'holder-polls', 'badge',
     'inventory-log', 'run-provider'],
 };
 
 /** Docs sections of which only a part is off: the marker says which part. */
 export const DOCS_NOTES = {
   'balance-runway-estimate': 'The runway estimate is not enabled on this router. The low-balance alert is.',
+  // Agent keys: where the router has released that update, a core router serves the rulebook half of these sections.
+  'agent-rulebook': 'Where this router has released agent keys: a rulebook per key, Stop and Resume, the key list and the event log are enabled. A key’s own reads (/agents/me), the dry run (/agents/check) and session keys are not.',
+  'spending-limits': 'Where this router has released agent keys: caps, the ask-first amount, Stop and Resume, models, lanes, declared tools and hours are enabled on the Agents page. Setups, the replay, the default route and limits in the chat and API-key editors are not.',
+  'agent-approvals': 'Where this router has released agent keys: approvals are enabled on the Agents page and with X-Agent-Approval. Notices by Telegram or webhook, and actions, are not.',
+  'agent-ledger': 'Where this router has released agent keys: the per-key ledger (/api/v1/agents/:key_hash/ledger) is enabled. The account activity feed and a key’s own ledger are not.',
 };
 
 const name = surface => (surface && typeof surface === 'object' ? surface.surface : surface);

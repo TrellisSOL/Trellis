@@ -38,7 +38,9 @@ import { kv } from "./db/schema.ts";
 import { Hono } from "hono";
 import { Surface, API_NAMESPACE, NOT_ENABLED } from "./surface/surface.ts";
 import { requestBudgetMiddleware } from "./hardening/budget.ts";
-import { coreRequestMiddleware } from "./surface/request.ts";
+import { agentsInCore, coreRequestMiddleware } from "./surface/request.ts";
+import { configureAgentPolicies } from "./agents/enforce.ts";
+import { configureApprovals } from "./agents/approvals.ts";
 import { serveStatic } from "hono/bun";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -209,8 +211,14 @@ export async function createApp(opts: AppOptions = {}) {
   mount("edge.onion-ingress", () => app.use("*", onionIngress(cfg))); // onion requests: drop every client address header before any route reads one
   mount("edge.status", () => app.use("*", statusMiddleware(ctx))); // public-lane outcomes per API surface for /api/v1/status/slo; private lanes are not counted here
   mount("edge.inference-scope", () => app.use("*", inferenceScopeMiddleware(ctx))); // ZK6: deny by default before account middleware.
-  mount("edge.agent-ledger", () => app.use("*", agentLedgerMiddleware(ctx)));
-  mount("edge.agent-approval", () => app.use("*", agentApprovalMiddleware(ctx)));
+  // Agent keys. In core: only with that update released and rulebooks switched on (src/surface/updates.ts), and then
+  // only the rulebook, approval and ledger routes on the allow-list. The engine itself is switched here, not by a
+  // route group being mounted, so a router that applies rulebooks never depends on which routes it serves.
+  configureAgentPolicies(ctx);
+  configureApprovals(ctx.db, cfg.agentApprovalTtlS);
+  const agentsOn = !surface.core || agentsInCore(ctx);
+  if (agentsOn) mount("edge.agent-ledger", () => app.use("*", agentLedgerMiddleware(ctx)));
+  if (agentsOn) mount("edge.agent-approval", () => app.use("*", agentApprovalMiddleware(ctx)));
   mount("x402-recovery", () => { paymentRecovery(app, ctx); }); // a lost x402 answer is sent again, never paid twice; outside every other route middleware
   mount("structured-output", () => { structuredOutputMiddleware(app, ctx); }); // V83: ordinary chat routes bill each call.
   mount("first-call", () => { firstCallRoutes(app, cfg.developerFirstCallEnabled, cfg.siteUrl); }); // ON2: the public site address, not the router host
@@ -245,13 +253,13 @@ export async function createApp(opts: AppOptions = {}) {
   mount("agent-profiles", () => { agentProfilesRoutes(app, ctx); });
   mount("identity", () => { identityRoutes(app, ctx); }); // v6 I
   mount("agent-sealed", () => { agentSealedRoutes(app, ctx); });
-  mount("agents", () => { agentsRoutes(app, ctx); });
+  if (agentsOn) mount("agents", () => { agentsRoutes(app, ctx); });
   mount("playbooks", () => { playbooksRoutes(app, ctx); }); // U115: after agentsRoutes, whose /api/v1/agents/* switch also covers the follow route.
   mount("agent-guard", () => { guardRoutes(app, ctx); }); // V98
   mount("agent-pay", () => { agentPayRoutes(app, ctx); }); // Pay another agent (AGENT_PAY_ENABLED)
   mount("agent-certificates", () => { agentCertificatesRoutes(app, ctx); });
-  mount("agent-ledger", () => { agentLedgerRoutes(app, ctx); });
-  mount("agent-approvals", () => { agentApprovalsRoutes(app, ctx); });
+  if (agentsOn) mount("agent-ledger", () => { agentLedgerRoutes(app, ctx); });
+  if (agentsOn) mount("agent-approvals", () => { agentApprovalsRoutes(app, ctx); });
   mount("telegram", () => { telegramLinkingRoutes(app, ctx); });
   mount("weekly-summary", () => { weeklySummaryRoutes(app, ctx); }); // B120
   mount("agent-sessions", () => { agentSessionsRoutes(app, ctx); });

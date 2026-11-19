@@ -75,8 +75,8 @@
     "update": 10,
     "on": false,
     "title": "Agent keys",
-    "summary": "Give an agent a key with a rulebook: a budget, per-call and daily caps, who it may pay, and a size above which it has to ask you first. Stop it at any time, and get its approvals and summaries in Telegram.",
-    "includes": ["Budgets and per-call and daily caps", "Payee allowlists and ask-first approvals", "Stop, resume and replay a rulebook on last week", "Telegram approvals and weekly summaries"]
+    "summary": "Give an agent a key with a rulebook: a budget, per-call and daily caps, and a size above which it has to ask you first. Stop it at any time, and see what it spent and every decision the router made for it.",
+    "includes": ["Budgets and per-call and daily caps", "Ask-first approvals, used once", "Stop and resume at any time", "An event log and an activity ledger with receipts"]
   },
 
   "blind": {

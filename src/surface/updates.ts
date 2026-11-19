@@ -41,10 +41,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
   // answer 404 `not_enabled` while it is off, in every environment.
   media: [],
-  // Agent keys are outside the core launch surface as well, like program-mode anchoring (src/surface/config.ts
-  // NON_CORE_SETTINGS): a core production router refuses those settings whatever this file says, so the update needs
-  // its review and its place on the surface before its switch can open it (UPDATES.md). Council, paying in the token,
-  // holder tiers and blind tokens (the first part of the blind lane) have that place: CORE_WHEN_RELEASED below.
+  // Every update outside the core launch surface (src/surface/config.ts NON_CORE_SETTINGS) is refused by a core
+  // production router whatever this file says, until it has its place on the surface: CORE_WHEN_RELEASED below.
+  // Council, paying in the token, holder tiers, blind tokens (the first part of the blind lane) and the rulebook half
+  // of agent keys have that place.
   holders: [{ setting: "TRLS_TOKEN_ADDRESS" }, { setting: "HOLDER_TIERS" }],
   council: [{ setting: "TRELLIS_FEATURE_COUNCIL", when: truthy }],
   agents: [
@@ -88,6 +88,10 @@ export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> 
   // sets (BLIND_MULTI_TOKEN_ENABLED), Oblivious HTTP (OHTTP_*) and the onion service (ONION_*, UNLINKABLE_VIA_ONION)
   // are not admitted: a core router refuses those settings with the switch on as with it off.
   blind: ["TRELLIS_FEATURE_BLIND"],
+  // Agent keys: the rulebook engine alone (a rulebook per key, approvals, stop and resume, the event log and the
+  // activity ledger: src/surface/core-allowlist.ts, src/surface/request.ts). Guard, agent pay, profiles, rulebook
+  // wording for Telegram, Telegram itself and the weekly summary stay refused on a core router.
+  agents: ["AGENT_POLICY_ENABLED"],
 };
 
 /** The non-core settings the released updates admit on the core surface, for this environment. */

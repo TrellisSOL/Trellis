@@ -63,7 +63,8 @@ export function StopResume({ id, stop, disabled }) {
 // U103: `setups` names the editor (chat, key or agents) for Start from a setup, which fills only the values that editor shows.
 // `onReplay`, where the editor edits a saved key or agent, lets a picked setup offer Replay it first.
 // U115: `locked` shows rules a key follows from a playbook: the rules are read-only here, while Stop and Resume still work.
-export default function SpendingLimits({ id, value, onChange, disabled: busy = false, locked = false, compact = false, scope = false, guard = false, setups = null, budget = null, stop, onReplay = null, children }) {
+// `routeDefault`: false where the router does not apply a rulebook's default route (a core router), so the field is left out.
+export default function SpendingLimits({ id, value, onChange, disabled: busy = false, locked = false, compact = false, scope = false, routeDefault = true, guard = false, setups = null, budget = null, stop, onReplay = null, children }) {
   const disabled = busy || locked;
   const set = patch => onChange({ ...value, ...patch });
   const g = value.guard, setGuard = patch => set({ guard: { ...g, ...patch } });
@@ -85,7 +86,7 @@ export default function SpendingLimits({ id, value, onChange, disabled: busy = f
       <div className={st.checks}>{LANES.map(lane => <label className="check-label" key={lane}><input type="checkbox" disabled={!value.restrictLanes} checked={value.lanes.includes(lane)} onChange={e => set({ lanes: e.target.checked ? [...value.lanes, lane] : value.lanes.filter(l => l !== lane) })}/>{lane}</label>)}</div>
       <p className="help-text">{W.lanesHelp}</p>
     </fieldset>}
-    {scope && <RouteDefault id={id} value={value.routeDefault} onChange={v => set({ routeDefault: v })} restrictLanes={!!value.restrictLanes} lanes={value.lanes} disabled={disabled}/>} {/* U101: next to the lanes */}
+    {scope && routeDefault && <RouteDefault id={id} value={value.routeDefault} onChange={v => set({ routeDefault: v })} restrictLanes={!!value.restrictLanes} lanes={value.lanes} disabled={disabled}/>} {/* U101: next to the lanes */}
     {guard && <fieldset disabled={disabled} className={st.group}><legend>{W.guard}</legend><p className="help-text">{GUARD_LIMIT}</p>
       <label className="check-label"><input type="checkbox" checked={!!g} onChange={e => set({ guard: e.target.checked ? guardForm(null) : null })}/>Use action rules</label>
       {g ? <>

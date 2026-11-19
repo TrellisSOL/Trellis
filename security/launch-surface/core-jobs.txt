@@ -1,4 +1,6 @@
 # Background jobs registered by a LAUNCH_SURFACE=core router. Checked by test/launch-surface.test.ts.
+agent-ledger-retention
+agent-policy-retention
 alert-notifier
 attestor
 blind-key-rotation

@@ -24,6 +24,7 @@ import RequestCheck from './RequestCheck'; // V85: check the selected agent’s 
 import PayAgent from './PayAgent'; // Pay another agent: the rulebook decides, your own wallet sends, Trellis checks and signs.
 import { agentLink, focusSelector } from '../../lib/site-actions'; // U106: ⌘K links here to an agent's spending limits or default route.
 import FollowPlaybook from '../../components/limits/FollowPlaybook'; // U115: follow a playbook, or stop following one.
+import { usePart } from '../../components/launch/Surface';
 
 function Field({ label, id, children }) {
   return <div className="field"><label htmlFor={id}>{label}</label>{children}</div>;
@@ -37,7 +38,9 @@ function Spend({ agent }) {
 
 // U102: the shared spending limits editor, plus the rulebook's other rules and, where it applies, Agent Guard's actions.
 // U115: `locked` while the key follows a playbook: its rules are shown read-only; Stop and Resume still work.
-function RulebookForm({ policy, onSave, onRemove, busy: working, locked = false, hasPolicy, guard, stop, request, keyHash }) {
+// `extras`: false on a core router, which applies caps, the ask-first amount, models, lanes, declared tools and hours, and
+// refuses a rulebook that names anything else. Setups, the replay, the default route, breakers and alerts are left out there.
+function RulebookForm({ policy, onSave, onRemove, busy: working, locked = false, hasPolicy, guard, stop, request, keyHash, extras = true }) {
   const busy = working || locked;
   const [form, setForm] = useState(() => limitsFromRulebook(policy));
   const [errors, setErrors] = useState([]);
@@ -45,9 +48,9 @@ function RulebookForm({ policy, onSave, onRemove, busy: working, locked = false,
   const windowSet = (index, patch) => setForm(f => ({ ...f, windows: f.windows.map((w, i) => i === index ? { ...w, ...patch } : w) }));
   const built = rulebookFromLimits(form);
   const replay = useRuleReplay(request, keyHash);
-  const replaySetup = () => { replay.run(rulebookFromLimits(form)); replay.reveal(); };
+  const replaySetup = extras ? () => { replay.run(rulebookFromLimits(form)); replay.reveal(); } : null;
   return <form onSubmit={e => { e.preventDefault(); setErrors(built.errors); if (!built.errors.length) onSave(built.policy); }}>
-    <SpendingLimits id="rulebook" value={form} onChange={setForm} disabled={working} locked={locked} setups="agents" scope guard={guard || policy?.actions !== undefined} stop={stop} onReplay={replaySetup}>
+    <SpendingLimits id="rulebook" value={form} onChange={setForm} disabled={working} locked={locked} setups={extras ? 'agents' : null} scope guard={extras && (guard || policy?.actions !== undefined)} routeDefault={extras} stop={stop} onReplay={replaySetup}>
       <LimitGroup title="More rules" disabled={busy}>
         <div className="two-fields"><Field label="Maximum output tokens" id="max_output_tokens"><input id="max_output_tokens" type="number" min="1" max={LIMITS.tokens} step="1" value={form.caps.max_output_tokens} onChange={e => set('caps',{ ...form.caps,max_output_tokens:e.target.value })}/></Field>
         <Field label="Ask me first after calls per hour" id="approval-calls"><input id="approval-calls" type="number" step="1" min="1" max="1000000" value={form.approvalCalls ?? ''} onChange={e => set('approvalCalls',e.target.value)}/></Field></div>
@@ -57,15 +60,15 @@ function RulebookForm({ policy, onSave, onRemove, busy: working, locked = false,
       <LimitGroup title="Time windows (UTC)" disabled={busy}><label className="check-label"><input type="checkbox" checked={form.restrictWindows} onChange={e => set('restrictWindows',e.target.checked)}/>Only allow requests within these UTC windows</label><p className="help-text">No windows while this restriction is on denies every time. The router evaluates window boundaries.</p>
         {form.restrictWindows && <>{form.windows.map((w,index) => <div className={s.window} key={index}><div className={s.checks}>{DAYS.map((day,d) => <label className="check-label" key={day}><input type="checkbox" checked={w.days.includes(d)} onChange={e => windowSet(index,{ days:e.target.checked ? [...w.days,d] : w.days.filter(v => v !== d) })}/>{day}</label>)}</div><div className="two-fields">{['start','end'].map(time => <Field key={time} id={`window-${index}-${time}`} label={`${time} (UTC)`}><input id={`window-${index}-${time}`} type="time" step="60" required value={w[time]} onChange={e => windowSet(index,{ [time]:e.target.value })}/></Field>)}</div><button type="button" className="text-button" onClick={() => set('windows',form.windows.filter((_,i) => i !== index))}>Remove window {index+1}</button></div>)}<Button type="button" secondary disabled={form.windows.length >= 64} onClick={() => set('windows',[...form.windows,{ days:[1,2,3,4,5],start:'09:00',end:'17:00' }])}>Add UTC window</Button></>}
       </LimitGroup>
-      <BreakersForm values={form.breakers} onChange={values => set('breakers', values)} busy={busy}/>
-      <AlertFields value={form.alerts} onChange={value => set('alerts',value)} disabled={busy}/>
+      {extras && <BreakersForm values={form.breakers} onChange={values => set('breakers', values)} busy={busy}/>}
+      {extras && <AlertFields value={form.alerts} onChange={value => set('alerts',value)} disabled={busy}/>}
     </SpendingLimits>
-    <Errors errors={errors}/><div className="button-row">{!locked && <Button type="submit" disabled={busy}>{W.save}</Button>}<ReplayButton replay={replay} disabled={working} onRun={() => replay.run(built)}/>{hasPolicy && !locked && <Button type="button" secondary disabled={busy} onClick={() => { if (window.confirm('Remove these spending limits? Their rules will no longer apply.')) onRemove(); }}>{W.remove}</Button>}</div>
-    <ReplayResult id="replay-rules" replay={replay} current={built.policy}/>
+    <Errors errors={errors}/><div className="button-row">{!locked && <Button type="submit" disabled={busy}>{W.save}</Button>}{extras && <ReplayButton replay={replay} disabled={working} onRun={() => replay.run(built)}/>}{hasPolicy && !locked && <Button type="button" secondary disabled={busy} onClick={() => { if (window.confirm('Remove these spending limits? Their rules will no longer apply.')) onRemove(); }}>{W.remove}</Button>}</div>
+    {extras && <ReplayResult id="replay-rules" replay={replay} current={built.policy}/>}
   </form>;
 }
 
-function AgentDetail({ agent, request, refreshList, refreshVersion, onError, guard }) {
+function AgentDetail({ agent, request, refreshList, refreshVersion, onError, guard, extras = true }) {
   const [record,setRecord] = useState(null);
   const [events,setEvents] = useState([]);
   const [next,setNext] = useState(null);
@@ -100,10 +103,11 @@ function AgentDetail({ agent, request, refreshList, refreshVersion, onError, gua
   return <>
     <section className="control-panel"><div className={s.heading}><h2>{agent.name || 'Unnamed agent'}</h2><span className={'badge'+(killed ? ' dark' : '')}>{killed ? stoppedLabel(record?.stopped_until ?? agent.stopped_until) : 'Running'}</span></div>
       <TrippedBadge record={record} agent={agent}/>
+      {agent.management === true && <p className="note" role="note">This key manages your account: whoever holds it can change these limits, approve its own requests and make other keys, so limits on it do not bind an agent. Give an agent a key made for it: <a className="inline-link" href="/dashboard/#api-keys">create one under API keys</a>, then set its limits here.</p>}
       <span className={s.hash}>Key {agent.key_hash}</span><Spend agent={agent}/><p className={s.hash}>Policy SHA {record?.sha256 || agent.policy_sha256 || 'None'}</p>
       {notice && <p role="status">{notice}</p>}{busy && <p role="status">Reading or updating rulebook…</p>}{readError && <><p role="alert">{readError}</p><Button secondary disabled={busy} onClick={() => setRevision(r => r+1)}>Read rulebook again</Button></>}
-      <FollowPlaybook id="rulebook" keyHash={agent.key_hash} playbook={agent.playbook ?? null} request={request} disabled={busy} onChanged={() => { setNotice('Updated.'); refreshList(); setRevision(r => r+1); }}/>
-      {record && <><h3>{W.title}</h3><RulebookCard policy={policy} inherited={(agent.policies ?? []).filter(p => p.inherited)} stop={stop} busy={busy}><RulebookForm key={revision} policy={policy} hasPolicy={!!policy} busy={busy} locked={!!agent.playbook} guard={guard} request={request} keyHash={agent.key_hash} onSave={body => mutate(() => request(path+'/policy',{ method:'PUT',body }))} onRemove={() => mutate(() => request(path+'/policy',{ method:'DELETE' }))}/></RulebookCard></>} {/* B124 */}
+      {extras && <FollowPlaybook id="rulebook" keyHash={agent.key_hash} playbook={agent.playbook ?? null} request={request} disabled={busy} onChanged={() => { setNotice('Updated.'); refreshList(); setRevision(r => r+1); }}/>}
+      {record && <><h3>{W.title}</h3><RulebookCard policy={policy} inherited={(agent.policies ?? []).filter(p => p.inherited)} stop={stop} busy={busy}><RulebookForm key={revision} policy={policy} hasPolicy={!!policy} busy={busy} locked={!!agent.playbook} guard={guard} extras={extras} request={request} keyHash={agent.key_hash} onSave={body => mutate(() => request(path+'/policy',{ method:'PUT',body }))} onRemove={() => mutate(() => request(path+'/policy',{ method:'DELETE' }))}/></RulebookCard></>} {/* B124 */}
       <p className="help-text">{W.scopeOnly}</p>
     </section>
     <section className="control-panel"><h2>Event log</h2><p className="help-text">Newest first, 50 per page. These intents contain model, lane, estimated cost and tools; no prompt or response text is shown.</p>
@@ -124,6 +128,10 @@ export default function Agents() {
   const [loaded,setLoaded] = useState(false);
   const [revision,setRevision] = useState(0);
   const guard = useAgentGuard(); // U102: Agent Guard's actions section shows where Guard is switched on.
+  // Launch surface: a core router that has released agent keys serves the rulebook, Stop and Resume, approvals, the event
+  // log and the activity ledger. The panels below that read or write anything else (setups, the replay, the request check,
+  // paying another agent, Telegram, playbooks, autonomy, alerts) are left out there, and none of their routes is asked.
+  const extras = usePart('part', 'agent-extras');
   const onError = useCallback(error => { const state = errorState(error); setOff(state.off); setError(state.off ? '' : state.message); }, []);
   const request = useCallback((path,options = {}) => api(path,{ ...options,key }), [key]);
   useEffect(() => {
@@ -154,18 +162,18 @@ export default function Agents() {
     return stop;
   }, [loaded, agent?.key_hash]);
   return <AccountShell publicContent current="Agents" apiKey={key} onConnect={value => { setKey(value); setAgents([]); setSelected(''); setOff(false); setError(''); }} onDisconnect={() => { setKey(''); setAgents([]); setSelected(''); setLoaded(false); setOff(false); setError(''); }}><div className={s.body}>
-    {!(key && !off && agent) && <StarterSetups id="setup-preview" view="agents" guard={guard}/>} {/* U103: a preview until an agent is selected; then Start from a setup sits in its Spending limits. */}
-    {!(key && !off && agent) && <p id="replay-rules" className="note">Select an agent after connecting to replay its spending limits on the last 7 days before you save them. Nothing is saved.</p>} {/* Replay your rules: beside Save once an agent is selected */}
-    <div id="request-check">{key && !off && agent ? <RequestCheck key={key+selected} agent={agent} refreshVersion={revision}/> : <p className="note">Select an agent after connecting to check a request against its rules without spending.</p>}</div> {/* V85 */}
-    <PayAgent agent={key && !off ? agent : null}/>
+    {extras && !(key && !off && agent) && <StarterSetups id="setup-preview" view="agents" guard={guard}/>} {/* U103: a preview until an agent is selected; then Start from a setup sits in its Spending limits. */}
+    {extras && !(key && !off && agent) && <p id="replay-rules" className="note">Select an agent after connecting to replay its spending limits on the last 7 days before you save them. Nothing is saved.</p>} {/* Replay your rules: beside Save once an agent is selected */}
+    {extras && <div id="request-check">{key && !off && agent ? <RequestCheck key={key+selected} agent={agent} refreshVersion={revision}/> : <p className="note">Select an agent after connecting to check a request against its rules without spending.</p>}</div>} {/* V85 */}
+    {extras && <PayAgent agent={key && !off ? agent : null}/>}
     {error && <p className="note" role="alert">{error}</p>}
     {off ? <section className="empty" role="status"><h2>{FEATURE_OFF}</h2><p>This router is not serving agent rulebooks.</p></section> : <>
-      {key && <section aria-label="Agent keys"><div className={s.heading}><h2>Agent keys</h2><button className="text-button" disabled={busy} onClick={() => setRevision(r => r+1)}>Refresh</button></div>{busy && <p role="status">Reading agent keys…</p>}{loaded && !agents.length && <div className="empty"><p>No agent keys returned for this account.</p><a className="inline-link" href="/dashboard/#api-keys">Manage API keys</a></div>}<div className={s.list}>{agents.map(a => <div key={a.key_hash}><button className={s.agent} aria-pressed={selected === a.key_hash} onClick={() => { setSelected(a.key_hash); setError(''); }}><div className={s.heading}><strong>{a.name || 'Unnamed agent'}</strong><span className={s.badges}><span className="badge">Rulebook {a.has_policy ? 'on' : 'off'}</span>{a.playbook && <span className="badge">Playbook {a.playbook.name}</span>}{a.killed && <span className="badge dark">{stoppedLabel(a.stopped_until)}</span>}</span></div><span className={s.hash}>Policy SHA {a.policy_sha256 ? a.policy_sha256.slice(0,12) : 'None'}</span><Spend agent={a}/></button><SealedBadge sealed={a.sealed}/></div>)}</div></section>}
-      {key && <TelegramLink key={key} principalKey={key}/>}
-      {key && <section id="approvals"><Approvals key={key} request={request} agents={agents} onError={onError}/></section>}
-      {key && agent && <Autonomy agent={agent}/> }
-      {key && agent && <AgentWorkspace key={key+agent.key_hash} agent={agent} request={request} refreshVersion={revision}><AgentDetail agent={agent} request={request} onError={onError} guard={guard} refreshVersion={revision} refreshList={() => setRevision(r => r+1)}/></AgentWorkspace>}
-      {key && agent && <Alerts key={"alerts"+key+agent.key_hash} /* U102: a key distinct from AgentWorkspace’s, so switching agents leaves no stale panel. */ keyHash={agent.key_hash} request={request} refreshVersion={revision} onError={onError}/>}
+      {key && <section aria-label="Agent keys"><div className={s.heading}><h2>Agent keys</h2><button className="text-button" disabled={busy} onClick={() => setRevision(r => r+1)}>Refresh</button></div>{busy && <p role="status">Reading agent keys…</p>}{loaded && !agents.length && <div className="empty"><p>No agent keys returned for this account.</p><a className="inline-link" href="/dashboard/#api-keys">Manage API keys</a></div>}<div className={s.list}>{agents.map(a => <div key={a.key_hash}><button className={s.agent} aria-pressed={selected === a.key_hash} onClick={() => { setSelected(a.key_hash); setError(''); }}><div className={s.heading}><strong>{a.name || 'Unnamed agent'}</strong><span className={s.badges}><span className="badge">Rulebook {a.has_policy ? 'on' : 'off'}</span>{a.management === true && <span className="badge">Manages the account</span>}{a.playbook && <span className="badge">Playbook {a.playbook.name}</span>}{a.killed && <span className="badge dark">{stoppedLabel(a.stopped_until)}</span>}</span></div><span className={s.hash}>Policy SHA {a.policy_sha256 ? a.policy_sha256.slice(0,12) : 'None'}</span><Spend agent={a}/></button><SealedBadge sealed={a.sealed}/></div>)}</div></section>}
+      {key && extras && <TelegramLink key={key} principalKey={key}/>}
+      {key && <section id="approvals"><Approvals key={key} request={request} agents={agents} onError={onError} allowNext={extras}/></section>}
+      {key && agent && extras && <Autonomy agent={agent}/> }
+      {key && agent && <AgentWorkspace key={key+agent.key_hash} agent={agent} request={request} refreshVersion={revision}><AgentDetail agent={agent} request={request} onError={onError} guard={guard} extras={extras} refreshVersion={revision} refreshList={() => setRevision(r => r+1)}/></AgentWorkspace>}
+      {key && agent && extras && <Alerts key={"alerts"+key+agent.key_hash} /* U102: a key distinct from AgentWorkspace’s, so switching agents leaves no stale panel. */ keyHash={agent.key_hash} request={request} refreshVersion={revision} onError={onError}/>}
       {!key && <p className="note">Connect your key to read and manage agent rulebooks.</p>}
     </>}
     <p className="help-text">For ordinary requests on every lane today, Trellis’s router reads request text in memory to route it, and the provider that answers reads it too. Rulebooks constrain requests through Trellis; they do not control calls sent elsewhere.</p>

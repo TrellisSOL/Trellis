@@ -18,6 +18,10 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   "edge.core-request": ["ALL /*"], // refuses request fields and headers that select a non-core feature
   "edge.status": ["ALL /*"], // outcome counters for the status page
   "edge.inference-scope": ["ALL /*"], // stored key scopes stay enforced
+  // Agent keys (mounted in core only with that update released and AGENT_POLICY_ENABLED on, src/app.ts): one id per
+  // request for the activity ledger, and the X-Agent-Approval header of a call that was approved.
+  "edge.agent-ledger": ["ALL /*"],
+  "edge.agent-approval": ["ALL /*"],
 
   // ---- Inference ---------------------------------------------------------------------------------------------------
   // x402 payment recovery wraps the paid inference routes (a lost paid answer is sent again, never paid twice).
@@ -78,6 +82,31 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   // Blind tokens: the issuer keys and the purchase from a key's balance. Mounted in core only with the blind update
   // released and TRELLIS_FEATURE_BLIND on (src/app.ts); a token is spent on the chat and embeddings routes above.
   blind: ["GET /api/v1/blind/keys", "POST /api/v1/blind/purchase"],
+  // Agent keys: a rulebook per key (caps per call and per rolling hour, day and week, an ask-first size, models, lanes,
+  // time windows), stop and resume, the event log, approvals and the activity ledger. Mounted in core only with that
+  // update released and AGENT_POLICY_ENABLED on (src/app.ts). `ALL` is each group's own "is it switched on" check.
+  // Not here, and so not served: the dry run and the replay, alerts, approve-and-allow, a key's own reads
+  // (/agents/me), Guard, agent pay, profiles, certificates, identity, sealed agents, playbooks and sessions.
+  agents: [
+    "ALL /api/v1/agents",
+    "ALL /api/v1/agents/*",
+    "GET /api/v1/agents",
+    "GET /api/v1/agents/:key_hash/policy",
+    "PUT /api/v1/agents/:key_hash/policy",
+    "DELETE /api/v1/agents/:key_hash/policy",
+    "POST /api/v1/agents/:key_hash/kill",
+    "POST /api/v1/agents/:key_hash/resume",
+    "GET /api/v1/agents/:key_hash/events",
+  ],
+  "agent-ledger": ["GET /api/v1/agents/:key_hash/ledger"],
+  "agent-approvals": [
+    "ALL /api/v1/agents/approvals",
+    "ALL /api/v1/agents/approvals/*",
+    "GET /api/v1/agents/approvals",
+    "GET /api/v1/agents/approvals/:id",
+    "POST /api/v1/agents/approvals/:id/approve",
+    "POST /api/v1/agents/approvals/:id/deny",
+  ],
 
   // ---- Attestation, status, holder tiers (read-only) -------------------------------------------------------------
   "attestation-history": ["GET /api/v1/attestation/summary", "GET /api/v1/attestation/:providerId/history"],
@@ -130,6 +159,8 @@ export const CORE_JOBS: readonly string[] = [
   "trls-price", // paying in $TRLS: the router's own price readings
   "trls-burn", // paying in $TRLS: burns what credited deposits paid
   "blind-key-rotation", // blind tokens: next epoch's issuer keys ahead of time, ended epochs lose their private half; registered only with that update released and switched on
+  "agent-ledger-retention", // agent keys: request-to-receipt links older than 90 days are deleted; registered only with rulebooks on
+  "agent-policy-retention", // agent keys: rulebook events older than 90 days are deleted
   "media-jobs", // the media update: follows pending image and video generations to their end; registered only with the switch on
   "job-watchdog", // R4-01: liveness of every job above
 ];
@@ -149,7 +180,7 @@ export const NON_CORE_FEATURES: Record<string, string> = {
   characters: "Characters",
   arena: "Arena",
   rush: "Rush (upstream credit monitor)",
-  agents: "Agents: policy, guard, pay, profiles, directory, certificates, approvals, sessions, playbooks, identity, Telegram",
+  agents: "Agents beyond a key's rulebook, approvals and stop/resume (those are the agent keys update): guard, pay, profiles, directory, certificates, sessions, playbooks, identity, Telegram",
   tools: "Tools market and data tools",
   "pay-with": "Pay with stock tokens, Swig sessions",
   escrow: "Escrow deposits other than $TRLS, fast credit",
