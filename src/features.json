@@ -49,7 +49,7 @@
 
   "media": {
     "update": 7,
-    "on": false,
+    "on": true,
     "title": "Images and video",
     "summary": "Generate images and short videos from a prompt, each in a tab of its own, paid from the same balance and with a signed receipt for every generation.",
     "includes": ["Images tab: one to four images per prompt", "Video tab: a clip from a prompt, ready in minutes", "Per-generation prices shown before you order", "Files served by the router for 24 hours"]
