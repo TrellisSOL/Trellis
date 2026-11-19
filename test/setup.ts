@@ -6,6 +6,9 @@ process.env.TRELLIS_ENV ??= "test";
 process.env.LAUNCH_SURFACE ??= "all";
 process.env.LAUNCH_TIER ??= "full"; // R4-21: production needs an explicit tier; the older production-config tests assume the old default
 process.env.LAUNCH_SURFACE_ACK ??= "i-have-reviewed-the-extra-features"; // production-config tests of other features load the full surface
+// Release switches (src/features.json): the suites run with every update on, so code that is switched off on `main`
+// keeps being tested; test/release-switches.test.ts checks the switches themselves, `main` as it ships included.
+process.env.FEATURES ??= "all";
 
 // The per-test and per-hook budget is 20 s, and it is the --timeout 20000 flag that sets it: `bun run test`,
 // `bun run test:pg` and CI pass it. Bun reads no timeout from bunfig.toml, and it resets the default at the start of

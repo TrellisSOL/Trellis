@@ -1,0 +1,41 @@
+{
+  "credits": {
+    "update": 1,
+    "on": false,
+    "title": "Prepaid credits",
+    "summary": "Deposit USDC once and spend it call by call from one balance. Close the account at any time and what is left goes back to the wallet that paid.",
+    "includes": ["Deposit USDC to a key's credit account", "Calls charged from the prepaid balance", "Closure refund to the depositing wallet after 72 hours", "Balance and deposits in the dashboard"]
+  },
+
+  "tabs": {
+    "update": 2,
+    "on": false,
+    "title": "Tabs",
+    "summary": "Authorize a ceiling, pay for what you used, and get the rest back when the tab closes.",
+    "includes": ["Open a tab with a spending cap", "Session-key vouchers per call", "The unused part returned at close", "Tab close posted by the router near the cap or expiry"]
+  },
+
+  "facilitator": {
+    "update": 3,
+    "on": false,
+    "title": "Hosted payment facilitator",
+    "summary": "Other sellers can verify and settle per-call payments through this router, without running payment infrastructure of their own.",
+    "includes": ["Verify a payment for another seller", "Settle it on chain", "Network fee paid by the router's relay key", "No facilitator fee"]
+  },
+
+  "sealed": {
+    "update": 4,
+    "on": false,
+    "title": "Sealed lane",
+    "summary": "Run a call on attested hardware and get the evidence with the answer: the measurement the router checked and the provider's own signed receipt.",
+    "includes": ["Models served from an attested gateway", "Attestation checked before the request is sent", "Measurement pin with every identifier the evidence carries", "Attestation record on each receipt"]
+  },
+
+  "anchor": {
+    "update": 5,
+    "on": false,
+    "title": "Receipt roots in the anchor program",
+    "summary": "The hourly receipt root is held by a program account instead of a memo, so anyone can read it from the chain's state without walking a key's history.",
+    "includes": ["One root account per hour", "Receipt signing keys published and rotated on chain", "Proofs checked against program state", "Earlier memo roots stay verifiable as memos"]
+  }
+}

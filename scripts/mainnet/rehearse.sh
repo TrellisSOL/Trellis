@@ -86,6 +86,9 @@
 # which mainnet refuses, and what they write says "dirty (rehearsal only)".
 # State and keys go to the gitignored .data/mainnet-rehearsal/ and are deleted at the start of each run.
 set -euo pipefail
+# The rehearsal walks every tier, so it runs with every release switch on (src/features.json, UPDATES.md): a router
+# guard that is asked about tier credits or full must not stop at a switch that is off on main.
+export FEATURES=all
 export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 cd "$(dirname "$0")/../.."
 PORT="${REHEARSAL_PORT:-8911}"

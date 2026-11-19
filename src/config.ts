@@ -21,6 +21,7 @@ import { networkHostsEnv, networkHostsSettings } from "./network/host-config.ts"
 import { sanctionsEnv, sanctionsSettings } from "./network/config.ts";
 import { facilitatorEnv, facilitatorSettings } from "./solana/facilitator-config.ts"; // v6 F: hosted x402 facilitator
 import { resolveSurface } from "./surface/config.ts"; // LAUNCH_SURFACE: the default-deny launch surface
+import { resolveUpdates } from "./surface/updates.ts"; // release switches: src/features.json, UPDATES.md
 import { assertLaunchTier, launchEnv, launchSettings } from "./solana/launch-config.ts"; // launch tiers and the receipt-anchor mode
 import { e2eeSettings } from "./e2ee/config.ts";
 import { networkWeightEnv, networkWeightSettings } from "./network/weight-config.ts";
@@ -611,6 +612,9 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
   // Launch surface first (src/surface/config.ts): in `core` the settings that switch a non-core feature on are refused
   // (production) or dropped (elsewhere) before anything below reads them.
   const surface = resolveSurface({ ...process.env, ...overrides });
+  // Release switches next (src/surface/updates.ts): in production a setting of an update that has not been released
+  // here stops the start. They are read from the environment as it was given, before the surface dropped anything.
+  const updates = resolveUpdates({ ...process.env, ...overrides });
   const parsed = schema.safeParse(surface.env);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
@@ -811,6 +815,8 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
     surface: surface.surface,
     /** Settings dropped because they would switch on a feature that is not on the core surface (never in production: it refuses). */
     surfaceIgnored: surface.ignored,
+    /** Release switches: which prepared updates are on for this process (src/features.json, FEATURE_<NAME>, FEATURES). */
+    updates,
     adminAllowedSources: adminSources(e.ADMIN_ALLOWED_SOURCES),
     fastCredit: fastCreditSettings(e), // V97
     depositPingsEnabled: e.DEPOSIT_PINGS_ENABLED, // B123
