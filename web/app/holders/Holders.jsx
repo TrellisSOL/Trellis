@@ -1,11 +1,11 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { api, clearKey, loadKey, saveKey } from '../../lib/api';
-import { CAN_CHANGE, ME_PATH, NOT_ON, POLLS_PATH, TIERS_PATH, TIER_COLUMNS, formatAmount, nextTierLine, perkLines, pollOpen, pollRows, pollSummary, tierRows, tierStatus, tiersOn, voteErrorMessage, voteReceipt, voteRequest } from '../../lib/holders';
+import { CAN_CHANGE, CORE_PERKS_NOTE, ME_PATH, NOT_ON, POLLS_PATH, TIERS_PATH, TIER_COLUMNS, coreLimitLine, formatAmount, nextTierLine, ownTierServed, perkLines, pollOpen, pollRows, pollSummary, tierRows, tierStatus, tiersOn, voteErrorMessage, voteReceipt, voteRequest } from '../../lib/holders';
 import { hasWallet, shortAddress, walletApiKey, walletSigner } from '../../lib/wallet';
 import { Button } from '../../components/UI';
-import { extraAttr, isNotEnabled } from '../../lib/launch-surface.js';
-import { Problem, usePart } from '../../components/launch/Surface';
+import { extraAttr, isNotEnabled, releasedUpdates } from '../../lib/launch-surface.js';
+import { Problem, useLaunchSurface, usePart } from '../../components/launch/Surface';
 
 const PERKS = [
   ['Higher limits', 'More requests and tokens per minute, and more agent keys, saved routes and batch rows.'],
@@ -27,7 +27,7 @@ function TierTable({ doc }) {
   </table></div>;
 }
 
-function YourTier({ enabled }) {
+function YourTier({ enabled, core }) {
   const [key, setKey] = useState('');
   const [me, setMe] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -62,7 +62,7 @@ function YourTier({ enabled }) {
       {me.tier && <div><dt>Tier</dt><dd>{me.tier.name} (from {formatAmount(me.tier.min)} ${me.token?.symbol || 'TRLS'})</dd></div>}
     </dl>}
     {next && <p>{next}</p>}
-    {me && enabled && <><h3>What applies to this key now</h3><ul>{perkLines(me.perks).map(line => <li key={line}>{line}</li>)}</ul></>}
+    {me && enabled && <><h3>What applies to this key now</h3><ul>{(core ? [coreLimitLine(me.perks)] : perkLines(me.perks)).map(line => <li key={line}>{line}</li>)}</ul></>}
     <div className="button-row">
       {(!key || status.state === 'no-wallet') && <Button disabled={busy} onClick={signIn}>{wallet ? 'Sign in with Solana wallet' : 'Sign in with wallet'}</Button>}
       {key && <Button secondary disabled={busy} onClick={() => read(key)}>{busy ? 'Reading…' : 'Read again'}</Button>}
@@ -115,9 +115,13 @@ export default function Holders() {
   const [error, setError] = useState('');
   const [polls, setPolls] = useState(null);
   const [pollError, setPollError] = useState('');
-  // Launch surface: a core router serves the tier table (read only). Polls, votes and a wallet's own tier are not core:
-  // their routes are asked only once the router has said it serves them, and a core router's page leaves them out.
+  // Launch surface: a core router serves the tier table, and a wallet's own tier once it has released holder tiers (its
+  // status says so). Polls and votes are not core. A route is asked only once the router has said it serves it, and a
+  // core router's page leaves the rest out and says which perks are live there.
+  const surface = useLaunchSurface();
   const pollsOn = usePart('part', 'holder-polls');
+  const core = surface.surface === 'core';
+  const tierOn = pollsOn || ownTierServed(surface, releasedUpdates());
   const readPolls = useCallback(() => api(POLLS_PATH).then(r => { setPolls(r.data); setPollError(''); }).catch(e => { setPolls([]); setPollError(e.status === 404 ? '' : e.message); }), []);
   useEffect(() => {
     api(TIERS_PATH).then(r => setDoc(r.data)).catch(e => setError(e.status === 404 && !isNotEnabled(e) ? NOT_ON + '.' : e.message));
@@ -133,10 +137,11 @@ export default function Holders() {
       {!error && !doc && <p role="status">Reading tiers…</p>}
       {doc && !on && <div className="empty"><h3>{NOT_ON}</h3><p>No thresholds are set on this router. When they are, the table appears here with what each tier gives.</p></div>}
       {on && <><TierTable doc={doc} />
-        <p className="help-text">{CAN_CHANGE} Thresholds are in whole tokens{doc.token?.address ? <> of <span title={doc.token.address}>{shortAddress(doc.token.address)}</span></> : ''}. The router reads a wallet’s balance about once every {Math.round((doc.cache_s || 3600) / 60)} minutes.</p></>}
+        <p className="help-text">{CAN_CHANGE} Thresholds are in whole tokens{doc.token?.address ? <> of <span title={doc.token.address}>{shortAddress(doc.token.address)}</span></> : ''}. The router reads a wallet’s balance about once every {Math.round((doc.cache_s || 3600) / 60)} minutes.</p>
+        {core && <p className="note" data-core-perks>{CORE_PERKS_NOTE}</p>}</>}
     </section>
 
-    <div {...extraAttr('part', 'holder-polls')}><YourTier enabled={on && pollsOn} /></div>
+    {tierOn && <YourTier enabled={on} core={core} />}
 
     <section id="perks" aria-labelledby="perks-title">
       <h2 id="perks-title">What a tier gives</h2>

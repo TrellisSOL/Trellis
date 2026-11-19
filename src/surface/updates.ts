@@ -41,10 +41,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
   // answer 404 `not_enabled` while it is off, in every environment.
   media: [],
-  // Holder tiers, agent keys and the blind lane are outside the core launch surface as well, like program-mode
-  // anchoring and paying in the token (src/surface/config.ts NON_CORE_SETTINGS): a core production router refuses these
-  // settings whatever this file says, so each needs its review and its place on the surface before its switch can open
-  // it (UPDATES.md). Council has that place: CORE_WHEN_RELEASED below.
+  // Agent keys and the blind lane are outside the core launch surface as well, like program-mode anchoring
+  // (src/surface/config.ts NON_CORE_SETTINGS): a core production router refuses these settings whatever this file
+  // says, so each needs its review and its place on the surface before its switch can open it (UPDATES.md). Council,
+  // paying in the token and holder tiers have that place: CORE_WHEN_RELEASED below.
   holders: [{ setting: "TRLS_TOKEN_ADDRESS" }, { setting: "HOLDER_TIERS" }],
   council: [{ setting: "TRELLIS_FEATURE_COUNCIL", when: truthy }],
   agents: [
@@ -77,6 +77,12 @@ export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> 
   // else of escrow is admitted: no escrow mode, no Stock Tokens, no USDC escrow, no fast credit. The retired pool legs
   // stay refused on a core router (dropped outside production) and stop the start on the full surface (config.ts).
   trls: ["TRLS_TOKEN_ADDRESS", "ESCROW_ADDRESS", "TRLS_POOL_VAULTS", "TRLS_BURN_PRIVATE_KEY"],
+  // Holder tiers: the token and the tier table. On a core router that opens the public table, a signed-in wallet's own
+  // tier (GET /api/v1/holders/me, src/api/holders.ts) and the tier's request and token limit multipliers on the core
+  // inference routes. The other perks stay closed there: polls and votes, badges and the per-tier count limits have no
+  // core route, the sealed-lane queue and credit expiry have settings of their own that stay refused, and no
+  // early-access window is opened (src/config.ts holderSettings).
+  holders: ["TRLS_TOKEN_ADDRESS", "HOLDER_TIERS"],
 };
 
 /** The non-core settings the released updates admit on the core surface, for this environment. */

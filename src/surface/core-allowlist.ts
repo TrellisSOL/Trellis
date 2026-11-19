@@ -79,7 +79,8 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   // ---- Attestation, status, holder tiers (read-only) -------------------------------------------------------------
   "attestation-history": ["GET /api/v1/attestation/summary", "GET /api/v1/attestation/:providerId/history"],
   attestation: ["GET /api/v1/attestation/:providerId"],
-  holders: ["GET /api/v1/holders/tiers"],
+  // The tier table is public. A wallet's own tier is registered in core only with holder tiers released (src/api/holders.ts).
+  holders: ["GET /api/v1/holders/tiers", "GET /api/v1/holders/me"],
   status: [
     "GET /api/v1/status/slo",
     "GET /api/v1/status/incidents",

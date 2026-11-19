@@ -80,7 +80,9 @@ export function holdersRoutes(app: Hono, ctx: Ctx) {
     }
     return c.json({ data });
   };
-  app.get("/api/v1/holders/me", me);
+  // On a core router a wallet's own tier exists only with the holder-tiers update released (src/surface/updates.ts);
+  // until then the path is answered like every other route that is not served there, 404 `not_enabled`.
+  if (!ctx.surface?.core || ctx.cfg.updates?.holders === true) app.get("/api/v1/holders/me", me);
   app.get("/api/v1/holder", me); // the earlier path of the same document
 
   // ---- Advisory polls ---------------------------------------------------------------------------------------------

@@ -825,7 +825,7 @@ export function loadConfig(overrides: Record<string, unknown> = {}) {
     throw new Error("TRELLIS_COUNCIL_MODELS must list 2 to 5 distinct model ids.");
   const trlsEscrow = trlsEscrowConfig(e, lower);
   const usdcEscrow = usdcEscrowConfig(e, lower, trlsEscrow);
-  const holders = holderSettings(e, trlsEscrow);
+  const holders = holderSettings(e, trlsEscrow, surface.surface === "core");
   return {
     /** LAUNCH_SURFACE: `core` (default) registers only the allow-listed routes and jobs (src/surface/). */
     surface: surface.surface,
@@ -1594,7 +1594,7 @@ export const holderTierSchema = z.object({
   discount_bps: z.number().int().min(0).max(10_000).optional(),
 });
 
-function holderSettings(e: Env, trls: TrlsEscrow | null) {
+function holderSettings(e: Env, trls: TrlsEscrow | null, core: boolean) {
   // The token is the one TRLS_TOKEN_ADDRESS configures for $TRLS escrow payments (null when unset).
   const token = trls ? { address: trls.address, symbol: trls.symbol } : null;
   let tiers: HolderTier[] = [];
@@ -1630,7 +1630,9 @@ function holderSettings(e: Env, trls: TrlsEscrow | null) {
   const enabled = !!token && tiers.length > 0;
   // A newly listed model stays holders-first for the longest early_access_hours of any tier, at most
   // EARLY_ACCESS_WINDOW_HOURS: the top tier may use it from listing, callers with no tier when the window ends.
-  const earlyAccessWindowHours = enabled ? Math.min(e.EARLY_ACCESS_WINDOW_HOURS, Math.max(0, ...tiers.map((t) => t.earlyAccessHours))) : 0;
+  // Not on the core launch surface: there a tier is its limits (src/surface/updates.ts CORE_WHEN_RELEASED), and no
+  // window is ever opened, so a newly listed model is never closed to a caller with no tier.
+  const earlyAccessWindowHours = enabled && !core ? Math.min(e.EARLY_ACCESS_WINDOW_HOURS, Math.max(0, ...tiers.map((t) => t.earlyAccessHours))) : 0;
   return {
     token,
     tiers,

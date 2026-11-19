@@ -17,7 +17,7 @@ import type { DisclosureRequest } from "../router/disclosure.ts";
 import { providerKey } from "../providers/upstream.ts";
 import { applyGuardrails, mergeGuardrails, redactOutput, type GuardrailConfig } from "../gateway/guardrails.ts";
 import { payPerCall } from "../solana/percall.ts";
-import { holderTier, scaleLimit } from "../solana/tiers.ts";
+import { holderTier, payerTier, scaleLimit } from "../solana/tiers.ts";
 import { gateEarlyAccess } from "../holders/early-access.ts";
 import { sealedAdmission } from "../holders/sealed-queue.ts";
 import {
@@ -400,7 +400,7 @@ export async function runCouncil(tk: Toolkit, p: Base): Promise<Response> {
     const r = await payPerCall(ctx, c, { pricePico: total, bodySha, modelId: COUNCIL_MODEL });
     billing = { mode: "per_call", accountId: r.accountId, payer: r.payer, paymentTx: r.txHash, paymentResponse: r.paymentResponse, networkFee: r.networkFee };
   }
-  if (billing.mode === "per_call") tier = await holderTier(ctx, billing.payer);
+  if (billing.mode === "per_call") tier = await payerTier(ctx, billing.payer);
   if (billing.key?.tpm) await tk.limitOrThrow(ctx, `kt:${billing.key.keyHash}`, legs.reduce((s, l) => s + l.promptTokens, judgeWorstTokens), scaleLimit(billing.key.tpm, tier, "tpm"), "tokens");
   const bill: Chat.Billing = billing;
 
@@ -634,7 +634,7 @@ export async function runDual(tk: Toolkit, p: DualInput): Promise<Response> {
     const r = await payPerCall(ctx, c, { pricePico: total, bodySha, modelId: target.model.id });
     billing = { mode: "per_call", accountId: r.accountId, payer: r.payer, paymentTx: r.txHash, paymentResponse: r.paymentResponse, networkFee: r.networkFee };
   }
-  if (billing.mode === "per_call") tier = await holderTier(ctx, billing.payer);
+  if (billing.mode === "per_call") tier = await payerTier(ctx, billing.payer);
   if (billing.key?.tpm) await tk.limitOrThrow(ctx, `kt:${billing.key.keyHash}`, promptTokens * 2, scaleLimit(billing.key.tpm, tier, "tpm"), "tokens");
   const bill: Chat.Billing = billing;
 

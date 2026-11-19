@@ -49,7 +49,7 @@ import { applyRouteDefault } from "../routing/route-default.ts"; // U101
 import { recordCharacterUse, resolveCharacter, type CharacterMeta } from "../characters/registry.ts";
 import { networkFeeLine, payPerCall, type NetworkFee } from "../solana/percall.ts";
 import { paymentHeaderOf, x402ResponseHeaders } from "../solana/x402.ts";
-import { holderTier, scaleLimit, walletOfAccount } from "../solana/tiers.ts";
+import { holderTier, payerTier, scaleLimit, walletOfAccount } from "../solana/tiers.ts";
 import { gateEarlyAccess } from "../holders/early-access.ts";
 import { sealedAdmission } from "../holders/sealed-queue.ts";
 import { hasTabHeaders, recordTabUsage, resolveTab, tabAccountId, tabCreditLine, type TabBilling } from "../solana/tab-billing.ts";
@@ -576,7 +576,7 @@ async function handle(ctx: Ctx, c: Context, kind: Kind, characterId?: string): P
     const r = await payPerCall(ctx, c, { pricePico: hold, bodySha, modelId: primary.id, wallet });
     billing = { mode: "per_call", accountId: r.accountId, payer: r.payer, paymentTx: r.txHash, paymentResponse: r.paymentResponse, networkFee: r.networkFee };
   }
-  if (billing.mode === "per_call") tier = await holderTier(ctx, billing.payer);
+  if (billing.mode === "per_call") tier = await payerTier(ctx, billing.payer); // named with the answer; no balance read in core
   // Tab: seller exposure (max(0.25 x last request cost, $0.05) beyond the latest voucher) is checked before any hold; a
   // request that needs a newer voucher is answered 402 voucher_required with the cumulative_used to sign.
   const creditLine: Pico = billing.mode === "tab" ? tabCreditLine(billing.tab, hold) : creditLineOf(billing);

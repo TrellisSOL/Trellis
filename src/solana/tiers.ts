@@ -4,7 +4,7 @@ import type { HolderTier } from "../config.ts";
 import type { Ctx } from "../context.ts";
 import { log } from "../lib/util.ts";
 import { ADDRESS_RE } from "./constants.ts";
-import { withRetry } from "./rpc.ts";
+import { withRetry, type RetryOptions } from "./rpc.ts";
 
 // Holder tiers (docs/Trellis_Overview.md §4): a live read of the wallet's $TRLS balance, no staking program. A request
 // made with a key that belongs to a wallet account (w_<address>, from wallet sign-in), paid per call by a wallet or
@@ -15,16 +15,32 @@ import { withRetry } from "./rpc.ts";
 // (no extensions): the balance is the wallet's associated token account under the Token-2022 program (the classic
 // Token program is read as a fallback so a test mint under either works). Reads are cached per wallet for an hour; an
 // RPC failure yields no tier (fail closed).
+//
+// The read sits on the inference path (a key's limits are scaled by its wallet's tier before the call is admitted) and
+// the RPC it uses is the one payments are verified on, so it is bounded four ways: one read per wallet however many
+// requests wait for it; a failed read is not asked again for a minute; a request waits a few seconds at most and then
+// goes on with no tier; and this process starts a fixed number of fresh reads a minute over all wallets together.
 
 export type HolderLookup = { balance: bigint | null; decimals: number | null; tier: HolderTier | null; error: boolean };
 
 export const HOLDER_CACHE_MS = 3_600_000;
+/** A failed read is held this long: an RPC that is down or refusing is asked once a minute per wallet, not once per request. */
+export const HOLDER_RETRY_MS = 60_000;
+/** The longest a request waits for a balance read. Past it the caller has no tier for now; the read may still finish and be kept. */
+export const HOLDER_READ_DEADLINE_MS = 3_000;
+/** Fresh balance reads this process starts in a minute, over all wallets. A wallet past the budget has no tier until the next minute. */
+export const HOLDER_READS_PER_MINUTE = 60;
+/** Wallets remembered at once; the oldest entry goes first. */
+export const HOLDER_CACHE_MAX = 50_000;
+
 type CacheEntry = { at: number; look: HolderLookup };
-const caches = new WeakMap<Ctx, Map<string, CacheEntry>>();
-const cacheOf = (ctx: Ctx) => { let m = caches.get(ctx); if (!m) caches.set(ctx, (m = new Map())); return m; };
+type State = { cache: Map<string, CacheEntry>; failed: Map<string, number>; pending: Map<string, Promise<HolderLookup>>; minute: { start: number; used: number; warned: boolean } };
+const states = new WeakMap<Ctx, State>();
+const stateOf = (ctx: Ctx) => { let s = states.get(ctx); if (!s) states.set(ctx, (s = { cache: new Map(), failed: new Map(), pending: new Map(), minute: { start: 0, used: 0, warned: false } })); return s; };
+const NO_READ: HolderLookup = Object.freeze({ balance: null, decimals: null, tier: null, error: true });
 
 export function clearHolderCache(ctx: Ctx) {
-  caches.delete(ctx);
+  states.delete(ctx);
 }
 
 /** The wallet behind a wallet account id (w_<base58 address>), else null. */
@@ -69,10 +85,10 @@ export async function accountLimit(ctx: Ctx, accountId: string | null | undefine
 
 /** The mint's decimals (checked against TRLS_TOKEN_DECIMALS) and the program that owns it, cached with the lookups. */
 let mintInfo: { key: string; decimals: number; program: PublicKey } | null = null;
-async function readMintInfo(ctx: Ctx, mint: PublicKey) {
+async function readMintInfo(ctx: Ctx, mint: PublicKey, retry: RetryOptions = {}) {
   const key = `${ctx.cfg.chain.network}:${mint.toBase58()}`;
   if (mintInfo?.key === key) return mintInfo;
-  const info = await withRetry(() => ctx.chain.connection.getAccountInfo(mint));
+  const info = await withRetry(() => ctx.chain.connection.getAccountInfo(mint), retry);
   if (!info) throw new Error("holder token mint not found");
   const program = info.owner.equals(TOKEN_PROGRAM_ID) ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
   const m = unpackMint(mint, info as never, program);
@@ -83,29 +99,109 @@ async function readMintInfo(ctx: Ctx, mint: PublicKey) {
 }
 export const clearHolderMintCache = () => { mintInfo = null; };
 
-/** The wallet's $TRLS balance (its associated token account; 0 when none) and tier. Never throws; cached an hour. */
+/** One read of the wallet's associated token account. `retry` bounds the attempts (a request's read tries twice, briefly). */
+async function readHolder(ctx: Ctx, wallet: string, retry: RetryOptions): Promise<HolderLookup> {
+  try {
+    const mint = new PublicKey(ctx.cfg.holders.token!.address);
+    const { decimals, program } = await readMintInfo(ctx, mint, retry);
+    const ata = getAssociatedTokenAddressSync(mint, new PublicKey(wallet), true, program);
+    const info = await withRetry(() => ctx.chain.connection.getAccountInfo(ata), retry);
+    const balance = info ? unpackAccount(ata, info as never, program).amount : 0n;
+    return { balance, decimals, tier: ctx.cfg.holders.enabled ? tierFor(ctx.cfg.holders.tiers, balance, decimals) : null, error: false };
+  } catch (e) {
+    log.warn("holder balance read failed", { error: (e as Error).message.slice(0, 160) });
+    return NO_READ;
+  }
+}
+
+function remember(s: State, wallet: string, look: HolderLookup, now: number) {
+  if (look.error) {
+    // A failed read is not kept for the hour, only long enough that the next request does not repeat it at once.
+    if (s.failed.size >= HOLDER_CACHE_MAX) s.failed.clear();
+    s.failed.set(wallet, now);
+    return;
+  }
+  s.failed.delete(wallet);
+  s.cache.delete(wallet); // set again at the end: the map's order is the order of the last read
+  while (s.cache.size >= HOLDER_CACHE_MAX) s.cache.delete(s.cache.keys().next().value as string);
+  s.cache.set(wallet, { at: now, look });
+}
+
+/**
+ * The wallet's $TRLS balance (its associated token account; 0 when none) and tier. Never throws; a good read is cached
+ * an hour. `error: true` means the balance is not known just now (the read failed, took too long, or this minute's
+ * reads are used up): the caller has no tier until a later read succeeds.
+ */
 export async function lookupHolder(ctx: Ctx, wallet: string, opts: { fresh?: boolean } = {}): Promise<HolderLookup> {
   const token = ctx.cfg.holders.token;
   if (!token || !ADDRESS_RE.test(wallet)) return { balance: null, decimals: null, tier: null, error: false };
-  const cache = cacheOf(ctx);
-  const hit = cache.get(wallet);
+  const s = stateOf(ctx);
   // `fresh` skips the hour's cache (a poll's close re-checks every voter's balance); the new read replaces the entry.
-  if (!opts.fresh && hit && Date.now() - hit.at < HOLDER_CACHE_MS) return hit.look;
-  let look: HolderLookup;
-  try {
-    const mint = new PublicKey(token.address);
-    const { decimals, program } = await readMintInfo(ctx, mint);
-    const ata = getAssociatedTokenAddressSync(mint, new PublicKey(wallet), true, program);
-    const info = await withRetry(() => ctx.chain.connection.getAccountInfo(ata));
-    const balance = info ? unpackAccount(ata, info as never, program).amount : 0n;
-    look = { balance, decimals, tier: ctx.cfg.holders.enabled ? tierFor(ctx.cfg.holders.tiers, balance, decimals) : null, error: false };
-  } catch (e) {
-    log.warn("holder balance read failed", { error: (e as Error).message.slice(0, 160) });
-    look = { balance: null, decimals: null, tier: null, error: true };
+  // It is an operator's action, not a caller's: it waits for the RPC's full retries and is outside the minute's budget.
+  if (opts.fresh) {
+    const look = await readHolder(ctx, wallet, {});
+    remember(s, wallet, look, Date.now());
+    return look;
   }
-  // A failed read is not cached for the hour: the next request tries again.
-  if (!look.error) cache.set(wallet, { at: Date.now(), look });
-  return look;
+  const now = Date.now();
+  const hit = s.cache.get(wallet);
+  if (hit && now - hit.at < HOLDER_CACHE_MS) return hit.look;
+  const failedAt = s.failed.get(wallet);
+  if (failedAt !== undefined && now - failedAt < HOLDER_RETRY_MS) return NO_READ;
+  let read = s.pending.get(wallet);
+  if (!read) {
+    if (now - s.minute.start >= 60_000) s.minute = { start: now, used: 0, warned: false };
+    if (s.minute.used >= HOLDER_READS_PER_MINUTE) {
+      if (!s.minute.warned) log.warn("holder balance reads paused until the next minute", { per_minute: HOLDER_READS_PER_MINUTE });
+      s.minute.warned = true;
+      return NO_READ;
+    }
+    s.minute.used++;
+    read = readHolder(ctx, wallet, { attempts: 2, baseMs: 200, maxMs: 400 }).then((look) => {
+      s.pending.delete(wallet);
+      remember(s, wallet, look, Date.now());
+      return look;
+    });
+    s.pending.set(wallet, read);
+  }
+  const waiting = read;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<HolderLookup>((resolve) => {
+    timer = setTimeout(() => {
+      // The requests behind this one do not wait their own three seconds on the same slow read: until it comes back
+      // (and is kept, or counted as failed from then) the wallet reads as failed.
+      if (s.pending.get(wallet) === waiting) s.failed.set(wallet, Date.now());
+      resolve(NO_READ);
+    }, HOLDER_READ_DEADLINE_MS);
+  });
+  try {
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * The tier named with an answer that a wallet paid for per call. A per-call payer has no key, so no limit depends on
+ * it: it is information only. On the core launch surface that is not worth a balance read on the payment path, and no
+ * tier is named there; elsewhere it is the payer's tier as for any wallet.
+ */
+export async function payerTier(ctx: Ctx, payer: string | null | undefined): Promise<HolderTier | null> {
+  return ctx.surface?.core ? null : holderTier(ctx, payer);
+}
+
+/**
+ * The most a tier can multiply this account's requests per minute by, without a balance read: its wallet's tier when
+ * one is cached, else the highest multiplier of any tier, and 1 for an account with no wallet or with tiers off. For
+ * the check made before a request's body is read (src/hardening/middleware.ts); the handler applies the exact tier.
+ */
+export function rpmMultiplierBound(ctx: Ctx, accountId: string | null | undefined): number {
+  const h = ctx.cfg.holders;
+  const wallet = h?.enabled ? walletOfAccount(accountId) : null;
+  if (!wallet) return 1;
+  const hit = states.get(ctx)?.cache.get(wallet);
+  if (hit && Date.now() - hit.at < HOLDER_CACHE_MS) return hit.look.tier?.rpmMultiplier ?? 1;
+  return Math.max(1, ...h.tiers.map((t) => t.rpmMultiplier));
 }
 
 /** The tier for a request by `wallet`, or null (tiers off, no wallet, below every tier, or unreadable balance). */

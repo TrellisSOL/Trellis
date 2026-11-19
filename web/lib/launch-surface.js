@@ -30,7 +30,8 @@ const API_BASE = (process.env.NEXT_PUBLIC_TRELLIS_API_URL || '').replace(/\/$/, 
 // What core is: chat (chat completions, completions, embeddings), the model catalogue and provider list, API keys
 // (create, list, revoke, limits), prepaid credits (deposit, deposit status, low-balance alert, account closure), wallet
 // sign-in, x402 per call, receipts (lookup, proof, verify, the receipt key document, proof-pack checks in the browser),
-// attestation records, status, the data inventory, holder tiers (read) and the docs.
+// attestation records, status, the data inventory, holder tiers (the table, and a wallet's own tier where the router
+// has released them: app/holders/Holders.jsx asks the router's release switches, not this list) and the docs.
 //
 // The router's side of this is its reviewed route table, security/launch-surface/core-routes.txt. This site holds a
 // copy of it, lib/core-routes.generated.json (written by scripts/gen-core-routes.mjs; tests/launch-surface.test.mjs

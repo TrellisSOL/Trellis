@@ -86,6 +86,25 @@ export function perkLines(perks) {
   ];
 }
 
+// ---- the core launch surface -------------------------------------------------------------------------------------------
+// A router on the core launch surface that has released holder tiers serves the table and a wallet's own tier, and a
+// tier changes two things there: the requests and the tokens a key may send per minute. The page says so.
+
+export const CORE_PERKS_NOTE = 'On this router today a tier raises the request and token limits of the wallet’s keys. The other columns describe perks that are not switched on here yet.';
+
+/** The one perk line a core router's own-tier card shows: the two limits the tier scales there. */
+export function coreLimitLine(perks) {
+  const l = perks?.limits || {};
+  return `Limits: ${limit(l.rpm)} requests and ${limit(l.tpm)} tokens per minute.`;
+}
+
+/**
+ * Whether the page asks for a wallet's own tier (GET /api/v1/holders/me) on a router that says it runs the core surface:
+ * only once its status has been read and lists the `holders` update as on. `surface` is the launch-surface state
+ * ({ surface, ready }), `released` the names of the updates the router has switched on.
+ */
+export const ownTierServed = (surface, released) => !!surface?.ready && surface.surface === 'core' && Array.isArray(released) && released.includes('holders');
+
 /** What stands between this wallet and the next tier, or null at the top tier (or when tiers are off). */
 export function nextTierLine(me) {
   const next = me?.next_tier;

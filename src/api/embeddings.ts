@@ -30,7 +30,7 @@ import { compactUpstream, recordGpuAttested } from "../providers/aci.ts";
 import { payPerCall } from "../solana/percall.ts";
 import { paymentHeaderOf, x402ResponseHeaders } from "../solana/x402.ts";
 import type { Attempt } from "../router/execute.ts";
-import { holderTier, scaleLimit, walletOfAccount } from "../solana/tiers.ts";
+import { holderTier, payerTier, scaleLimit, walletOfAccount } from "../solana/tiers.ts";
 import { gateEarlyAccess } from "../holders/early-access.ts";
 import { gatewayOrigin } from "../ohttp/origin.ts";
 import { requestLane } from "../ohttp/lane.ts";
@@ -149,7 +149,7 @@ export function embeddingsRoutes(app: Hono, ctx: Ctx) {
     const paid = key || pass ? null : await payPerCall(ctx, c, { pricePico: hold, bodySha: requestHash(body), modelId: r.model.id });
     const accountId = key?.accountId ?? (pass ? BLIND_POOL : paid!.accountId);
     const caller = sha256(accountId).slice(0, 16); // R5-04: health events name who saw them
-    if (paid) tier = await holderTier(ctx, paid.payer); // a wallet paying per call: its $TRLS tier is reported with the answer
+    if (paid) tier = await payerTier(ctx, paid.payer); // a wallet paying per call: its $TRLS tier is reported with the answer (not in core: no balance read there)
     const id = batchLine?.generationId ?? genId();
     if (pass) {
       requireValue(ctx, pass, hold); // the token pays for at most its face value

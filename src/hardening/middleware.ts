@@ -7,6 +7,7 @@ import { addressBucket, viaOnion } from "../api/common.ts";
 import { bearer, resolveKey } from "../api/auth.ts";
 import { balanceOf } from "../ledger/ledger.ts";
 import { log } from "../lib/util.ts";
+import { rpmMultiplierBound } from "../solana/tiers.ts";
 import { bodyBudget, capBody, declaredTooLarge, requestCap } from "./body.ts";
 import { internalCaller, validOriginLock } from "./client.ts";
 export const originLockMiddleware = (ctx: Ctx): MiddlewareHandler => async (c, next) => {
@@ -49,14 +50,15 @@ export const hardeningMiddleware = (ctx: Ctx): MiddlewareHandler => {
         // R5-06: the handler takes the key's and the account's own limits (`k:`, `acct:` in api/chat.ts and
         // api/embeddings.ts) only after it has read and parsed the body. Look at those counts now (amount 0: nothing is
         // taken) and refuse a caller that has none left before a byte of its body is read. Holder tiers scale both
-        // limits in the handler and are not on the core surface; where they are on, the handler decides alone.
-        const rpm = key.rpm ?? ctx.cfg.limits.defaultRpm, accountRpm = ctx.cfg.limits.accountRpm;
-        if (!ctx.cfg.holders.enabled) {
-          try {
-            if (rpm > 0 && (await ctx.limiter.take(`k:${key.keyHash}`, 0, rpm, 60_000)).remaining <= 0) return tooMany(c, 60_000 - (Date.now() % 60_000), `Rate limit exceeded (${rpm} requests/min).`);
-            if (accountRpm > 0 && (await ctx.limiter.take(`acct:${key.accountId}`, 0, accountRpm, 60_000)).remaining <= 0) return tooMany(c, 60_000 - (Date.now() % 60_000), "Rate limit exceeded for this account.");
-          } catch { /* the handler asks the limiter itself */ }
-        }
+        // limits in the handler. No balance is read here: the limits are scaled by the tier already known for the
+        // key's wallet, else by the most any tier gives, so a holder is never refused short of its own limit and
+        // every caller is still refused at a bound (src/solana/tiers.ts rpmMultiplierBound; 1 with tiers off).
+        const most = rpmMultiplierBound(ctx, key.accountId);
+        const rpm = Math.floor((key.rpm ?? ctx.cfg.limits.defaultRpm) * most), accountRpm = Math.floor(ctx.cfg.limits.accountRpm * most);
+        try {
+          if (rpm > 0 && (await ctx.limiter.take(`k:${key.keyHash}`, 0, rpm, 60_000)).remaining <= 0) return tooMany(c, 60_000 - (Date.now() % 60_000), `Rate limit exceeded (${rpm} requests/min).`);
+          if (accountRpm > 0 && (await ctx.limiter.take(`acct:${key.accountId}`, 0, accountRpm, 60_000)).remaining <= 0) return tooMany(c, 60_000 - (Date.now() % 60_000), "Rate limit exceeded for this account.");
+        } catch { /* the handler asks the limiter itself */ }
         return;
       }
     }
