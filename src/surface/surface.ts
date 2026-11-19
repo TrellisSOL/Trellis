@@ -123,8 +123,11 @@ export class Surface {
     return [...new Set(this.registered.map((r) => `${r.group}\t${routeKey(r.method, r.path)}`))].sort();
   }
 
-  /** What GET /api/v1/status says under `launch_surface`. */
-  status(jobs: string[]) {
+  /**
+   * What GET /api/v1/status says under `launch_surface`. `opened` names the features a released update has switched on
+   * here (src/surface/request.ts): they are not listed as off.
+   */
+  status(jobs: string[], opened: readonly string[] = []) {
     return {
       surface: this.surface,
       // The route groups that are mounted, and the background jobs this process registered.
@@ -132,7 +135,7 @@ export class Surface {
       jobs,
       // What is off because of the surface: named features, the route groups that were not mounted, and how many routes
       // and jobs were refused inside mounted groups. A request to any of them is answered 404 `not_enabled`.
-      off: this.core ? Object.keys(NON_CORE_FEATURES) : [],
+      off: this.core ? Object.keys(NON_CORE_FEATURES).filter((name) => !opened.includes(name)) : [],
       off_groups: this.skippedGroups,
       off_routes: new Set(this.fenced.map((r) => routeKey(r.method, r.path))).size,
       off_jobs: this.fencedJobs,

@@ -75,6 +75,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   // Paying in $TRLS: mounted in core only with that update released (src/app.ts).
   escrow: ["GET /api/v1/escrow", "GET /api/v1/escrow/trls/price", "GET /api/v1/escrow/deposits"],
   "account-runway": ["GET /api/v1/account/low-balance", "PATCH /api/v1/account/low-balance"],
+  // Blind tokens: the issuer keys and the purchase from a key's balance. Mounted in core only with the blind update
+  // released and TRELLIS_FEATURE_BLIND on (src/app.ts); a token is spent on the chat and embeddings routes above.
+  blind: ["GET /api/v1/blind/keys", "POST /api/v1/blind/purchase"],
 
   // ---- Attestation, status, holder tiers (read-only) -------------------------------------------------------------
   "attestation-history": ["GET /api/v1/attestation/summary", "GET /api/v1/attestation/:providerId/history"],
@@ -126,6 +129,7 @@ export const CORE_JOBS: readonly string[] = [
   "escrow-indexer", // paying in $TRLS: deposits into the escrow wallet; registered in core only with that update released and configured
   "trls-price", // paying in $TRLS: the router's own price readings
   "trls-burn", // paying in $TRLS: burns what credited deposits paid
+  "blind-key-rotation", // blind tokens: next epoch's issuer keys ahead of time, ended epochs lose their private half; registered only with that update released and switched on
   "media-jobs", // the media update: follows pending image and video generations to their end; registered only with the switch on
   "job-watchdog", // R4-01: liveness of every job above
 ];
@@ -152,7 +156,7 @@ export const NON_CORE_FEATURES: Record<string, string> = {
   "network-hosts": "Network hosts, host bonds, slasher, payouts",
   capacity: "Prepaid capacity (Bushels) and HVX",
   "makegood-onchain": "Make-good refunds (ledger credits and refunds paid on chain)",
-  blind: "Blind tokens",
+  blind: "Blind tokens (not listed as off where the blind update is released and switched on; token sets stay off)",
   ohttp: "Oblivious HTTP and the onion service",
   "anthropic-shim": "Anthropic Messages API shim",
   "ollama-shim": "Ollama API shim",

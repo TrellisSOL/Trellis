@@ -26,6 +26,28 @@ const DAY_MS = 86_400_000;
 
 export type Purchase = { key: typeof blindKeys.$inferSelect; count: number; cost: Pico; signatures: Uint8Array[]; replayed: boolean };
 
+/** What a closed hold charged, from its stored result. */
+const chargedBy = (result: unknown): Pico => BigInt((result as { charged?: string } | null)?.charged ?? 0);
+
+/**
+ * Charge a purchase's hold: all of `cost`, or nothing. settle() charges a hold that expired before it was settled from
+ * what the account has left, which can be less than the hold. A purchase that was not paid in full is not a purchase:
+ * what was charged goes back, nothing is signed, and the hold does not count as paid when the request is sent again.
+ */
+export async function chargePurchase(ctx: Ctx, hold: { id: string; accountId: string; keyHash: string | null }, cost: Pico, description: string): Promise<void> {
+  let charged: Pico;
+  try {
+    charged = (await settle(ctx.db, hold.id, cost, { description, kind: "blind_purchase" })).charged;
+  } catch (e) {
+    await release(ctx.db, hold.id).catch(() => undefined);
+    throw e;
+  }
+  if (charged === cost) return;
+  if (charged > 0n) await post(ctx.db, { accountId: hold.accountId, amount: charged, kind: "blind_purchase", ref: `blind:short:${hold.id}`, keyHash: hold.keyHash, description: `${description}: not paid in full, returned` });
+  log.error("blind purchase was not charged in full; nothing was signed", { hold: hold.id, cost, charged });
+  fail(402, "This purchase could not be charged in full, so no token was signed and what was charged has been returned. Check the balance and send it again.", "insufficient_credits");
+}
+
 export async function purchaseTokens(ctx: Ctx, caller: KeyRow, input: { tokenKeyId: string; blinded: Uint8Array[] }): Promise<Purchase> {
   const issuer = ctx.blind!;
   const cfg = ctx.cfg.blind;
@@ -55,9 +77,11 @@ export async function purchaseTokens(ctx: Ctx, caller: KeyRow, input: { tokenKey
   let replayed = false;
   for (let attempt = 0; attempt < 3 && !holdId; attempt++) {
     const id = `blind-${ref.slice(0, 40)}-${attempt}`;
-    const [h] = await ctx.db.select({ status: holds.status }).from(holds).where(eq(holds.id, id));
+    const [h] = await ctx.db.select({ status: holds.status, result: holds.result }).from(holds).where(eq(holds.id, id));
     if (!h) holdId = id;
     else if (h.status === "settled") {
+      // Paid means charged in full: a hold that closed short was returned (chargePurchase) and signs nothing.
+      if (chargedBy(h.result) !== cost) continue;
       holdId = id;
       replayed = true;
     } else if (h.status === "held") fail(409, "This purchase is already being processed.", "purchase_in_progress");
@@ -83,12 +107,7 @@ export async function purchaseTokens(ctx: Ctx, caller: KeyRow, input: { tokenKey
       await release(ctx.db, holdId);
       fail(429, `Daily purchase cap of $${cfg.maxUsdPerDay} reached for this account.`, "purchase_cap", { daily_cap_usd: cfg.maxUsdPerDay });
     }
-    try {
-      await settle(ctx.db, holdId, cost, { description, kind: "blind_purchase" });
-    } catch (e) {
-      await release(ctx.db, holdId).catch(() => undefined);
-      throw e;
-    }
+    await chargePurchase(ctx, { id: holdId, accountId: caller.accountId, keyHash: caller.keyHash }, cost, description);
     await ctx.db.update(blindKeys).set({ issued: sql`${blindKeys.issued} + ${count}` }).where(eq(blindKeys.keyId, key.keyId));
   }
   // The pool is funded from the purchase, idempotently by hold id; a replay repairs a credit a crash skipped.

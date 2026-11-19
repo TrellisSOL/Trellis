@@ -41,10 +41,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Images and video have no setting of their own: the switch is read by the routes themselves (src/api/media.ts), which
   // answer 404 `not_enabled` while it is off, in every environment.
   media: [],
-  // Agent keys and the blind lane are outside the core launch surface as well, like program-mode anchoring
-  // (src/surface/config.ts NON_CORE_SETTINGS): a core production router refuses these settings whatever this file
-  // says, so each needs its review and its place on the surface before its switch can open it (UPDATES.md). Council,
-  // paying in the token and holder tiers have that place: CORE_WHEN_RELEASED below.
+  // Agent keys are outside the core launch surface as well, like program-mode anchoring (src/surface/config.ts
+  // NON_CORE_SETTINGS): a core production router refuses those settings whatever this file says, so the update needs
+  // its review and its place on the surface before its switch can open it (UPDATES.md). Council, paying in the token,
+  // holder tiers and blind tokens (the first part of the blind lane) have that place: CORE_WHEN_RELEASED below.
   holders: [{ setting: "TRLS_TOKEN_ADDRESS" }, { setting: "HOLDER_TIERS" }],
   council: [{ setting: "TRELLIS_FEATURE_COUNCIL", when: truthy }],
   agents: [
@@ -83,6 +83,11 @@ export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> 
   // core route, the sealed-lane queue and credit expiry have settings of their own that stay refused, and no
   // early-access window is opened (src/config.ts holderSettings).
   holders: ["TRLS_TOKEN_ADDRESS", "HOLDER_TIERS"],
+  // The blind lane, its first part only: single-use blind-signed tokens, bought from a balance and spent with no
+  // account (the two blind routes, the rotation job and the `PrivateToken` credential: src/surface/request.ts). Token
+  // sets (BLIND_MULTI_TOKEN_ENABLED), Oblivious HTTP (OHTTP_*) and the onion service (ONION_*, UNLINKABLE_VIA_ONION)
+  // are not admitted: a core router refuses those settings with the switch on as with it off.
+  blind: ["TRELLIS_FEATURE_BLIND"],
 };
 
 /** The non-core settings the released updates admit on the core surface, for this environment. */

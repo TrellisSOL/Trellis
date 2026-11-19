@@ -22,12 +22,27 @@ const NON_CORE_HEADERS: Record<string, string> = {
   "x-trellis-decision-tag": "Decision tags (X-Trellis-Decision-Tag)",
 };
 
+/** Blind tokens on a core router: the blind update is released here and its setting is on (src/surface/updates.ts). */
+export const blindInCore = (ctx: Ctx) => ctx.cfg.updates?.blind === true && !!ctx.blind;
+/**
+ * Where a blind token is a credential in core: the inference routes one token can pay for, and the record of the call
+ * it paid. On every other route the scheme stays refused, and so does a header longer than one token (a token set).
+ */
+const TOKEN_ROUTES: ReadonlySet<string> = new Set([
+  "POST /api/v1/chat/completions", "POST /api/v1/completions", "POST /v1/chat/completions", "POST /v1/completions",
+  "POST /api/v1/embeddings", "POST /v1/embeddings", "GET /api/v1/generation",
+]);
+
 /** Mounted only in core (src/app.ts): refuses the headers above and any credential scheme other than a key. */
-export const coreRequestMiddleware = (_ctx: Ctx): MiddlewareHandler => async (c, next) => {
+export const coreRequestMiddleware = (ctx: Ctx): MiddlewareHandler => async (c, next) => {
   for (const [header, what] of Object.entries(NON_CORE_HEADERS)) if (c.req.header(header) !== undefined) notEnabled(what);
   const auth = c.req.header("authorization");
-  // Bearer keys only. `PrivateToken` (blind tokens) and anything else is not a core credential.
-  if (auth !== undefined && auth.length > 0 && !(auth.length <= 512 && auth.slice(0, 7).toLowerCase() === "bearer ")) notEnabled("This authorization scheme");
+  // Bearer keys only. `PrivateToken` (one blind token) is a credential where the blind update is released and switched
+  // on, on the routes above; anything else is not a core credential.
+  if (auth !== undefined && auth.length > 0 && !(auth.length <= 512 && auth.slice(0, 7).toLowerCase() === "bearer ")) {
+    const token = blindInCore(ctx) && auth.length <= 512 && /^PrivateToken\s/i.test(auth) && TOKEN_ROUTES.has(`${c.req.method} ${c.req.path}`);
+    if (!token) notEnabled("This authorization scheme");
+  }
   await next();
 };
 

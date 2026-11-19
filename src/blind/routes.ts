@@ -4,6 +4,7 @@ import { fail } from "../lib/errors.ts";
 import { picoToUsdString } from "../lib/money.ts";
 import { requireKey, requireRole } from "../api/auth.ts";
 import { readJson } from "../api/common.ts";
+import { enforceCoreKey } from "../surface/request.ts";
 import { purchaseTokens } from "./purchase.ts";
 import { b64url, decodeBase64 } from "./privacy-token.ts";
 import { epochCommitment, keyValue } from "./issuer.ts";
@@ -64,6 +65,7 @@ export function blindRoutes(app: Hono, ctx: Ctx) {
     c.header("cache-control", "no-store");
     const caller = await requireKey(ctx, c.req.header("authorization"));
     await requireRole(ctx, caller, ["owner", "admin", "member"]);
+    enforceCoreKey(ctx, caller); // LAUNCH_SURFACE=core: a key that carries a non-core setting is refused, as on an inference call
     // Tokens work for every model, so a key limited to some models must not be able to mint them.
     if (caller.allowedModels?.length) fail(403, "A key restricted to specific models cannot buy blind tokens.", "model_not_allowed");
     const body = await readJson(c);

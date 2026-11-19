@@ -1,5 +1,6 @@
 import { networkFeeAccount } from "../solana/sponsor.ts";
 import { updatesStatus } from "../surface/updates.ts";
+import { blindInCore } from "../surface/request.ts";
 import { makegoodStatus, refundReceipt } from "../services/makegood.ts"; // V6 R
 import { anchorKeyDocument } from "../services/anchor.ts";
 import { launchStatus } from "../solana/launch-config.ts";
@@ -286,7 +287,7 @@ export function publicRoutes(app: Hono, ctx: Ctx) {
         launch_tier: launchStatus(ctx.cfg.launch),
         // Launch surface: `core` registers only the allow-listed routes and jobs; everything under `off` answers 404
         // `not_enabled`, whatever its own setting says (src/surface/surface.ts).
-        launch_surface: { ...(ctx.surface?.status(ctx.jobs.status().map((j) => j.name)) ?? { surface: ctx.cfg.surface }), ignored_settings: ctx.cfg.surfaceIgnored.map((s) => s.setting) },
+        launch_surface: { ...(ctx.surface?.status(ctx.jobs.status().map((j) => j.name), blindInCore(ctx) ? ["blind"] : []) ?? { surface: ctx.cfg.surface }), ignored_settings: ctx.cfg.surfaceIgnored.map((s) => s.setting) },
         // Release switches: the prepared updates and which of them this router has released (src/features.json).
         updates: updatesStatus(ctx.cfg.updates),
         dev_faucet: faucetEnabled(ctx),

@@ -34,8 +34,8 @@ export const NON_CORE_SETTINGS: Record<string, { feature: string; when?: (v: unk
   HOLDER_TIERS: { feature: "holder tiers" },
   FAST_CREDIT_ENABLED: { feature: "fast credit" },
   X402_FACILITATOR_URL: { feature: "external x402 facilitator" },
-  TRELLIS_FEATURE_BLIND: { feature: "blind tokens" },
-  BLIND_MULTI_TOKEN_ENABLED: { feature: "blind tokens" },
+  TRELLIS_FEATURE_BLIND: { feature: "blind tokens" }, // admitted with the blind update released (updates.ts CORE_WHEN_RELEASED)
+  BLIND_MULTI_TOKEN_ENABLED: { feature: "blind token sets" }, // not admitted: one token per call in core
   CREDITS_EXPIRY_ENABLED: { feature: "credit expiry" },
   // Programs other than trellis_credits and trellis_tab (tabs joined the launch on 2026-11-04)
   TRELLIS_BOND_PROGRAM_ID: { feature: "host bonds" },

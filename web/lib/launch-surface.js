@@ -100,6 +100,8 @@ export const CORE = {
 };
 
 export const EXTRA = {
+  // /tokens/ stays here although the router's table has the two blind routes: the page pays a one-time key through the
+  // credits program (POST /api/v1/credits/deposit-tx with a program configured), which a router without it cannot take.
   page: ['/admin/', '/agents/', '/agents/directory/', '/agents/profile/', '/arena/', '/ask/', '/dashboard/webhooks/', '/hosts/', '/network/', '/tokens/', '/tools/'],
   nav: ['compare', 'files', 'encrypted', 'chat-limits',
     'account-activity', 'inbox', 'tokens', 'graft', 'unlinkable', 'proxy', 'spec', 'providers', 'routing', 'json-check', 'presets', 'characters', 'batches', 'teams', 'tracing',

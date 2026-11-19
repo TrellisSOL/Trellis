@@ -4,6 +4,8 @@ account-runway	PATCH /api/v1/account/low-balance
 attestation	GET /api/v1/attestation/:providerId
 attestation-history	GET /api/v1/attestation/:providerId/history
 attestation-history	GET /api/v1/attestation/summary
+blind	GET /api/v1/blind/keys
+blind	POST /api/v1/blind/purchase
 chat	POST /api/v1/chat/completions
 chat	POST /api/v1/completions
 chat	POST /v1/chat/completions

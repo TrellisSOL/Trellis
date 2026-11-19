@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Ctx } from "../context.ts";
-import { blindNullifiers } from "../db/schema.ts";
+import { blindNullifiers, holds } from "../db/schema.ts";
 import { ApiError } from "../lib/errors.ts";
 import { picoToUsd, type Pico } from "../lib/money.ts";
 import { ensureAccount } from "../ledger/ledger.ts";
@@ -16,6 +16,7 @@ import { parsePrivateToken } from "./privacy-token.ts";
 //   claim    insert its nullifier under the primary-key constraint; a second claim of the same token fails
 //   confirm  after the request was served, mark the nullifier spent and record the generation
 //   unclaim  if nothing was served, delete the reservation so the token is not lost
+//   return   after a failure: unclaim, unless the call's hold was charged (then the token is spent)
 
 export const BLIND_POOL = "blind_pool";
 
@@ -63,6 +64,18 @@ export async function claimToken(ctx: Ctx, pass: BlindPass) {
 export async function unclaimToken(ctx: Ctx, pass: BlindPass) {
   if (pass.tokens) return releaseSet(ctx, pass.tokens);
   await ctx.db.delete(blindNullifiers).where(and(eq(blindNullifiers.nullifier, pass.nullifier), eq(blindNullifiers.status, "reserved")));
+}
+
+/**
+ * After a failure: give the token back, unless its call was charged. A hold that closed with a charge has spent the
+ * token whatever went wrong afterwards (the record, the receipt, the answer), so that token is marked spent instead;
+ * giving it back would let one token pay for a second call out of the pool.
+ */
+export async function returnToken(ctx: Ctx, pass: BlindPass, holdId: string) {
+  const [h] = await ctx.db.select({ status: holds.status, result: holds.result }).from(holds).where(eq(holds.id, holdId));
+  const charged = h?.status === "settled" ? BigInt((h.result as { charged?: string } | null)?.charged ?? 0) : 0n;
+  if (charged > 0n) return confirmToken(ctx, pass, holdId);
+  await unclaimToken(ctx, pass);
 }
 
 export async function confirmToken(ctx: Ctx, pass: BlindPass, generationId: string) {

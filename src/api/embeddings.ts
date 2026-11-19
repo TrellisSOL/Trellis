@@ -36,7 +36,7 @@ import { gatewayOrigin } from "../ohttp/origin.ts";
 import { requestLane } from "../ohttp/lane.ts";
 import { applyRouteDefault } from "../routing/route-default.ts"; // U101
 import { noteLane } from "../services/private-stats.ts";
-import { BLIND_POOL, claimToken, confirmToken, isBlindRequest, presentBlindToken, redemptionSummary, requireValue, unclaimToken } from "../blind/redeem.ts";
+import { BLIND_POOL, claimToken, confirmToken, isBlindRequest, presentBlindToken, redemptionSummary, requireValue, returnToken, unclaimToken } from "../blind/redeem.ts";
 
 // POST /api/v1/embeddings — prepaid keys, or no key at all: an unpaid call gets the same 402 as chat
 // (CallPay and/or x402, whichever this router has configured) and the paid retry is served.
@@ -200,6 +200,7 @@ export function embeddingsRoutes(app: Hono, ctx: Ctx) {
           await ctx.db.insert(generations).values({ id, keyHash: key?.keyHash ?? null, accountId, modelId: r.model.id, providerId: cand.providerId, tokensIn: usage.prompt, cost: charged, upstreamCost: cost.upstream, royalty: cost.royalty, margin: cost.margin, mode, latencyMs: Math.round(res.latencyMs), generationTimeMs: Date.now() - t0, finishReason: cut, quant: cand.quant, receiptId: id, receiptSig: signed.sig, receiptKeyId: signed.keyId, receipt: payload, receiptLeaf: receiptLeaf(signed.bytes, signed.sigBytes), paymentTx: paid?.txHash ?? null, attempts, requestSha256: payload.request_sha256, responseSha256: payload.response_sha256 });
           await noteEstimatedSettlement(ctx, { providerId: cand.providerId, generationId: id, reason: cut, charged }).catch(() => undefined);
           await noteCutOff(ctx, admission);
+          if (pass) await confirmToken(ctx, pass, id); // charged: the token is spent
           if (cut === "oversize") return c.json({ error: { code: 502, type: "provider_response_too_large", message: "The provider's answer was larger than the router reads, so it was not delivered. The provider had embedded the input and may bill it, so the call is charged its input at that provider's price; nothing else is charged." }, id, usage: { prompt_tokens: usage.prompt, total_tokens: usage.prompt, cost: picoToUsd(charged) }, receipt: { id, sig: signed.sig, key_id: signed.keyId, alg: "Ed25519", payload } }, 502, { ...generationHeaders(id, disc.lane), ...(paid?.paymentResponse ? x402ResponseHeaders(paid.paymentResponse) : {}) });
           return c.json({ error: { code: 504, type: "provider_timeout", message: "The provider did not answer within the router's time limit. It had accepted the request and may bill it, so the call is charged its input at that provider's price; nothing else is charged." }, id, usage: { prompt_tokens: usage.prompt, total_tokens: usage.prompt, cost: picoToUsd(charged) }, receipt: { id, sig: signed.sig, key_id: signed.keyId, alg: "Ed25519", payload } }, 504, { ...generationHeaders(id, disc.lane), ...(paid?.paymentResponse ? x402ResponseHeaders(paid.paymentResponse) : {}) });
         }
@@ -309,7 +310,7 @@ export function embeddingsRoutes(app: Hono, ctx: Ctx) {
       }
     } catch (e) {
       await release(ctx.db, id);
-      if (pass) await unclaimToken(ctx, pass);
+      if (pass) await returnToken(ctx, pass, id); // given back only when nothing was charged
       throw e;
     }
     await release(ctx.db, id);

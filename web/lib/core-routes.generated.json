@@ -4,6 +4,8 @@
   "attestation\tGET /api/v1/attestation/:providerId",
   "attestation-history\tGET /api/v1/attestation/:providerId/history",
   "attestation-history\tGET /api/v1/attestation/summary",
+  "blind\tGET /api/v1/blind/keys",
+  "blind\tPOST /api/v1/blind/purchase",
   "chat\tPOST /api/v1/chat/completions",
   "chat\tPOST /api/v1/completions",
   "chat\tPOST /v1/chat/completions",

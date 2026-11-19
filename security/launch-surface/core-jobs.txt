@@ -1,6 +1,7 @@
 # Background jobs registered by a LAUNCH_SURFACE=core router. Checked by test/launch-surface.test.ts.
 alert-notifier
 attestor
+blind-key-rotation
 catalog-refresh
 chain-indexer
 escrow-indexer
