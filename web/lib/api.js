@@ -1,5 +1,5 @@
 import { availabilityFields } from "./model-availability.js"; // ON5
-import { NOT_ENABLED_MESSAGE, enabled, loadLaunchSurface, notEnabledAnswer, reportNotEnabled } from "./launch-surface.js";
+import { NOT_ENABLED_MESSAGE, enabled, loadLaunchSurface, notEnabledAnswer, releasedUpdates, reportNotEnabled } from "./launch-surface.js";
 // Live data adapter: the Trellis API behind the existing interface.
 // The site is normally served by the router itself (same origin). Set NEXT_PUBLIC_TRELLIS_API_URL at
 // build time to call a router hosted elsewhere. No secret is ever bundled: the API key is supplied by
@@ -265,7 +265,8 @@ export function toProvider(p) {
 /** Everything the dashboard shows for a signed-in key. */
 export async function loadWorkspace(key) {
   // Pay-with and escrow are not part of the core launch surface: on a core router their routes are not asked at all.
-  const payWith = enabled("part", "pay-with", (await loadLaunchSurface()).surface);
+  const surface = await loadLaunchSurface();
+  const payWith = enabled("part", "pay-with", surface.surface);
   const [me, credits, gens, tokens] = await Promise.all([
     api("/api/v1/key", { key }),
     api("/api/v1/credits", { key }),
@@ -282,7 +283,7 @@ export async function loadWorkspace(key) {
   }
   // Paying in $TRLS has its own release switch (GET /api/v1/status `updates`): with it on, a core router serves the
   // escrow routes for that token alone.
-  const trlsOn = payWith ? false : await fetch(API_BASE + "/api/v1/status").then((r) => (r.ok ? r.json() : null)).then((d) => (d?.data?.updates || []).some((u) => u.name === "trls" && u.on)).catch(() => false);
+  const trlsOn = !payWith && releasedUpdates().includes("trls");
   const [session, escrow, stock] = !payWith && !trlsOn ? [{ data: null }, null, null] : await Promise.all([
     payWith ? api("/api/v1/paywith/session", { key }).catch(() => ({ data: null })) : { data: null },
     // Stock escrow (PAYMENTS_MODE=escrow): where to send Stock Tokens, live rates, this wallet's deposits.

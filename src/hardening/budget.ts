@@ -16,8 +16,8 @@ import { log } from "../lib/util.ts";
 //   3. Detection: a watchdog timer notices when the event loop itself was held for EVENT_LOOP_BLOCK_MS, logs the routes
 //      that were in flight (names, never content) and raises the readiness warning `event_loop_blocked`.
 
-/** Routes with their own deadlines: inference (and its streams). Everything else gets the request budget. */
-const OWN_DEADLINE = /^\/(?:api\/v1|v1)\/(?:chat\/completions|completions|embeddings|responses|messages|rerank|rag|batches)(?:\/|$)|^\/(?:ollama|mcp|trpc)(?:\/|$)|^\/api\/v1\/(?:e2ee|ohttp|characters\/[^/]{1,128}\/chat)(?:\/|$)/;
+/** Routes with their own deadlines: inference (and its streams) and media orders, which are bounded by the upstream timeout and their hold. Everything else gets the request budget. */
+const OWN_DEADLINE = /^\/(?:api\/v1|v1)\/(?:chat\/completions|completions|embeddings|responses|messages|rerank|rag|batches|images\/generations|videos\/generations)(?:\/|$)|^\/(?:ollama|mcp|trpc)(?:\/|$)|^\/api\/v1\/(?:e2ee|ohttp|characters\/[^/]{1,128}\/chat)(?:\/|$)/;
 
 export function budgetFor(method: string, path: string, cfg: Pick<Config, "hardening">): number | null {
   if (method === "OPTIONS" || path === "/health") return null;

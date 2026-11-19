@@ -22,6 +22,9 @@ edge.security-headers	ALL /*
 edge.status	ALL /*
 embeddings	POST /api/v1/embeddings
 embeddings	POST /v1/embeddings
+escrow	GET /api/v1/escrow
+escrow	GET /api/v1/escrow/deposits
+escrow	GET /api/v1/escrow/trls/price
 facilitator	GET /facilitator/supported
 facilitator	POST /facilitator/settle
 facilitator	POST /facilitator/verify

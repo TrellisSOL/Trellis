@@ -187,6 +187,7 @@ export const isNotEnabledText = text => typeof text === 'string' && text.startsW
 const UNKNOWN = Object.freeze({ surface: 'unknown', ready: false, core: [], off: [] });
 const listeners = new Set(), refusals = new Set();
 let pending = null;
+let released = [];
 
 function readHint() {
   try {
@@ -219,7 +220,9 @@ export function setLaunchSurface(value) {
   return next;
 }
 /** Forget everything (tests). `hint: true` starts from this tab's remembered answer, as a fresh page load does. */
-export function resetLaunchSurface({ hint = false } = {}) { pending = null; state = hint ? readHint() : UNKNOWN; }
+export function resetLaunchSurface({ hint = false } = {}) { pending = null; released = []; state = hint ? readHint() : UNKNOWN; }
+/** The prepared updates the router has switched on (its status `updates`), by name: empty until its status was read. */
+export const releasedUpdates = () => released;
 
 /**
  * Read GET /api/v1/status once and share the answer. A router that cannot be reached says nothing about its surface:
@@ -232,7 +235,9 @@ export function loadLaunchSurface({ fetcher, base = API_BASE } = {}) {
     try {
       const response = await (fetcher || globalThis.fetch)(base + STATUS_PATH, { headers: { accept: 'application/json' } });
       if (!response.ok) throw new Error(String(response.status));
-      const next = apply({ ...surfaceOf((await response.json())?.data), ready: true });
+      const data = (await response.json())?.data;
+      released = Array.isArray(data?.updates) ? data.updates.filter(u => u?.on === true && typeof u.name === 'string').map(u => u.name) : [];
+      const next = apply({ ...surfaceOf(data), ready: true });
       return next;
     } catch {
       if (pending === mine) pending = null;

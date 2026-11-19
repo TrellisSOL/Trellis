@@ -147,7 +147,7 @@ export const NON_CORE_FEATURES: Record<string, string> = {
   agents: "Agents: policy, guard, pay, profiles, directory, certificates, approvals, sessions, playbooks, identity, Telegram",
   tools: "Tools market and data tools",
   "pay-with": "Pay with stock tokens, Swig sessions",
-  escrow: "Escrow deposits, fast credit, TWAP pricing",
+  escrow: "Escrow deposits other than $TRLS, fast credit",
   "network-hosts": "Network hosts, host bonds, slasher, payouts",
   capacity: "Prepaid capacity (Bushels) and HVX",
   "makegood-onchain": "Make-good refunds (ledger credits and refunds paid on chain)",

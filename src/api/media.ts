@@ -46,7 +46,7 @@ type Job = {
   files: MediaFile[]; reason: string | null; createdAt: string; finishedAt: string | null;
   receipt: { id: string; sig: string; key_id: string; alg: "Ed25519"; payload: Record<string, unknown> } | null;
 };
-type CatalogueModel = { id: string; name: string; type: Kind; category: string | null; capabilities: Record<string, unknown>; pricing: { currency: "USD"; min: number | null; max: number; variants: unknown } };
+type CatalogueModel = { id: string; name: string; type: Kind; category: string | null; capabilities: Record<string, unknown>; pricing: { currency: "USD"; min: number | null; max: number; variants: unknown }; /** false: the price is a base price, so no priced parameter is accepted */ bounded: boolean };
 
 export const MEDIA_JOB = "media-jobs";
 export const MEDIA_FILE_TTL_MS = 24 * 3_600_000;
@@ -61,6 +61,8 @@ const FIELDS: Record<Kind, readonly string[]> = {
   image: ["prompt", "size", "aspect_ratio", "resolution", "quality", "negative_prompt", "output_format", "image_url"],
   video: ["prompt", "aspect_ratio", "duration", "resolution", "quality", "image_url"],
 };
+/** Parameters that can change what a generation costs. Accepted only for a model whose highest price is stated. */
+const PRICED_FIELDS: readonly string[] = ["size", "resolution", "quality", "duration"];
 const jobKey = (id: string) => `media-job:${id}`;
 const ID = /^gen-\d+-[A-Za-z0-9_-]{8,40}$/;
 
@@ -89,9 +91,12 @@ export function parseMediaCatalogue(json: unknown, kind: Kind): CatalogueModel[]
   for (const row of rows) {
     const m = row as Record<string, unknown>;
     const pricing = (m.pricing ?? {}) as Record<string, unknown>;
-    const max = num(pricing.max_price) ?? num(pricing.base_price);
+    // The hold is the model's stated highest price. A model that states a base price alone is listed at that price
+    // and takes no parameter that could make a generation cost more (PRICED_FIELDS, refused in `order`).
+    const stated = num(pricing.max_price);
+    const max = stated ?? num(pricing.base_price);
     if (typeof m.id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(m.id) || m.type !== kind || pricing.currency !== "USD" || max === null || max <= 0 || max > MAX_PRICE_USD) continue;
-    out.push({ id: m.id, name: typeof m.name === "string" ? m.name.slice(0, 120) : m.id, type: kind, category: typeof m.category === "string" ? m.category : null, capabilities: (m.capabilities && typeof m.capabilities === "object" ? m.capabilities : {}) as Record<string, unknown>, pricing: { currency: "USD", min: num(pricing.min_price), max, variants: pricing.variants ?? null } });
+    out.push({ id: m.id, name: typeof m.name === "string" ? m.name.slice(0, 120) : m.id, type: kind, category: typeof m.category === "string" ? m.category : null, capabilities: (m.capabilities && typeof m.capabilities === "object" ? m.capabilities : {}) as Record<string, unknown>, pricing: { currency: "USD", min: num(pricing.min_price), max, variants: pricing.variants ?? null }, bounded: stated !== null });
   }
   return out;
 }
@@ -113,6 +118,9 @@ const loadJob = async (ctx: Ctx, id: string): Promise<Job | null> => (ID.test(id
 const saveJob = (ctx: Ctx, job: Job) => ctx.db.insert(kv).values({ key: jobKey(job.id), value: job }).onConflictDoUpdate({ target: kv.key, set: { value: job, updatedAt: new Date() } });
 
 /** Only files on the upstream's own origin are kept: a result that points anywhere else is not served. */
+/** What a file is served as: pictures and clips a browser shows without running anything (no SVG). Anything else is a download. */
+const SERVED_TYPES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm"]);
+
 function filesOf(up: Upstream, data: unknown): MediaFile[] {
   const list = Array.isArray(data) ? data : data && typeof data === "object" ? [data] : [];
   const out: MediaFile[] = [];
@@ -122,7 +130,7 @@ function filesOf(up: Upstream, data: unknown): MediaFile[] {
     let u: URL;
     try { u = new URL(f.url); } catch { continue; }
     if (u.origin !== up.origin) continue;
-    out.push({ url: u.href, content_type: typeof f.content_type === "string" && /^(image|video)\/[a-z0-9.+-]{1,40}$/i.test(f.content_type) ? f.content_type.toLowerCase() : "application/octet-stream" });
+    out.push({ url: u.href, content_type: typeof f.content_type === "string" && SERVED_TYPES.has(f.content_type.toLowerCase()) ? f.content_type.toLowerCase() : "application/octet-stream" });
   }
   return out;
 }
@@ -241,12 +249,13 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
     if (!Number.isInteger(count) || count < 1 || count > MAX_IMAGES) fail(400, `\`n\` must be 1 to ${MAX_IMAGES}.`, "invalid_request");
     if (body.image_url !== undefined && !(typeof body.image_url === "string" && /^https:\/\/\S{1,2000}$/.test(body.image_url))) fail(400, "`image_url` must be an https address.", "invalid_request");
     const sent: Record<string, unknown> = { model: model!.id };
+    if (!model!.bounded) for (const field of PRICED_FIELDS) if (body[field] !== undefined && body[field] !== null) fail(400, `This model has one fixed price, so \`${field}\` is not accepted for it.`, "invalid_request");
     for (const field of FIELDS[kind]) if (typeof body[field] === "string" || typeof body[field] === "number") sent[field] = body[field];
     if (kind === "image") sent.n = count;
     const id = genId();
     sent.client_request_id = id; // the upstream's idempotency key: a generation is made, and billed, once
     const hold = usdToPico((model!.pricing.max * count).toFixed(6)) + 1n;
-    await reserve(ctx.db, { id, accountId: key.accountId, keyHash: key.keyHash, amount: hold, ttlMs: kind === "video" ? MEDIA_JOB_MAX_AGE_MS : IMAGE_TIMEOUT_MS + 5 * 60_000 });
+    await reserve(ctx.db, { id, accountId: key.accountId, keyHash: key.keyHash, amount: hold, ttlMs: MEDIA_JOB_MAX_AGE_MS }); // as long as the job is followed: a hold that lapsed sooner let the same balance order again
     const job: Job = { id, kind, status: "pending", accountId: key.accountId, keyHash: key.keyHash, payer: key.chainKeyHash ?? null, model: model!.id, count, upstreamId: null, holdPico: hold.toString(), chargedPico: null, requestSha256: sha256(JSON.stringify(body)), files: [], reason: null, createdAt: new Date().toISOString(), finishedAt: null, receipt: null };
     return { job, sent };
   };
@@ -258,7 +267,7 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
 
   app.post("/api/v1/images/generations", async (c) => {
     const { job, sent } = await order(c, "image");
-    const up = await upstream(ctx);
+    const up = await upstream(ctx).catch(async (e) => { await release(ctx.db, job.id); throw e; });
     const t0 = Date.now();
     let res: Response;
     try {
@@ -268,6 +277,7 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
       await saveJob(ctx, job);
       return c.json(view(ctx, job), 202, { "retry-after": "10" });
     }
+    if (res.status >= 500) { await res.body?.cancel(); await saveJob(ctx, job); return c.json(view(ctx, job), 202, { "retry-after": "10" }); } // the order may have been taken: followed like a lost connection
     if (!res.ok) { await res.body?.cancel(); return refused(job, res.status); }
     const json = (await boundedJson(res).catch(() => null)) as { data?: unknown; cost?: unknown } | null;
     const files = filesOf(up, json?.data);
@@ -278,18 +288,19 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
 
   app.post("/api/v1/videos/generations", async (c) => {
     const { job, sent } = await order(c, "video");
-    const up = await upstream(ctx);
+    const up = await upstream(ctx).catch(async (e) => { await release(ctx.db, job.id); throw e; });
     let res: Response;
     try {
       res = await up.call("/videos", { method: "POST", body: sent, timeoutMs: 60_000 });
     } catch {
-      // Without the upstream's job id there is nothing to follow, and nothing was acknowledged: the hold is released.
-      await release(ctx.db, job.id);
-      return fail(502, "The generation could not be started. Nothing was charged.", "provider_unavailable");
+      // Without the upstream's job id there is nothing to follow, but the order may have been taken: the hold is not
+      // released at once (it lapses with its six hours), so an order that fails this way cannot be repeated for free.
+      return fail(502, "The generation could not be started. Nothing is charged; the amount held for it is freed within six hours.", "provider_unavailable");
     }
     if (res.status !== 200 && res.status !== 202) { await res.body?.cancel(); return refused(job, res.status); }
     const json = (await boundedJson(res).catch(() => null)) as { id?: unknown } | null;
-    if (typeof json?.id !== "string" || !/^[A-Za-z0-9_-]{1,120}$/.test(json.id)) { await release(ctx.db, job.id); return fail(502, "The generation could not be started. Nothing was charged.", "provider_unavailable"); }
+    // Accepted, but with nothing the router can follow: as above, the hold lapses instead of being released at once.
+    if (typeof json?.id !== "string" || !/^[A-Za-z0-9_-]{1,120}$/.test(json.id)) return fail(502, "The generation could not be started. Nothing is charged; the amount held for it is freed within six hours.", "provider_unavailable");
     const started: Job = { ...job, upstreamId: json.id };
     await saveJob(ctx, started);
     return c.json(view(ctx, started), 202, { "retry-after": "10" });
@@ -307,6 +318,6 @@ export function mediaRoutes(app: Hono, ctx: Ctx) {
     const res = await up.fetchFile(file.url).catch(() => null);
     if (!res?.ok || !res.body) { await res?.body?.cancel(); return fail(502, "The file could not be read. Try again.", "provider_unavailable"); }
     const length = res.headers.get("content-length");
-    return new Response(res.body, { status: 200, headers: { "content-type": file.content_type, "cache-control": "private, max-age=3600", "x-content-type-options": "nosniff", "content-disposition": `inline; filename="${job.id}-${c.req.param("n")}.${file.content_type.split("/")[1]?.replace(/[^a-z0-9]/g, "") || "bin"}"`, ...(length && /^\d+$/.test(length) ? { "content-length": length } : {}) } });
+    return new Response(res.body, { status: 200, headers: { "content-type": file.content_type, "cache-control": "private, max-age=3600", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; sandbox", "content-disposition": `${SERVED_TYPES.has(file.content_type) ? "inline" : "attachment"}; filename="${job.id}-${c.req.param("n")}.${file.content_type.split("/")[1]?.replace(/[^a-z0-9]/g, "") || "bin"}"`, ...(length && /^\d+$/.test(length) ? { "content-length": length } : {}) } });
   });
 }

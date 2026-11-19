@@ -12,7 +12,7 @@ export function escrowRoutes(app: Hono, ctx: Ctx) {
     return c.json({ data: await escrowInfo(ctx) });
   });
 
-  // What one $TRLS is credited at right now: the pool TWAP the router uses, its window and source, or the reason
+  // What one $TRLS is credited at right now: the lowest of the router's own readings over its window, or the reason
   // there is no price at the moment (deposits then wait as `pending`, stage `awaiting_price`).
   app.get("/api/v1/escrow/trls/price", async (c) => {
     c.header("Cache-Control", "no-store");

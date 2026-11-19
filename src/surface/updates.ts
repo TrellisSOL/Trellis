@@ -73,9 +73,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
  */
 export const CORE_WHEN_RELEASED: Partial<Record<UpdateName, readonly string[]>> = {
   council: ["TRELLIS_FEATURE_COUNCIL"],
-  // Paying in $TRLS: the token and the wallet deposits go to. Nothing else of escrow is admitted: no escrow mode, no
-  // Stock Tokens, no USDC escrow, no fast credit, and the retired pool legs stop the start in every environment.
-  trls: ["TRLS_TOKEN_ADDRESS", "ESCROW_ADDRESS"],
+  // Paying in $TRLS: the token, the wallet deposits go to, the pool it is priced from and the key that burns. Nothing
+  // else of escrow is admitted: no escrow mode, no Stock Tokens, no USDC escrow, no fast credit. The retired pool legs
+  // stay refused on a core router (dropped outside production) and stop the start on the full surface (config.ts).
+  trls: ["TRLS_TOKEN_ADDRESS", "ESCROW_ADDRESS", "TRLS_POOL_VAULTS", "TRLS_BURN_PRIVATE_KEY"],
 };
 
 /** The non-core settings the released updates admit on the core surface, for this environment. */

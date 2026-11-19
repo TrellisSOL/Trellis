@@ -3,6 +3,7 @@ alert-notifier
 attestor
 catalog-refresh
 chain-indexer
+escrow-indexer
 health-flush
 health-probes
 holds-expire
@@ -16,4 +17,6 @@ receipts-anchor
 sanctions-refresh
 settlement
 tab-close
+trls-burn
+trls-price
 x402-recovery-expire
