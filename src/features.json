@@ -141,5 +141,13 @@
     "title": "Usage breakdown",
     "summary": "See what a key spent by model and by day over the last 30 days, with totals, as a chart on the dashboard and from GET /api/v1/usage for scripts.",
     "includes": ["Daily spend for the last 30 days, stacked by model", "Totals: spend, calls and models used", "GET /api/v1/usage with the same numbers", "A management key can see its whole account or one key"]
+  },
+
+  "taste": {
+    "update": 20,
+    "on": false,
+    "title": "Taste test",
+    "summary": "Compare models in Chat without knowing which is which: the answers arrive side by side as Answer A and B, in a random order, and the model names, prices, costs and receipts show once you pick the better one.",
+    "includes": ["Model names, prices and costs hidden until you pick", "A new random order every round", "Each answer still paid and receipted on its own", "A tally of your picks, kept in your browser only"]
   }
 }

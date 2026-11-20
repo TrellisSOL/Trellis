@@ -42,6 +42,9 @@ import catalogStyles from "./ModelPickerCapabilities.module.css";
 import { Problem, usePart } from "./launch/Surface";
 import { NOT_ENABLED_MESSAGE, isNotEnabled, surfaceAllows } from "../lib/launch-surface.js";
 import RouteCard, { useRouteProviders } from "./RouteCard"; // U99: route cards in the picker.
+import TasteTest from "./harness/TasteTest"; // update 20: taste test
+import { useUpdate } from "./media/useUpdate.js";
+import { answerLabel, orderFits, roundKey, shuffle, slotOf } from "../lib/taste.js";
 import routeCardStyles from "./RouteCard.module.css";
 
 const MAX_LANES = 3;
@@ -459,7 +462,7 @@ function ToolCalls({ msg, awaiting, onSubmit }) {
   );
 }
 
-function Reply({ msg, model, last, busy, onRegenerate, onToolResults, onSignIn, onUseImage, voice, limits, funding, onAlternative, onReceipt, onAsk }) { // B121
+function Reply({ msg, model, last, busy, onRegenerate, onToolResults, onSignIn, onUseImage, voice, limits, funding, onAlternative, onReceipt, onAsk, blind }) { // B121; blind: the taste test's "Answer A" while names are hidden
   const facts = replyFacts(msg);
   const waiting = msg.status === "waiting";
   const streaming = msg.status === "streaming" || waiting;
@@ -468,7 +471,7 @@ function Reply({ msg, model, last, busy, onRegenerate, onToolResults, onSignIn, 
     <article className={s.reply} data-status={msg.status} aria-busy={streaming || undefined}>
       <header className={s.replyHead}>
         <i className={s.avatar} aria-hidden="true" />
-        <b>{model?.name || msg.model}</b>
+        <b>{blind || model?.name || msg.model}</b>
         {streaming && <span className={s.live}>{waiting ? "Routing" : "Writing"}</span>}
       </header>
       {limits && <ReplyApproval limits={limits} messageId={msg.id} /> /* U77: same approval as Agents. */}
@@ -491,7 +494,7 @@ function Reply({ msg, model, last, busy, onRegenerate, onToolResults, onSignIn, 
           {n}
         </p>
       ))}
-      {last && msg.error && <ModelAlternatives model={model?.name || msg.model} suggestions={msg.suggestedModels} onRetry={onAlternative} disabled={busy} />} {/* B121 */}
+      {last && msg.error && !blind && <ModelAlternatives model={model?.name || msg.model} suggestions={msg.suggestedModels} onRetry={onAlternative} disabled={busy} />} {/* B121 */}
       {msg.error && msg.errorKind === "not_enabled" && <Problem text={msg.error} />}
       {msg.error && msg.errorKind !== "not_enabled" && (
         <div className={s.replyError} role="alert">
@@ -526,17 +529,17 @@ function Reply({ msg, model, last, busy, onRegenerate, onToolResults, onSignIn, 
             )}
             <ReadAloud msg={msg} voice={voice} compact />
           </span>
-          <span className={s.meta}>
+          {!blind && <span className={s.meta}>
             {[
               facts.provider,
               facts.tokensIn != null && facts.tokensOut != null ? `${(facts.tokensIn + facts.tokensOut).toLocaleString("en-US")} tokens` : null,
               facts.cost === null ? "cost pending" : formatUsd(facts.cost),
               Number.isFinite(msg.ms) ? formatMs(msg.ms) : null,
             ].filter(Boolean).join(" · ")}
-          </span>
+          </span>}
           {/* U76: keep provider, usage, cost and receipt inspection beside the shared proof marks. */}
-          {proofBadges({ source: "receipt", data: msg.receipt }).some((mark) => mark.key !== "standard" && mark.key !== "signed") && <ProofBadge evidence={{ source: "receipt", data: msg.receipt }} dark />}
-          {facts.receiptId && (
+          {!blind && proofBadges({ source: "receipt", data: msg.receipt }).some((mark) => mark.key !== "standard" && mark.key !== "signed") && <ProofBadge evidence={{ source: "receipt", data: msg.receipt }} dark />}
+          {!blind && facts.receiptId && (
             <button type="button" className={s.receiptChip} onClick={onReceipt} title={facts.receiptId} aria-haspopup="dialog">
               <svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M3 7.5 6 10.5 11 4" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
               Receipt
@@ -914,6 +917,18 @@ export default function Harness() {
   const set = (patch) => setSettings((x) => ({ ...x, ...patch }));
 
   const compare = lanes.length > 1;
+  // Taste test (update 20): compare with the names, prices, costs and receipts hidden until the better answer is picked.
+  // Offered only where the router lists the `taste` update as on. Each round shows the lanes in a new random order.
+  const tasteOn = useUpdate("taste")?.on === true;
+  const [taste, setTaste] = useState({ on: false, order: [], picked: null, key: "" });
+  const tasteKey = roundKey(lanes);
+  useEffect(() => {
+    setTaste((t) => (!t.on || (t.key === tasteKey && orderFits(t.order, lanes.map((l) => l.id))) ? t : { ...t, order: shuffle(lanes.map((l) => l.id)), picked: null, key: tasteKey }));
+  }, [tasteKey, taste.on]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tasting = tasteOn && compare && taste.on;
+  const picked = taste.key === tasteKey ? taste.picked : null; // a pick belongs to its round only
+  const hidden = tasting && !picked;
+  const laneOrder = (id) => (tasting ? { order: slotOf(taste.order, id) } : undefined);
   const focusLane = lanes[Math.min(focus, lanes.length - 1)];
   const focusModel = find(focusLane?.modelId);
   const busy = inflight > 0;
@@ -1288,7 +1303,13 @@ export default function Harness() {
             {lanes.map((l, i) => {
               const m = find(l.modelId);
               return (
-                <div key={l.id} className={s.laneHead} data-focus={i === focus || undefined}>
+                <div key={l.id} className={s.laneHead} data-focus={i === focus || undefined} style={laneOrder(l.id)}>
+                  {hidden ? (
+                    <button type="button" onClick={() => setFocus(i)} aria-pressed={i === focus} aria-label={`${answerLabel(taste.order, l.id)}. The model is hidden until you pick`} title="The model is hidden until you pick">
+                      <b>{answerLabel(taste.order, l.id)}</b>
+                      <span>Model hidden until you pick</span>
+                    </button>
+                  ) : (
                   <button
                     type="button"
                     onClick={() => (i === focus ? setPalette({ lane: i, add: false }) : setFocus(i))}
@@ -1299,8 +1320,9 @@ export default function Harness() {
                     <b>{m?.name}</b>
                     <span>{m ? `${m.makerLabel} · ${formatPrice(m.inPrice)} / ${formatPrice(m.outPrice)}` : ""}</span>
                   </button>
+                  )}
                   {lanes.length > 1 && (
-                    <button type="button" className={s.laneX} onClick={() => removeLane(i)} aria-label={`Remove ${m?.name} from compare`}>
+                    <button type="button" className={s.laneX} onClick={() => removeLane(i)} aria-label={`Remove ${hidden ? answerLabel(taste.order, l.id) : m?.name} from compare`}>
                       ×
                     </button>
                   )}
@@ -1308,7 +1330,7 @@ export default function Harness() {
               );
             })}
             {lanes.length < MAX_LANES && (
-              <button type="button" className={s.laneAdd} onClick={() => setPalette({ lane: lanes.length, add: true })}>
+              <button type="button" className={s.laneAdd} style={tasting ? { order: 99 } : undefined} onClick={() => setPalette({ lane: lanes.length, add: true })}>
                 + Add a model
               </button>
             )}
@@ -1329,7 +1351,7 @@ export default function Harness() {
               {lanes.map((l, li) => {
                 const lastId = l.messages[l.messages.length - 1]?.id;
                 return (
-                  <div key={l.id} className={s.lane} onClick={() => compare && setFocus(li)}>
+                  <div key={l.id} className={s.lane} onClick={() => compare && setFocus(li)} style={laneOrder(l.id)}>
                     {l.messages.map((m) =>
                       m.role === "user" ? (
                         <UserMsg key={m.id} msg={m} busy={busy} onSavePrompt={() => prompts.save(m.text, l.modelId)} editing={editing === m.id} onEdit={() => setEditing(m.id)} onCancel={() => setEditing(null)} onSave={(t) => send(t, m.attachments || [], turnIndex(l, m.id))} />
@@ -1339,7 +1361,7 @@ export default function Harness() {
                           <code>{m.text}</code>
                         </div>
                       ) : (
-                        <Reply key={m.id} msg={m} model={find(m.model)} last={m.id === lastId} onReceipt={() => setReceiptFor({ laneId: l.id, msgId: m.id })} onAsk={compare ? undefined : () => setPalette({ lane: li, add: false, ask: l.id })} busy={busy} onRegenerate={() => regenerate(l.id)} onAlternative={id => regenerate(l.id, id)} onToolResults={(r) => toolResults(l.id, r)} onSignIn={() => setSignin("send")} onUseImage={acceptsImages ? addFiles : undefined} voice={voice} limits={limits} funding={{ onWalletKey: onKey, onPayUsdc: !limits.state.session ? () => regenerate(l.id, undefined, true) : undefined, apiKey: auth.key, balance: auth.balance, onBalance: balance => setAuth(a => ({ ...a, balance })) }} /> /* ON1 */
+                        <Reply key={m.id} msg={m} model={find(m.model)} blind={hidden ? answerLabel(taste.order, l.id) : null} last={m.id === lastId} onReceipt={() => setReceiptFor({ laneId: l.id, msgId: m.id })} onAsk={compare ? undefined : () => setPalette({ lane: li, add: false, ask: l.id })} busy={busy} onRegenerate={() => regenerate(l.id)} onAlternative={id => regenerate(l.id, id)} onToolResults={(r) => toolResults(l.id, r)} onSignIn={() => setSignin("send")} onUseImage={acceptsImages ? addFiles : undefined} voice={voice} limits={limits} funding={{ onWalletKey: onKey, onPayUsdc: !limits.state.session ? () => regenerate(l.id, undefined, true) : undefined, apiKey: auth.key, balance: auth.balance, onBalance: balance => setAuth(a => ({ ...a, balance })) }} /> /* ON1 */
                       ),
                     )}
                   </div>
@@ -1348,6 +1370,8 @@ export default function Harness() {
             </div>
           )}
         </div>
+
+        {tasting && !empty && <TasteTest lanes={lanes} order={taste.order} picked={picked} busy={busy} onPick={(picked) => setTaste((t) => ({ ...t, picked }))} nameOf={(id) => find(id)?.name || id} cost={(m) => replyFacts(m).cost} money={formatUsd} />}
 
         <form
           className={s.composer}
@@ -1423,6 +1447,12 @@ export default function Harness() {
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2.5" y="3" width="4.5" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" /><rect x="9" y="3" width="4.5" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" /></svg>
                 <span data-chip-label>Compare</span>
               </button>
+              {tasteOn && compare && (
+                <button type="button" className={s.chip} aria-pressed={taste.on} onClick={() => setTaste((t) => (t.on ? { ...t, on: false, picked: null } : { on: true, order: shuffle(lanes.map((l) => l.id)), picked: null, key: tasteKey }))} title={taste.on ? "Show the model names again" : "Hide the model names, prices and receipts until you pick the better answer"}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4Z" stroke="currentColor" strokeWidth="1.3" fill="none" /><path d="M3 13 13 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                  <span data-chip-label>Taste test</span>
+                </button>
+              )}
   <ImageMode model={focusModel} lanes={lanes} find={find} catalogue={shown} enabled={settings.imageOut} busy={busy} onChange={(imageOut) => set({ imageOut, audioOut: false })} onChoose={() => setPalette({ lane: focus, add: false, images: true })} />
               <span className={s.grow} />
               <ComposerVoice voice={voice} />

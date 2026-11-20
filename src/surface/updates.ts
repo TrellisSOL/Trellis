@@ -21,6 +21,8 @@ type Entry = { update: number; on: boolean; title: string; summary: string; incl
 export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates", "model-health", "burn-tracker"] as const;
 /** In release order: the order here and in src/features.json. Each entry names its own number (`update`). */
 export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "usage"] as const;
+/** In release order: the order here and in src/features.json. Each entry names its own number (`update`). */
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "taste"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -77,6 +79,10 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // 404 `not_enabled` while it is off, in every environment. It is on the core surface (core-allowlist.ts) and opens
   // there with its switch alone: it reads only a key's own charges.
   usage: [],
+  // The taste test is Chat's compare mode with the names hidden until a pick: the site reads the switch from GET
+  // /api/v1/status and offers it only then. It has no setting and no route of its own: each answer is an ordinary call
+  // to the chat route, which is on the core surface already, so it needs nothing on the allow-list.
+  taste: [],
   // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
   // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [

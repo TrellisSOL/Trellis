@@ -1,0 +1,15 @@
+/* Taste test (update 20): the pick bar under the compare lanes, in the Chat's own chips and card. */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; width: min(var(--col, 100%), 100% - 32px); margin: 0 auto 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--g-card, var(--raised)); color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.ask { color: var(--ink); font-weight: 500; margin-right: 4px; }
+.pick, .even { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(52,97,67,.35); background: transparent; color: var(--signal); font: 500 13.5px var(--sans); cursor: pointer; transition: background .15s; }
+.pick:hover:not(:disabled), .even:hover { background: var(--signal-tint); }
+.pick:disabled { opacity: .5; cursor: default; }
+.even { border-color: var(--line); color: var(--muted); }
+.reveal { display: grid; gap: 4px; width: 100%; margin: 4px 0 0; padding: 0; list-style: none; }
+.reveal li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 6px 10px; border-radius: 10px; overflow-wrap: anywhere; }
+.reveal li[data-picked] { background: var(--signal-tint); }
+.reveal b { color: var(--ink); font-weight: 600; }
+.reveal span { color: var(--ink); }
+.reveal .cost { font-variant-numeric: tabular-nums; color: var(--muted); }
+.reveal small, .note { color: var(--muted); font-size: 12px; }
+.note { width: 100%; }
