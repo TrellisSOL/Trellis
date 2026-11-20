@@ -121,7 +121,7 @@
 
   "model-health": {
     "update": 17,
-    "on": false,
+    "on": true,
     "title": "Model health",
     "summary": "See how each model has been doing over the last 24 hours: the share of calls that succeeded and the median and 95th-percentile time to the first response, worked out from the router's own records of the calls it sent.",
     "includes": ["Success rate per model over the last 24 hours", "Median and p95 time to first response", "On the model page and the models list", "A public route: GET /api/v1/models/health"]
