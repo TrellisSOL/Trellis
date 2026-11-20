@@ -69,6 +69,7 @@ batches	POST /v1/batches
 batches	POST /v1/batches/:id/cancel
 blind	GET /api/v1/blind/keys
 blind	POST /api/v1/blind/purchase
+burn-tracker	GET /api/v1/trls/burns
 bushels	GET /api/v1/admin/bushels
 bushels	GET /api/v1/bushels/commitments
 bushels	GET /api/v1/bushels/lots

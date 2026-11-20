@@ -52,6 +52,8 @@ export const NEEDS = {
   page: {
     '/agents/': ['GET /api/v1/agents', 'GET /api/v1/agents/:key_hash/policy', 'PUT /api/v1/agents/:key_hash/policy', 'POST /api/v1/agents/:key_hash/kill', 'POST /api/v1/agents/:key_hash/resume',
       'GET /api/v1/agents/:key_hash/events', 'GET /api/v1/agents/:key_hash/ledger', 'GET /api/v1/agents/approvals', 'POST /api/v1/agents/approvals/:id/approve', 'POST /api/v1/agents/approvals/:id/deny'],
+    // The $TRLS burn tracker (update 18): the page asks the route only where the router's status lists the update as on.
+    '/burn/': ['GET /api/v1/trls/burns'],
     '/cost/': ['GET /api/v1/models'],
     '/estimate/': ['POST /api/v1/estimate'], // Price check (update 13): the router mounts the route only with its switch on
     '/dashboard/': ['GET /api/v1/key', 'GET /api/v1/keys', 'GET /api/v1/credits', 'GET /api/v1/generations'],
@@ -85,7 +87,7 @@ export const servedBy = (kind, ids, routes = ROUTER_CORE_ROUTES) => ids.filter(i
 
 export const CORE = {
   // Pages, as app/**/page.jsx routes. /graft/ and /spec/ are reference reading: they stay open and carry one marker.
-  page: servedBy('page', ['/', '/how-it-works/', '/agents/', '/cost/', '/estimate/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/images/', '/video/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
+  page: servedBy('page', ['/', '/how-it-works/', '/agents/', '/burn/', '/cost/', '/estimate/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/images/', '/video/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
     '/registry/', '/registry/[id]/', '/spec/', '/spec/[doc]/', '/status/', '/tabs/', '/trust/', '/verify/']),
   // Menu, homepage-map, footer and search entries (lib/site-map.js TASKS).
   nav: ['chat', 'images', 'media-images', 'media-video', 'price-check', 'vision', 'voice', 'history', 'install', 'models', 'model-alternatives', 'prompt-library',

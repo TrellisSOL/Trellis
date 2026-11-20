@@ -22,6 +22,7 @@ attestation-history	GET /api/v1/attestation/:providerId/history
 attestation-history	GET /api/v1/attestation/summary
 blind	GET /api/v1/blind/keys
 blind	POST /api/v1/blind/purchase
+burn-tracker	GET /api/v1/trls/burns
 chat	POST /api/v1/chat/completions
 chat	POST /api/v1/completions
 chat	POST /v1/chat/completions

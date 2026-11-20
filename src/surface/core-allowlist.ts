@@ -85,6 +85,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   deposits: ["GET /api/v1/credits/deposits", "POST /api/v1/credits/deposits"],
   // Paying in $TRLS: mounted in core only with that update released (src/app.ts).
   escrow: ["GET /api/v1/escrow", "GET /api/v1/escrow/trls/price", "GET /api/v1/escrow/deposits"],
+  // The $TRLS burn tracker (update 18, src/api/burn-tracker.ts): the burn job's own record, public and read-only. Mounted
+  // in core only with its switch on; it answers `enabled: false` where $TRLS is not accepted.
+  "burn-tracker": ["GET /api/v1/trls/burns"],
   "account-runway": ["GET /api/v1/account/low-balance", "PATCH /api/v1/account/low-balance"],
   // Blind tokens: the issuer keys and the purchase from a key's balance. Mounted in core only with the blind update
   // released and TRELLIS_FEATURE_BLIND on (src/app.ts); a token is spent on the chat and embeddings routes above.

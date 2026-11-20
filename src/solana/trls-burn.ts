@@ -20,6 +20,9 @@ import { sendAndConfirm, withRetry } from "./rpc.ts";
 // written down BEFORE it is sent, so a crash between sending and recording cannot burn the same tokens twice: the next
 // pass looks that signature up first.
 
+/** How many finalized burns the state keeps a line for (the total is kept whatever this is): the burn tracker lists them. */
+export const BURN_HISTORY = 500;
+
 type Pending = { signature: string; amount: string; blockhash: string };
 type State = { burned: string; pending?: Pending; txs: { signature: string; amount: string; at: number }[] };
 
@@ -72,7 +75,7 @@ export async function runTrlsBurn(ctx: Ctx) {
     if (status?.err) state.pending = undefined; // failed on chain: nothing was burned
     else if (status?.confirmationStatus === "finalized") {
       state.burned = (BigInt(state.burned) + BigInt(p.amount)).toString();
-      state.txs = [...state.txs, { signature: p.signature, amount: p.amount, at: Math.floor(Date.now() / 1000) }].slice(-50);
+      state.txs = [...state.txs, { signature: p.signature, amount: p.amount, at: Math.floor(Date.now() / 1000) }].slice(-BURN_HISTORY);
       state.pending = undefined;
       log.info("trls burn finalized", { signature: p.signature, amount: p.amount });
     } else if (!status && !(await withRetry(() => conn.isBlockhashValid(p.blockhash, { commitment: "finalized" }))).value) state.pending = undefined; // never landed and no longer can

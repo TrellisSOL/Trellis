@@ -22,6 +22,7 @@
   "attestation-history\tGET /api/v1/attestation/summary",
   "blind\tGET /api/v1/blind/keys",
   "blind\tPOST /api/v1/blind/purchase",
+  "burn-tracker\tGET /api/v1/trls/burns",
   "chat\tPOST /api/v1/chat/completions",
   "chat\tPOST /api/v1/completions",
   "chat\tPOST /v1/chat/completions",

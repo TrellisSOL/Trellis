@@ -71,7 +71,8 @@ export function depositRemainingSeconds(block: bigint, fin: EscrowFinality, cred
 export type DepositStage = "submitted" | "confirming" | "detected" | "credited" | "orphaned" | "checking";
 export type DepositProgress = { id: string; lane: DepositLane; tx_hash: string; tx_url: string; stage: DepositStage; block: string | null; amount: string | null; symbol: "USDC"; credited_usd: number | null; worth_usd: number | null; worth_fixed: boolean; submitted_at: string | null; credited_at: string | null; expected_final_at: string | null; note?: string };
 
-const explorerTx = (ctx: Ctx, sig: string) => {
+/** A Solana transaction on the configured explorer, on devnet with its cluster named. */
+export const explorerTx = (ctx: Pick<Ctx, "cfg">, sig: string) => {
   const cluster = ctx.cfg.chain.network === "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" ? "?cluster=devnet" : "";
   return `${ctx.cfg.chain.explorerUrl.replace(/\/$/, "")}/tx/${sig}${cluster}`;
 };

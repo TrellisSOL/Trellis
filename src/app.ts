@@ -97,6 +97,7 @@ import { creatorClaimRoutes } from "./api/creator-claims.ts";
 import { publicRoutes } from "./api/public.ts";
 import { embeddingsRoutes } from "./api/embeddings.ts";
 import { modelHealthRoutes } from "./api/model-health.ts";
+import { burnTrackerRoutes } from "./api/burn-tracker.ts";
 import { mediaRoutes } from "./api/media.ts";
 import { batchesRoutes } from "./api/batches.ts";
 import { rerankRoutes } from "./api/rerank.ts";
@@ -248,6 +249,7 @@ export async function createApp(opts: AppOptions = {}) {
   mount("keys", () => { keysRoutes(app, ctx); });
   mount("teams", () => { teamsRoutes(app, ctx); });
   if (!surface.core || cfg.updates.trls) mount("escrow", () => { escrowRoutes(app, ctx); }); // in core: only with paying in $TRLS released
+  if (!surface.core || cfg.updates["burn-tracker"]) mount("burn-tracker", () => { burnTrackerRoutes(app, ctx); }); // update 18; in core: only with its switch on, and 404 not_enabled everywhere while off
   mount("deposits", () => { depositRoutes(app, ctx); }); // V97B: account-owned deposit progress, both lanes.
   mount("saved-routes", () => { savedRoutesRoutes(app, ctx); });
   mount("presets", () => { presetsRoutes(app, ctx); });
