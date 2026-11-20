@@ -18,7 +18,7 @@ type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
 /** In release order: the number of an update is its place here and in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace"] as const;
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -65,6 +65,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // They ride on Spend Watch, which is not on the core launch surface (core-allowlist.ts NON_CORE_FEATURES `webhooks`):
   // the switch opens nothing on a core router.
   pace: [],
+  // Receipt export has no setting of its own: the export route (GET /api/v1/generations/export, src/api/generation.ts)
+  // is registered only while the switch is on, in every environment, and is on the core allow-list for that case.
+  "receipt-export": [],
   // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
   // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [
@@ -108,7 +111,8 @@ export function releasedCoreSettings(raw: Raw): Set<string> {
   return new Set(UPDATE_NAMES.filter((name) => state[name]).flatMap((name) => CORE_WHEN_RELEASED[name] ?? []));
 }
 
-export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase()}`;
+/** FEATURE_<NAME>: the name in capitals, a hyphen as an underscore (receipt-export: FEATURE_RECEIPT_EXPORT). */
+export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replaceAll("-", "_")}`;
 export const branchName = (name: UpdateName) => `update/${UPDATES[name].update}-${name}`;
 
 export type UpdateState = Record<UpdateName, boolean>;

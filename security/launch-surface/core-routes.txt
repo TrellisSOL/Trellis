@@ -51,6 +51,7 @@ facilitator	POST /facilitator/settle
 facilitator	POST /facilitator/verify
 generation	GET /api/v1/generation
 generation	GET /api/v1/generations
+generation	GET /api/v1/generations/export
 holders	GET /api/v1/holders/me
 holders	GET /api/v1/holders/tiers
 keys	DELETE /api/v1/keys/:hash

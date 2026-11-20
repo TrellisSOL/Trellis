@@ -130,6 +130,7 @@ facilitator	POST /facilitator/settle
 facilitator	POST /facilitator/verify
 generation	GET /api/v1/generation
 generation	GET /api/v1/generations
+generation	GET /api/v1/generations/export
 holders	DELETE /api/v1/admin/models/:author/:slug/early-access
 holders	GET /api/v1/holder
 holders	GET /api/v1/holders/me

@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { anchorOnChain, anchorProofFields } from "../services/anchor.ts";
-import { and, asc, desc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lt, or, sql } from "drizzle-orm";
 import type { Hex } from "viem";
 import type { Ctx } from "../context.ts";
 import { agentSessions, anchors, blindNullifiers, facilitatorSettlements, generations, paywithDebts, paywithSwaps } from "../db/schema.ts";
@@ -12,6 +12,7 @@ import { makegoodRefunds } from "../services/makegood-schema.ts";
 import { chainOf, receiptLeafV2 } from "../receipts/v2.ts";
 import { bearer, resolveKey, walletAuth } from "./auth.ts";
 import { nullifierOf, parsePrivateToken } from "../blind/privacy-token.ts";
+import { exportCsv, exportQuery, exportRow } from "../receipts/export.ts";
 
 /**
  * Kept Merkle trees (security review round 5, R5-21). GET /api/v1/receipts/:id needs no key, and every call used to
@@ -161,6 +162,38 @@ export function generationRoutes(app: Hono, ctx: Ctx) {
       .limit(limit + 1);
     const page = rows.slice(0, limit);
     return c.json({ data: page.map(generationSummary), next: rows.length > limit ? page[page.length - 1].ts.toISOString() : null });
+  });
+
+  // Receipt export (update 15, `receipt-export` in src/features.json): registered only while that switch is on. The
+  // caller's signed receipts from `from` (inclusive) to `to` (exclusive), oldest first, as JSON or CSV. Same scope as the
+  // list above: a session key or an inference-only key exports its own calls, any other key the account's. A page holds
+  // at most 1,000 rows; `next` (JSON) or the x-next-cursor header (CSV) is the cursor for the page after it.
+  if (ctx.cfg.updates["receipt-export"]) app.get("/api/v1/generations/export", async (c) => {
+    c.header("cache-control", "no-store");
+    const secret = bearer(c.req.header("authorization"));
+    const key = secret ? await resolveKey(ctx, secret) : null;
+    if (!key) fail(401, "Provide an API key as `Authorization: Bearer sk-tr-v1-...`.", "missing_key");
+    const q = exportQuery(c.req.query());
+    const [session] = await ctx.db.select({ id: agentSessions.id }).from(agentSessions).where(eq(agentSessions.keyHash, key.keyHash));
+    const scope = session || key.scope === "inference" ? eq(generations.keyHash, key.keyHash) : eq(generations.accountId, key.accountId);
+    const window = and(scope, gte(generations.ts, q.from), lt(generations.ts, q.to), or(isNotNull(generations.receiptSig), isNotNull(generations.receiptCose)));
+    if (q.cursor) {
+      // The cursor is the last id of the previous page; it must be one of this caller's rows in this range.
+      const [at] = await ctx.db.select({ id: generations.id }).from(generations).where(and(window, eq(generations.id, q.cursor)));
+      if (!at) fail(400, "That cursor is not a receipt of this export. Start again without it.", "invalid_request");
+    }
+    // (ts, id) after the cursor's own row: compared in the database, so a microsecond timestamp loses nothing.
+    const after = q.cursor ? sql`(${generations.ts}, ${generations.id}) > (select g2.ts, g2.id from generations g2 where g2.id = ${q.cursor})` : undefined;
+    const rows = await ctx.db.select().from(generations).where(and(window, after)).orderBy(asc(generations.ts), asc(generations.id)).limit(q.limit + 1);
+    const page = rows.slice(0, q.limit).map(exportRow);
+    const next = rows.length > q.limit ? page[page.length - 1].id : null;
+    const range = { from: q.from.toISOString(), to: q.to.toISOString() };
+    if (q.format === "json") return c.json({ data: page, next, ...range });
+    c.header("content-type", "text/csv; charset=utf-8");
+    c.header("content-disposition", `attachment; filename="trellis-receipts-${range.from.slice(0, 10)}-${range.to.slice(0, 10)}.csv"`);
+    c.header("access-control-expose-headers", "x-next-cursor");
+    if (next) c.header("x-next-cursor", next);
+    return c.body(exportCsv(page, !q.cursor));
   });
 
   app.get("/api/v1/generation", async (c) => {

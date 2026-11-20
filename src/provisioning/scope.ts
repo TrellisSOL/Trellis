@@ -17,9 +17,10 @@ export function inferenceRouteAllowed(method: string, path: string, guardEnabled
   if (guardEnabled && ((method === "POST" && (path === "/api/v1/agents/pay" || /^\/api\/v1\/agents\/pay\/[^/]+\/confirm$/.test(path))) || (method === "GET" && /^\/api\/v1\/agents\/pay\/[^/]+$/.test(path)))) return true;
   if (method === "POST") return /^\/(api\/)?v1\/(chat\/completions|completions|embeddings|responses|messages)$/.test(path);
   if (method !== "GET") return false;
+  // Their own generations: the list, one by id, and the receipt export (update 15), which keeps such a key to its own calls.
   // B: paid market-data tools, charged per call like inference (src/data-tools); read-only and account-free.
   if (/^\/api\/v1\/data(?:\/stock\/[^/]+(?:\/actions)?|\/ipx\/[^/]+)?$/.test(path)) return true;
-  return /^\/(api\/)?v1\/models$/.test(path) || /^\/api\/v1\/generation(s)?$/.test(path) || /^\/api\/v1\/receipts\/[^/]+(?:\/(proof|privacy))?$/.test(path);
+  return /^\/(api\/)?v1\/models$/.test(path) || /^\/api\/v1\/generation(s|s\/export)?$/.test(path) || /^\/api\/v1\/receipts\/[^/]+(?:\/(proof|privacy))?$/.test(path);
 }
 
 export function inferenceScopeMiddleware(ctx: Ctx): MiddlewareHandler {

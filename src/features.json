@@ -101,5 +101,13 @@
     "title": "Pace alerts",
     "summary": "Set a daily spend line on a key or the whole account and hear about it before it is crossed: when today's spend, at its rate so far, would reach the line by midnight UTC, a notice appears in the dashboard bell. An alert, never a cap: the key keeps working.",
     "includes": ["A daily line per key or for the whole account", "A projection of the UTC day at today's rate, checked every minute", "One notice a day in the dashboard bell, and the optional webhook", "Never stops a call"]
+  },
+
+  "receipt-export": {
+    "update": 15,
+    "on": false,
+    "title": "Receipt export",
+    "summary": "Download your signed receipts for a date range as CSV or JSON, from the dashboard or the API. Each row keeps the receipt id, model, cost, time and signature, so every line can be verified later.",
+    "includes": ["Signed receipts for any date range", "CSV or JSON, from the dashboard or GET /api/v1/generations/export", "The signed payload, signature and key id on every row", "Paged and bounded: up to 1,000 rows a page, 366 days a range"]
   }
 }

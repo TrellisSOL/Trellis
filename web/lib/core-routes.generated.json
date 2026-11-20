@@ -51,6 +51,7 @@
   "facilitator\tPOST /facilitator/verify",
   "generation\tGET /api/v1/generation",
   "generation\tGET /api/v1/generations",
+  "generation\tGET /api/v1/generations/export",
   "holders\tGET /api/v1/holders/me",
   "holders\tGET /api/v1/holders/tiers",
   "keys\tDELETE /api/v1/keys/:hash",

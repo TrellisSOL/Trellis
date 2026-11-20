@@ -42,7 +42,8 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   models: ["ALL /api/v1/models", "ALL /v1/models", "GET /api/v1/models", "GET /v1/models", "GET /api/v1/models/:author/:slug/endpoints", "GET /api/v1/providers"],
 
   // ---- Receipts ----------------------------------------------------------------------------------------------------
-  generation: ["GET /api/v1/generation", "GET /api/v1/generations"],
+  // The export (receipt export, update 15) is registered only while the `receipt-export` switch is on (src/api/generation.ts).
+  generation: ["GET /api/v1/generation", "GET /api/v1/generations", "GET /api/v1/generations/export"],
   public: [
     "GET /.well-known/trellis-receipt-keys.json",
     "GET /api/v1/receipts/keys",

@@ -15,6 +15,7 @@ import AccountLaneReport from "./account/AccountLaneReport"; // Lane report
 import AccountInsights from "./account/AccountInsights"; // V88: spend insights.
 import AccountInbox from "./account/AccountInbox"; // U78: account inbox.
 import AccountActivity from "./account/AccountActivity";
+import ReceiptExport from "./account/ReceiptExport"; // Update 15: signed receipts for a date range, as CSV or JSON.
 import AccountUnusedKeys from "./account/AccountUnusedKeys"; import KeyLastUsed from "./account/KeyLastUsed.js"; // B125
 import ProofBadge from "./ProofBadge"; // U76: account receipt marks.
 import AccountShell from "./account/AccountShell";
@@ -1144,6 +1145,7 @@ export default function Dashboard() {
                   Export receipts
                 </Button>
               </div>
+              {live && <ReceiptExport key={apiKey} apiKey={apiKey} />}
               <div className="catalog-tools">
                 <input aria-label="Search receipts" className="search-field" placeholder="Search model, provider or receipt…" value={receiptQuery} onChange={(e) => setReceiptQuery(e.target.value)} />
                 <select aria-label="Filter receipts" value={receiptMode} onChange={(e) => setReceiptMode(e.target.value)}>
