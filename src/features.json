@@ -97,7 +97,7 @@
 
   "pace": {
     "update": 14,
-    "on": false,
+    "on": true,
     "title": "Pace alerts",
     "summary": "Set a daily spend line on a key or the whole account and hear about it before it is crossed: when today's spend, at its rate so far, would reach the line by midnight UTC, a notice appears in the dashboard bell. An alert, never a cap: the key keeps working.",
     "includes": ["A daily line per key or for the whole account", "A projection of the UTC day at today's rate, checked every minute", "One notice a day in the dashboard bell, and the optional webhook", "Never stops a call"]
