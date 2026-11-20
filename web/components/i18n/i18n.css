@@ -1,0 +1,20 @@
+/* Language switch (components/i18n/LanguageSwitch.jsx). currentColor, so it reads on the clear homepage bar over the
+   night hero, on the solid paper bar and on the interior header alike. */
+.lang-switch{display:inline-flex;align-items:center;flex:none}
+.lang-switch button{position:relative;min-width:36px;min-height:36px;padding:0 7px;border:0;border-radius:5px;background:transparent;color:inherit;
+  font:450 14px/1 var(--sans);opacity:.62;cursor:pointer;transition:opacity .15s,background .15s}
+.lang-switch button+button::before{content:"";position:absolute;left:0;top:50%;width:1px;height:14px;margin-top:-7px;background:currentColor;opacity:.4}
+.lang-switch button:hover{opacity:1}
+.lang-switch button[aria-pressed=true]{opacity:1;font-weight:600}
+.lang-switch button:focus-visible{outline:2px solid currentColor;outline-offset:-2px;opacity:1}
+@media(max-width:420px){.lang-switch button{min-width:32px;padding:0 5px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.lang-switch button{transition:none}}
+
+/* Simplified Chinese: Chinese faces after the Latin ones, and no negative tracking on the display headings. */
+html:lang(zh-Hans){--sans:"Geist Variable","Geist","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+html:lang(zh-Hans),html:lang(zh-Hans) .garden{--g-display:"Fraunces Variable","Fraunces","Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,serif}
+html:lang(zh-Hans) .garden :is(h1,h2){letter-spacing:0}
+
+/* Stored language is not English: the inline script in app/layout.jsx hides the page until LocaleSync has applied it,
+   so the English text of the static page never shows. The script also lifts this after two seconds whatever happens. */
+html[data-locale-pending] body{visibility:hidden}

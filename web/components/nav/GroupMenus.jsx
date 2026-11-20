@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { GROUPS, TASKS, menuTasks } from '../../lib/site-map';
 import { enabled, extraAttr } from '../../lib/launch-surface.js';
+import { useT } from '../../lib/i18n/use-locale.js';
 import './nav.css';
 
 // Launch surface: an entry that is not core carries data-surface-extra, and so does a group with no core entry left.
@@ -14,6 +15,7 @@ function activeGroup(path, hash) {
 }
 
 export function DesktopGroups({ path }) {
+  const t = useT();
   const [open, setOpen] = useState(null);
   const [hash, setHash] = useState('');
   const root = useRef(null);
@@ -36,21 +38,22 @@ export function DesktopGroups({ path }) {
   const current = activeGroup(path, hash);
   return <div className="desktop-links task-menus" ref={root} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(null); }}>
     {GROUPS.map(group => <div className="task-disclosure" {...groupAttr(group)} key={group.id}>
-      <button type="button" ref={node => { buttons.current[group.id] = node; }} aria-expanded={open === group.id} aria-controls={`nav-${group.id}`} aria-current={current === group.id ? 'true' : undefined} onClick={() => setOpen(open === group.id ? null : group.id)}>{group.title}<span aria-hidden="true">⌄</span></button>
-      <div className="task-panel" id={`nav-${group.id}`} hidden={open !== group.id} aria-label={`${group.title} tasks`}>
-        {menuTasks(group.id).map(task => <a key={task.id} href={task.href} {...extraAttr('nav', task.id)} onClick={() => setOpen(null)}>{task.title}</a>)}
+      <button type="button" ref={node => { buttons.current[group.id] = node; }} aria-expanded={open === group.id} aria-controls={`nav-${group.id}`} aria-current={current === group.id ? 'true' : undefined} onClick={() => setOpen(open === group.id ? null : group.id)}>{t(`groups.${group.id}`, group.title)}<span aria-hidden="true">⌄</span></button>
+      <div className="task-panel" id={`nav-${group.id}`} hidden={open !== group.id} aria-label={t('nav.groupTasks', { group: t(`groups.${group.id}`, group.title) })}>
+        {menuTasks(group.id).map(task => <a key={task.id} href={task.href} {...extraAttr('nav', task.id)} onClick={() => setOpen(null)}>{t(`tasks.${task.id}`, task.title)}</a>)}
       </div>
     </div>)}
   </div>;
 }
 
 export function MobileGroups({ onNavigate }) {
+  const t = useT();
   return <div className="mobile-task-groups">
-    <a className="mobile-home" href="/" onClick={onNavigate}>Home</a>
+    <a className="mobile-home" href="/" onClick={onNavigate}>{t('nav.homeLink')}</a>
     {GROUPS.map(group => <details key={group.id} {...groupAttr(group)}>
-      <summary id={`mobile-${group.id}`}>{group.title}</summary>
+      <summary id={`mobile-${group.id}`}>{t(`groups.${group.id}`, group.title)}</summary>
       <ul>{menuTasks(group.id).map(task => <li key={task.id} {...extraAttr('nav', task.id)}>
-        <a href={task.href} {...extraAttr('nav', task.id)} onClick={onNavigate}>{task.title}</a>
+        <a href={task.href} {...extraAttr('nav', task.id)} onClick={onNavigate}>{t(`tasks.${task.id}`, task.title)}</a>
       </li>)}</ul>
     </details>)}
   </div>;

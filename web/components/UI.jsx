@@ -8,11 +8,14 @@ import AccountStrip from './nav/AccountStrip'; // U105: signed-in balance and be
 import {DesktopGroups,MobileGroups} from './nav/GroupMenus';
 import SearchButton from './nav/SearchButton';
 import SiteSearch from './nav/SiteSearch';
+import LanguageSwitch from './i18n/LanguageSwitch';
+import {useT} from '../lib/i18n/use-locale.js';
 
 export function Button({children,href,secondary=false,light=false,className='',...props}){const cls='ar-button'+(secondary?' secondary':'')+(light?' light':'')+(className?' '+className:'');const inner=<>{!secondary&&<i aria-hidden="true"/>}<span>{children}</span><b aria-hidden="true">→</b></>;return href?<a className={cls} href={href} {...props}>{inner}</a>:<button className={cls} {...props}>{inner}</button>}
 
 export function Brand() {
-  return <a href="/" className={shell.brand} aria-label="Trellis home">
+  const t = useT();
+  return <a href="/" className={shell.brand} aria-label={t('nav.home')}>
     <Lockup className={shell.lockup} markClass={shell.mark} wordClass={shell.word}/>
   </a>;
 }
@@ -22,6 +25,7 @@ export function Header({app=false}) {
   const [path, setPath] = useState('');
   const trigger = useRef(null);
   const drawer = useRef(null);
+  const t = useT();
   useEffect(() => {
     setPath(location.pathname);
     const desktop = matchMedia('(min-width: 961px)');
@@ -44,17 +48,18 @@ export function Header({app=false}) {
   const close = () => setOpen(false);
   const inChat = app && /^\/harness\/?$/.test(path);
   return <>
-    <a className="skip" href="#content">Skip to content</a>
+    <a className="skip" href="#content">{t('nav.skip')}</a>
     <header className={shell.header}>
-      <nav className={shell.bar} aria-label="Main navigation">
+      <nav className={shell.bar} aria-label={t('nav.main')}>
         <Brand/>
         <DesktopGroups path={path}/>
         <div className={shell.actions}>
           <AccountStrip/>
           <SearchButton hint={!inChat}/>
+          <LanguageSwitch/>
           {inChat && <span className="install-slot"><InstallApp/></span>}
-          <a className={shell.dashboard} href="/dashboard/">Dashboard</a>
-          <button type="button" ref={trigger} className={shell.menuButton} aria-label="Open navigation" aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen(true)}>
+          <a className={shell.dashboard} href="/dashboard/">{t('nav.dashboard')}</a>
+          <button type="button" ref={trigger} className={shell.menuButton} aria-label={t('nav.open')} aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen(true)}>
             <span aria-hidden="true"/><span aria-hidden="true"/>
           </button>
         </div>
@@ -62,11 +67,11 @@ export function Header({app=false}) {
     </header>
     {open && <dialog ref={drawer} id="mobile-menu" className={shell.drawer} aria-labelledby="mobile-menu-title" onCancel={close}>
       <div className={shell.drawerBar}>
-        <h2 id="mobile-menu-title">Explore Trellis</h2>
-        <button type="button" onClick={close} aria-label="Close navigation">Close</button>
+        <h2 id="mobile-menu-title">{t('nav.explore')}</h2>
+        <button type="button" onClick={close} aria-label={t('nav.close')}>{t('nav.closeShort')}</button>
       </div>
-      <nav className={shell.drawerNav} aria-label="Mobile navigation">
-        <a className={shell.drawerDashboard} href="/dashboard/" onClick={close}>Dashboard</a>
+      <nav className={shell.drawerNav} aria-label={t('nav.mobile')}>
+        <a className={shell.drawerDashboard} href="/dashboard/" onClick={close}>{t('nav.dashboard')}</a>
         <MobileGroups onNavigate={close}/>
         {inChat && <InstallApp/>}
       </nav>
