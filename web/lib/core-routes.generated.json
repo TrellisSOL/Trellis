@@ -45,6 +45,7 @@
   "escrow\tGET /api/v1/escrow",
   "escrow\tGET /api/v1/escrow/deposits",
   "escrow\tGET /api/v1/escrow/trls/price",
+  "estimate\tPOST /api/v1/estimate",
   "facilitator\tGET /facilitator/supported",
   "facilitator\tPOST /facilitator/settle",
   "facilitator\tPOST /facilitator/verify",

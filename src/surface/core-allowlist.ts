@@ -35,6 +35,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   // Images and video (the media update, src/api/media.ts): registered, and answering 404 `not_enabled` until the `media`
   // release switch is on (src/features.json). Prepaid keys only.
   media: ["GET /api/v1/images/generations/:id", "GET /api/v1/media/files/:id/:n", "GET /api/v1/media/models", "GET /api/v1/videos/generations/:id", "POST /api/v1/images/generations", "POST /api/v1/videos/generations"],
+  // Price check (update 13, src/api/estimate.ts): a prompt priced on every listed text model, with the hold the router
+  // would place and whether it fits. Public and read-only, no key, nothing stored; mounted only with its switch on.
+  estimate: ["POST /api/v1/estimate"],
   // The catalogue. `ALL` is the early-access field middleware of the two list routes (inert without a holder token).
   models: ["ALL /api/v1/models", "ALL /v1/models", "GET /api/v1/models", "GET /v1/models", "GET /api/v1/models/:author/:slug/endpoints", "GET /api/v1/providers"],
 

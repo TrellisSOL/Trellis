@@ -1,0 +1,21 @@
+/* Price check: the form and table in the workspace shell (Workspace.module.css gives the colours, MediaStudio the form). */
+.system summary{cursor:pointer;color:var(--w-muted);font-size:13px}
+.system[open] summary{margin-bottom:10px}
+.row{display:grid;grid-template-columns:minmax(120px,170px) auto minmax(140px,1fr) auto;gap:12px;align-items:end}
+.number{width:100%;padding:10px 12px;border:1px solid var(--w-line);border-radius:7px;background:var(--w-bg);color:var(--w-ink);font:inherit}
+.presets{display:flex;gap:6px;padding-bottom:2px}
+.presets button{height:38px;padding:0 12px;border:1px solid var(--w-line);border-radius:7px;background:#fff;color:var(--w-ink);font:500 12px var(--mono)}
+.presets button[aria-pressed="true"]{border-color:var(--w-accent);color:var(--w-accent)}
+.results{margin-top:26px;padding:20px;border:1px solid var(--w-line);border-radius:10px;background:#fff}
+.head{margin:0 0 6px;font:400 24px/1.15 var(--w-display)}
+.table{margin:16px 0;border-top:1px solid var(--w-line)}
+.tr{display:grid;grid-template-columns:minmax(0,1fr) 110px 110px 170px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--w-line)}
+.tr:first-child{padding:8px 0;color:var(--w-muted);font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.model{display:grid;min-width:0}
+.model strong{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model small{color:var(--w-muted);font-size:12px}
+.amount{font:500 13px var(--mono);text-align:right}
+.fit{color:#7a2e1c;font-size:12px;text-align:right}
+.tr[data-fits] .fit{color:var(--w-muted)}
+.fit a{color:var(--w-accent)}
+@media (max-width:680px){.row{grid-template-columns:1fr 1fr}.presets{grid-column:1/-1}.tr{grid-template-columns:minmax(0,1fr) 84px 84px}.fit{grid-column:1/-1;text-align:left}.tr:first-child span:last-child{display:none}}

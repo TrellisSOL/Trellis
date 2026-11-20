@@ -84,6 +84,7 @@ import { agentApprovalMiddleware, agentApprovalsRoutes } from "./api/agent-appro
 import { agentSessionsRoutes } from "./api/agent-sessions.ts";
 import { spendRoutes } from "./api/spend.ts";
 import { holdersRoutes } from "./api/holders.ts";
+import { estimateRoutes } from "./api/estimate.ts"; // Update 13: Price check
 import { disclosureRoutes } from "./api/disclosure.ts";
 import { ipxRoutes } from "./api/ipx.ts";
 import { dataToolsRoutes } from "./data-tools/routes.ts"; // B: per-call market-data tools.
@@ -267,6 +268,7 @@ export async function createApp(opts: AppOptions = {}) {
   mount("webhooks", () => { webhookRoutes(app, ctx); }); // V86.
   mount("makegood", () => { makegoodRoutes(app, ctx); }); // V6 R.
   mount("holders", () => { holdersRoutes(app, ctx); });
+  if (cfg.updates.estimate) mount("estimate", () => { estimateRoutes(app, ctx); }); // Update 13, Price check: only with its switch on, on either surface
   mount("disclosure", () => { disclosureRoutes(app, ctx); });
   mount("ipx", () => { ipxRoutes(app, ctx); });
   mount("data-tools", () => { dataToolsRoutes(app, ctx); }); // B

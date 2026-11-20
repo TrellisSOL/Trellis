@@ -124,6 +124,7 @@ embeddings	POST /v1/embeddings
 escrow	GET /api/v1/escrow
 escrow	GET /api/v1/escrow/deposits
 escrow	GET /api/v1/escrow/trls/price
+estimate	POST /api/v1/estimate
 facilitator	GET /facilitator/supported
 facilitator	POST /facilitator/settle
 facilitator	POST /facilitator/verify

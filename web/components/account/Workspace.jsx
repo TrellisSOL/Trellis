@@ -122,9 +122,12 @@ const MEDIA_ICONS = {
   video: <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="8" width="17" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M21 14l7-4v12l-7-4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>,
 };
 
+const PRICE_ICON = <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16.5V7a2 2 0 0 1 2-2h9.5L27 15.5 16.5 26z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="11" cy="11" r="2" fill="currentColor"/></svg>;
+
 export function Dock({ current, surface, onNavigate, chat, slotRef, mediaHere }) {
   const here = pageOf(current);
   const media = useUpdate('media')?.on;
+  const estimate = useUpdate('estimate')?.on; // Price check (update 13): a page of its own once the router has released it
   return <div className={w.dock} data-chat={chat ? '' : undefined}>
     <nav className={w.dockNav} aria-label="Workspace">
       {PAGES.map(page => {
@@ -135,6 +138,7 @@ export function Dock({ current, surface, onNavigate, chat, slotRef, mediaHere })
         </a>;
       })}
       {media && MEDIA_PAGES.map(page => <a key={page.id} className={w.dockItem} href={page.href} title={page.label} aria-label={page.label} aria-current={mediaHere === page.id ? 'page' : undefined}>{MEDIA_ICONS[page.id]}</a>)}
+      {estimate && <a className={w.dockItem} href="/estimate/" title="Price check" aria-label="Price check" aria-current={mediaHere === 'estimate' ? 'page' : undefined}>{PRICE_ICON}</a>}
       <More current={current} surface={surface} onNavigate={onNavigate}/>
     </nav>
     {chat
