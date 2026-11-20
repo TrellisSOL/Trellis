@@ -9,6 +9,8 @@ import { CapabilityChips, CapabilityGuide } from "./ModelCapabilities";
 import { RouteCardDetails, useRouteProviders } from "./RouteCard"; // U99
 import { Button, Modal } from "./UI";
 import { modelHref } from "../lib/model-page.js";
+import { useModelHealth } from "./ModelHealth"; // update 17: model health, where the router has it on
+import { healthLine, healthTone } from "../lib/model-health.js";
 import s from "./ModelCatalog.module.css";
 
 export default function ModelCatalog({ onChoose }) {
@@ -21,6 +23,7 @@ export default function ModelCatalog({ onChoose }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const providers = useRouteProviders(); // U99: uptime, latency and attestation for the route cards.
+  const health = useModelHealth();
   useEffect(() => {
     let active = true;
     setError("");
@@ -55,6 +58,7 @@ export default function ModelCatalog({ onChoose }) {
         <h3><a href={modelHref(model.id)}>{model.name}</a></h3><p>{model.description}</p><CapabilityChips model={raw} />
         <div className="model-meta"><span>{model.context} context</span><span>{model.providers} provider{model.providers === 1 ? "" : "s"}</span></div>
         <div className="model-meta"><span>${perM(model.price)} / 1M input</span><span>${perM(model.output)} / 1M output</span></div>
+        {health && <div className="model-meta" data-model-health={healthTone(health.get(model.id))} title="Last 24 hours, measured by this router on real traffic"><span>Health, 24h</span><span>{healthLine(health.get(model.id))}</span></div>}
         {early && <p className="help-text" role="note" data-early-access={early.open ? "open" : "closed"}><strong>{early.text}</strong> <a className="inline-link" href="/holders/">Holder tiers</a></p>}
         <RouteCardDetails model={raw} providers={providers} />
         <div className="button-row"><a className="text-button" href={modelHref(model.id)}>Model page →</a><button className="text-button" onClick={() => setSelected(raw)}>Quick look</button>{modelUnavailable(raw) ? <span role="status">Temporarily unavailable</span> : onChoose ? <button className="text-button" onClick={() => onChoose(model.id)}>Try model →</button> : <a className="text-button" href={chooseHref(model.id)}>Try model →</a>}</div>

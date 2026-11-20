@@ -96,6 +96,7 @@ import { dayzeroRoutes } from "./api/dayzero.ts";
 import { creatorClaimRoutes } from "./api/creator-claims.ts";
 import { publicRoutes } from "./api/public.ts";
 import { embeddingsRoutes } from "./api/embeddings.ts";
+import { modelHealthRoutes } from "./api/model-health.ts";
 import { mediaRoutes } from "./api/media.ts";
 import { batchesRoutes } from "./api/batches.ts";
 import { rerankRoutes } from "./api/rerank.ts";
@@ -230,6 +231,7 @@ export async function createApp(opts: AppOptions = {}) {
   mount("batches", () => { batchesRoutes(app, ctx); });
   mount("rerank", () => { rerankRoutes(app, ctx); });
   mount("models", () => { modelsRoutes(app, ctx); });
+  if (!surface.core || cfg.updates["model-health"]) mount("model-health", () => { modelHealthRoutes(app, ctx); }); // update 17; in core: only with its switch on, and 404 not_enabled everywhere while off
   mount("generation", () => { generationRoutes(app, ctx); });
   mount("hvx", () => { app.route("/api/v1/hvx", hvxRoutes(ctx)); }); // public read-only index (docs/Trellis_Backend.md §5.6)
   mount("honest-ledger", () => { ledgerRoutes(app, ctx); }); // Honest Ledger: public daily x402 volume after the wash filter (§9)

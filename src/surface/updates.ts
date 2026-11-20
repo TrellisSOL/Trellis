@@ -18,7 +18,7 @@ type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
 /** In release order: the number of an update is its place here and in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates"] as const;
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates", "model-health"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -78,6 +78,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
     { setting: "TRLS_POOL_LEGS" }, { setting: "TRLS_POOL_PROGRAM" }, { setting: "TRELLIS_FEE_ROUTER_PROGRAM_ID" },
     { setting: "TRLS_POOL_VAULTS" }, { setting: "TRLS_BURN_PRIVATE_KEY" },
   ],
+  // Model health has no setting of its own: the switch is read by its route (src/api/model-health.ts), which answers
+  // 404 `not_enabled` while it is off, in every environment, and is mounted on a core router only with it on.
+  "model-health": [],
 };
 
 /**
@@ -116,6 +119,8 @@ export function releasedCoreSettings(raw: Raw): Set<string> {
 
 /** FEATURE_<NAME>: the name in capitals, a hyphen as an underscore (receipt-export: FEATURE_RECEIPT_EXPORT). */
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replaceAll("-", "_")}`;
+/** FEATURE_<NAME>: upper case, with a hyphen in a name written as an underscore (model-health: FEATURE_MODEL_HEALTH). */
+export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replace(/-/g, "_")}`;
 export const branchName = (name: UpdateName) => `update/${UPDATES[name].update}-${name}`;
 
 export type UpdateState = Record<UpdateName, boolean>;

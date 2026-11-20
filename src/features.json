@@ -117,5 +117,13 @@
     "title": "Key end dates",
     "summary": "Give a key an end date when you create or edit it in the dashboard. After that moment the router refuses the key with an error that says when it ended, and the key list shows the days it has left.",
     "includes": ["An end date on a new key or an existing one", "Days left on the keys list, and Ended once it has passed", "A refusal that names the end date and how to extend it", "End dates checked: in the future, at most five years ahead"]
+  },
+
+  "model-health": {
+    "update": 17,
+    "on": false,
+    "title": "Model health",
+    "summary": "See how each model has been doing over the last 24 hours: the share of calls that succeeded and the median and 95th-percentile time to the first response, worked out from the router's own records of the calls it sent.",
+    "includes": ["Success rate per model over the last 24 hours", "Median and p95 time to first response", "On the model page and the models list", "A public route: GET /api/v1/models/health"]
   }
 }

@@ -77,6 +77,7 @@
   "media\tGET /api/v1/videos/generations/:id",
   "media\tPOST /api/v1/images/generations",
   "media\tPOST /api/v1/videos/generations",
+  "model-health\tGET /api/v1/models/health",
   "models\tALL /api/v1/models",
   "models\tALL /v1/models",
   "models\tGET /api/v1/models",

@@ -8,6 +8,8 @@ import { CapabilityChips } from "./ModelCapabilities";
 import { CopyButton } from "./UI";
 import { ROUTES, modelHref, modelSummary, providerRows, routeRows, similarModels, usdPerM } from "../lib/model-page.js";
 import { Icon, IconTile } from "./Icons";
+import { useModelHealth } from "./ModelHealth";
+import { HEALTH_NOTE, healthFigures, healthTone } from "../lib/model-health.js";
 import s from "./ModelPage.module.css";
 
 const ROUTE_ICON = { balanced: "scale", floor: "coins", nitro: "zap", private: "shield" };
@@ -18,6 +20,7 @@ export default function ModelPage() {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState("");
   const [route, setRoute] = useState("balanced");
+  const healthMap = useModelHealth(id || null); // update 17: null unless the router has it on
 
   useEffect(() => {
     setId(new URLSearchParams(window.location.search).get("id") || "");
@@ -92,6 +95,23 @@ export default function ModelPage() {
           </div>
         ))}
       </dl>
+
+      {healthMap && (() => {
+        const h = healthMap.get(id);
+        return (
+          <section aria-labelledby="health" className={s.section} data-model-health={healthTone(h)}>
+            <h2 id="health"><IconTile name="pulse" size={36} icon={17} />Health, last 24 hours</h2>
+            {h?.attempts ? (
+              <dl className={`${s.summary} ${s.healthSummary}`}>
+                {healthFigures(h).map(([label, value, unit]) => (
+                  <div key={label}><dt>{label}</dt><dd>{value} {unit && <small>{unit}</small>}</dd></div>
+                ))}
+              </dl>
+            ) : <p>No calls to this model in the last 24 hours.</p>}
+            <p className={s.muted}>{HEALTH_NOTE}{h?.attempts && h.success_rate === null ? " Too few calls to give a rate yet." : ""}</p>
+          </section>
+        );
+      })()}
 
       <section aria-labelledby="who" className={s.section}>
         <div className={s.sectionHead}>

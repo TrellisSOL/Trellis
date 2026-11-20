@@ -212,6 +212,7 @@ memory	GET /api/v1/memory/:id
 memory	POST /api/v1/memory
 memory	POST /api/v1/memory/search
 memory	PUT /api/v1/memory/:id
+model-health	GET /api/v1/models/health
 models	ALL /api/v1/models
 models	ALL /v1/models
 models	GET /api/v1/models

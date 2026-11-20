@@ -40,6 +40,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   estimate: ["POST /api/v1/estimate"],
   // The catalogue. `ALL` is the early-access field middleware of the two list routes (inert without a holder token).
   models: ["ALL /api/v1/models", "ALL /v1/models", "GET /api/v1/models", "GET /v1/models", "GET /api/v1/models/:author/:slug/endpoints", "GET /api/v1/providers"],
+  // Model health (update 17, src/api/model-health.ts): per model, the success rate and the median and p95 latency over
+  // the last 24 hours, from the router's own attempt records. Public and read-only; mounted in core only with its switch on.
+  "model-health": ["GET /api/v1/models/health"],
 
   // ---- Receipts ----------------------------------------------------------------------------------------------------
   // The export (receipt export, update 15) is registered only while the `receipt-export` switch is on (src/api/generation.ts).
