@@ -3,6 +3,7 @@ import type { Ctx } from "../context.ts";
 import { accounts, chainEvents, keys, teamMembers } from "../db/schema.ts";
 import { deriveKey, KEY_RE } from "../solana/keys.ts";
 import { fail } from "../lib/errors.ts";
+import { refuseEndedKey } from "./key-end-dates.ts";
 import { ensureAccount } from "../ledger/ledger.ts";
 import { log, sha256 } from "../lib/util.ts";
 import { decodeWalletAddress, decodeWalletSignature, verifyWalletSignature, WALLET_ADDRESS_RE, WALLET_AUTH_VERSION, WALLET_SIGNATURE_RE, walletAuthMessage } from "../lib/wallet-sig.ts";
@@ -83,7 +84,7 @@ export async function resolveKey(ctx: Ctx, secret: string): Promise<KeyRow | nul
   const [row] = await ctx.db.select().from(keys).where(eq(keys.keyHash, keyHash));
   if (row) {
     if (row.disabled) fail(401, "This API key is disabled.", "key_disabled");
-    if (row.expiresAt && row.expiresAt.getTime() < Date.now()) fail(401, "This API key has expired.", "key_expired");
+    if (row.expiresAt && row.expiresAt.getTime() < Date.now()) refuseEndedKey(ctx, row.expiresAt); // update 16 says when it ended
     return row;
   }
   const d = deriveKey(secret);

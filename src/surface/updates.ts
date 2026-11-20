@@ -18,7 +18,7 @@ type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
 /** In release order: the number of an update is its place here and in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export"] as const;
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -68,6 +68,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Receipt export has no setting of its own: the export route (GET /api/v1/generations/export, src/api/generation.ts)
   // is registered only while the switch is on, in every environment, and is on the core allow-list for that case.
   "receipt-export": [],
+  // Key end dates have no setting of their own: the switch is read where a key's end date is set and where an ended key
+  // is refused (src/api/keys.ts, src/api/auth.ts). Key routes are core already, so there is nothing to allow-list.
+  "key-end-dates": [],
   // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
   // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [

@@ -23113,7 +23113,8 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "The key's end date. After it every call with the key is refused with 401 key_expired; null removes it. Where the router has released key end dates (update 16): a new key's end date must be in the future, any end date at most five years ahead, and a past end date on PATCH ends the key at once."
           },
           "guardrails": {
             "type": [

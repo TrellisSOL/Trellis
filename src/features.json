@@ -109,5 +109,13 @@
     "title": "Receipt export",
     "summary": "Download your signed receipts for a date range as CSV or JSON, from the dashboard or the API. Each row keeps the receipt id, model, cost, time and signature, so every line can be verified later.",
     "includes": ["Signed receipts for any date range", "CSV or JSON, from the dashboard or GET /api/v1/generations/export", "The signed payload, signature and key id on every row", "Paged and bounded: up to 1,000 rows a page, 366 days a range"]
+  },
+
+  "key-end-dates": {
+    "update": 16,
+    "on": false,
+    "title": "Key end dates",
+    "summary": "Give a key an end date when you create or edit it in the dashboard. After that moment the router refuses the key with an error that says when it ended, and the key list shows the days it has left.",
+    "includes": ["An end date on a new key or an existing one", "Days left on the keys list, and Ended once it has passed", "A refusal that names the end date and how to extend it", "End dates checked: in the future, at most five years ahead"]
   }
 }

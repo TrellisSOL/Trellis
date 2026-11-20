@@ -48,6 +48,8 @@ import Playbooks from "./limits/Playbooks"; // U115: one rulebook many keys foll
 import { KEY_BUDGET_WORDS, topupCardText } from "../lib/spending-limits"; // U104: a key's total budget lives in its spending limits. U107: auto top-up.
 // Launch surface: on a core router the non-core panels of this page are left out and their routes are not called.
 import { Problem, usePart } from "./launch/Surface";
+import { useUpdate } from "./media/useUpdate.js"; // release switches the router reports (GET /api/v1/status, `updates`)
+import { endDateFrom, endDateText, ended, toLocalInput } from "../lib/key-end-dates.js"; // Update 16: key end dates.
 import { NOT_ENABLED_MESSAGE, isNotEnabled, isNotEnabledText } from "../lib/launch-surface.js";
 
 // Account shell: preserve feature sections and their dashboard hashes.
@@ -213,16 +215,18 @@ function ReceiptTable({ receipts, onInspect, emptyAction, live, emptyTitle, empt
 }
 
 // U104: creates a key (with an optional starting total budget) or renames one. A live key's total budget is changed
-// afterwards in its Spending limits, beside the caps.
-function KeyDialog({ existing, onSave, onClose, live, rules = true }) {
+// afterwards in its Spending limits, beside the caps. Update 16 (`endDates`): a live key's end date, set or changed here.
+function KeyDialog({ existing, onSave, onClose, live, rules = true, endDates = false }) {
   const [name, setName] = useState(existing?.name || "");
+  const withEnd = live && endDates;
+  const [endAt, setEndAt] = useState(() => toLocalInput(existing?.expiresAt));
   const [budget, setBudget] = useState(existing?.budget == null ? (existing ? "" : "10") : String(existing.budget));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const noun = live ? "key" : "sample key";
   const withBudget = !existing || !live;
   return (
-    <Modal title={existing ? (live ? "Rename key" : "Edit " + noun) : "Create a " + noun} onClose={onClose}>
+    <Modal title={existing ? (live && !withEnd ? "Rename key" : "Edit " + noun) : "Create a " + noun} onClose={onClose}>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -231,9 +235,14 @@ function KeyDialog({ existing, onSave, onClose, live, rules = true }) {
             setError(withBudget ? "Enter a name (up to 60 characters) and a budget greater than 0, up to 100,000 USDC" + (live ? " (leave empty for no budget limit)." : ".") : "Enter a name of up to 60 characters.");
             return;
           }
+          const end = withEnd ? endDateFrom(endAt, { creating: !existing }) : {};
+          if (end.error) return setError(end.error);
+          // An existing key's end date is sent only when it changed; a new key's only when one was set.
+          const before = existing?.expiresAt ? new Date(existing.expiresAt).toISOString() : null;
+          const endValue = !withEnd ? {} : existing ? (end.expires_at !== before ? { expires_at: end.expires_at } : {}) : end.expires_at ? { expires_at: end.expires_at } : {};
           setBusy(true);
           try {
-            await onSave(withBudget ? { name: name.trim(), budget: n } : { name: name.trim() });
+            await onSave({ ...(withBudget ? { name: name.trim(), budget: n } : { name: name.trim() }), ...endValue });
           } catch (err) {
             setError(err.message);
             setBusy(false);
@@ -249,6 +258,12 @@ function KeyDialog({ existing, onSave, onClose, live, rules = true }) {
         {withBudget && (
           <Field label={live ? KEY_BUDGET_WORDS.label : "Total sample budget / USDC"} id="key-budget">
             <input id="key-budget" type="number" min="0.000001" max="100000" step="any" value={budget} onChange={(e) => setBudget(e.target.value)} required={!live} placeholder={live ? "No total budget" : undefined} />
+          </Field>
+        )}
+        {withEnd && (
+          <Field label="End date (optional)" id="key-end">
+            <input id="key-end" type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+            <span className="help-text">After this moment the router refuses the key. Leave it empty for no end date{existing ? "; a past time ends the key now" : ""}. In your own time zone.</span>
           </Field>
         )}
         <div className="note">
@@ -635,6 +650,7 @@ export default function Dashboard() {
   const live = mode === "live";
   // Launch surface (lib/launch-surface.js): each is true only once the router has said it serves more than core.
   const payWithOn = usePart("part", "pay-with"), tracingOn = usePart("part", "tracing"), telegramOn = usePart("part", "telegram"), rulesOn = usePart("part", "agents"), topupOn = usePart("part", "key-topup");
+  const endDatesOn = useUpdate("key-end-dates")?.on === true; // Update 16: shown only where the router released key end dates.
   const exportOn = usePart("section", "account-export");
   // U106: ⌘K's New API key links to /dashboard/?new=key#api-keys; Create key opens once a key is connected.
   useEffect(() => {
@@ -777,6 +793,7 @@ export default function Dashboard() {
     spent: k.usage_period ?? k.usage ?? 0,
     active: !k.disabled,
     chainKeyHash: k.chain_key_hash,
+    expiresAt: k.expires_at ?? null, // update 16
     current: k.hash === ws?.me?.hash,
     secret: secrets[k.hash],
   }));
@@ -888,10 +905,10 @@ export default function Dashboard() {
       return;
     }
     if (modal.data) {
-      await api("/api/v1/keys/" + modal.data.id, { key: apiKey, method: "PATCH", body: { name: values.name } }); // U104: the budget saves in Spending limits.
-      setNotice("Key renamed.");
+      await api("/api/v1/keys/" + modal.data.id, { key: apiKey, method: "PATCH", body: { name: values.name, ...(values.expires_at !== undefined ? { expires_at: values.expires_at } : {}) } }); // U104: the budget saves in Spending limits.
+      setNotice(values.expires_at !== undefined ? "Key saved." : "Key renamed.");
     } else {
-      const r = await api("/api/v1/keys", { key: apiKey, method: "POST", body: { name: values.name, limit: values.budget } });
+      const r = await api("/api/v1/keys", { key: apiKey, method: "POST", body: { name: values.name, limit: values.budget, ...(values.expires_at ? { expires_at: values.expires_at } : {}) } });
       setSecrets((s) => ({ ...s, [r.data.hash]: r.key }));
       setReveal({ secret: r.key, deposit: r.deposit });
       setNotice("Key created. Copy its secret now; it is shown once.");
@@ -1056,10 +1073,11 @@ export default function Dashboard() {
                     <article className={"key-card" + (k.active ? "" : " is-revoked")} key={k.id} style={{ "--i": i }}>
                       <div>
                         <h3>{k.name}</h3>
-                        <span className={"badge " + (k.active ? "green" : "")}>{k.active ? (k.current ? "Active · this browser" : "Active") : "Revoked"}</span>
+                        <span className={"badge " + (k.active && !(live && endDatesOn && ended(k.expiresAt)) ? "green" : "")}>{k.active ? (live && endDatesOn && ended(k.expiresAt) ? "Ended" : k.current ? "Active · this browser" : "Active") : "Revoked"}</span>
                       </div>
                       <code className="key-token">{k.token}</code>
                       {live && <KeyLastUsed value={ws?.keys?.find(key => key.hash === k.id)?.last_used} current={k.current}/>} {/* B125 */}
+                      {live && endDatesOn && k.expiresAt && <p className="help-text key-end-date">{endDateText(k.expiresAt)}</p>} {/* Update 16 */}
                       <div className="budget-line">
                         <span>
                           {money(k.spent, 6)} / {k.budget == null ? "no limit" : money(k.budget, 2) + " USDC"}
@@ -1071,7 +1089,7 @@ export default function Dashboard() {
                       <div className="button-row">
                         <CopyButton text={live ? k.chainKeyHash : k.token} label={live ? "Copy deposit hash" : "Copy sample key"} />
                         <button className="text-button" onClick={() => setModal({ type: "key", data: k })}>
-                          {live ? "Rename" : "Edit budget"}
+                          {live ? (endDatesOn ? "Edit" : "Rename") : "Edit budget"}
                         </button>
                         {live && k.active && (
                           <button className="text-button" onClick={() => setModal({ type: "limits", data: k })}>
@@ -1341,7 +1359,7 @@ export default function Dashboard() {
       </section>
       </AccountShell>
       {modal?.type === "receipt" && <ReceiptDetails receipt={modal.data} apiKey={apiKey} status={status} onClose={() => setModal(null)} />}
-      {modal?.type === "key" && <KeyDialog live={live} rules={!live || rulesOn} existing={modal.data} onClose={() => setModal(null)} onSave={saveKeyValues} />}
+      {modal?.type === "key" && <KeyDialog live={live} rules={!live || rulesOn} endDates={endDatesOn} existing={modal.data} onClose={() => setModal(null)} onSave={saveKeyValues} />}
       {modal?.type === "limits" && <KeyLimits apiKey={apiKey} keyHash={modal.data.id} name={modal.data.name} current={modal.data.current} topup={modal.data.topup} budget={modal.data.budget} reset={modal.data.reset} spent={modal.data.spent} onSaved={() => refresh().catch(() => {})} onClose={() => setModal(null)} />}
       {modal?.type === "provider" && (
         <Modal title={modal.data.name} onClose={() => setModal(null)}>

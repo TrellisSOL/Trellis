@@ -26,6 +26,7 @@ import { bearer, registerRootKey, requireKey, requireRole, ROLE_RANK, walletAcco
 import { actorOf, appendAudit, type AuditDetail } from "../teams/audit.ts";
 import { assertFitsOrgBudget } from "../teams/org.ts";
 import { topupInput, topupJson, topupsThisWeek } from "../ledger/topup.ts";
+import { assertKeyEndDate } from "./key-end-dates.ts";
 
 const keySpec = z.object({
   include_byok_in_limit: z.boolean().optional(), // ZK6
@@ -228,6 +229,7 @@ export function keysRoutes(app: Hono, ctx: Ctx) {
     enforceCoreKeySpec(ctx, rawSpec); // LAUNCH_SURFACE=core: a name and limits, nothing else
     const spec = keySpec.parse(rawSpec);
     assertLimitsWithinDefaults(ctx, spec);
+    assertKeyEndDate(ctx, spec.expires_at, { creating: true }); // update 16: in the future, at most five years ahead
     if (spec.topup !== undefined) fail(400, "Set auto top-up with PATCH /api/v1/keys/:hash once the key has a limit.", "invalid_request");
     const auth = c.req.header("authorization");
     const secret = generateApiKey();
@@ -288,6 +290,7 @@ export function keysRoutes(app: Hono, ctx: Ctx) {
     enforceCoreKeySpec(ctx, rawSpec); // LAUNCH_SURFACE=core
     const spec = keySpec.parse(rawSpec);
     assertLimitsWithinDefaults(ctx, spec);
+    assertKeyEndDate(ctx, spec.expires_at, { creating: false }); // update 16: at most five years ahead; a past date ends the key at once
     if (spec.scope !== undefined) fail(400, "Scope is fixed at creation; mint a new key to change it.", "invalid_request"); // ZK6
     if (k.scope === "inference" && spec.management === true) fail(403, "An inference-only key cannot gain management rights.", "forbidden"); // ZK6
     if (spec.management !== undefined && !caller.management) fail(403, "Only a management key can change management rights.", "forbidden");
