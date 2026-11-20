@@ -145,7 +145,7 @@
 
   "taste": {
     "update": 20,
-    "on": false,
+    "on": true,
     "title": "Taste test",
     "summary": "Compare models in Chat without knowing which is which: the answers arrive side by side as Answer A and B, in a random order, and the model names, prices, costs and receipts show once you pick the better one.",
     "includes": ["Model names, prices and costs hidden until you pick", "A new random order every round", "Each answer still paid and receipted on its own", "A tally of your picks, kept in your browser only"]
