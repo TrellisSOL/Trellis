@@ -766,6 +766,22 @@ const bodyReaders: ExternalDoc["bodyReaders"] = [
     evidence: [ev("src/api/host-anchor.ts", "const body = await readJson(c);")],
   },
   {
+    file: "src/api/estimate.ts",
+    carries: "prompt-or-answer",
+    reads: "Price check (update 13): a prompt, an optional system prompt, an output cap, an optional list of model ids and how the call would be paid.",
+    then: "Counted in memory (characters and bytes) to price the request on every listed text model; the text is not sent to any provider.",
+    kept: "Nothing: no database row and no log of the prompt.",
+    evidence: [ev("src/api/estimate.ts", "const input = body.parse(await readJson(c));")],
+  },
+  {
+    file: "src/api/receipt-batch.ts",
+    carries: "public-data",
+    reads: "Chat export with receipts (update 21): a list of 1 to 50 receipt ids.",
+    then: "Each id is looked up and its signed receipt returned, as GET /api/v1/receipts/:id does for one.",
+    kept: "Nothing.",
+    evidence: [ev("src/api/receipt-batch.ts", "const ids = [...new Set(Body.parse(await readJson(c)).ids)];")],
+  },
+  {
     file: "src/api/ipx.ts",
     carries: "settings",
     reads: "An operator's switch that halts or resumes the index-price oracle.",

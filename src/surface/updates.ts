@@ -17,16 +17,8 @@ import spec from "../features.json" with { type: "json" };
 type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
-/** In release order: the number of an update is its place here and in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates", "model-health", "burn-tracker"] as const;
-/** In release order: the order here and in src/features.json. Each entry names its own number (`update`). */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "usage"] as const;
-/** In release order: the order here and in src/features.json. Each entry names its own number (`update`). */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "taste"] as const;
 /** In release order. The number of an update is the `update` field of its entry in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "chat-receipts"] as const;
-/** In release order. The number of an update is the `update` field of its entry in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "price-history"] as const;
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace", "receipt-export", "key-end-dates", "model-health", "burn-tracker", "usage", "taste", "chat-receipts", "price-history"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -145,11 +137,6 @@ export function releasedCoreSettings(raw: Raw): Set<string> {
 
 /** FEATURE_<NAME>: the name in capitals, a hyphen as an underscore (receipt-export: FEATURE_RECEIPT_EXPORT). */
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replaceAll("-", "_")}`;
-/** FEATURE_<NAME>: upper case, with a hyphen in a name written as an underscore (model-health: FEATURE_MODEL_HEALTH). */
-/** FEATURE_<NAME>: upper case, with a hyphen in a name written as an underscore (burn-tracker: FEATURE_BURN_TRACKER). */
-/** FEATURE_<NAME>: the name in capitals, a hyphen written as an underscore (FEATURE_CHAT_RECEIPTS). */
-/** FEATURE_<NAME>: the name in capitals, a hyphen written as an underscore (FEATURE_PRICE_HISTORY). */
-export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replace(/-/g, "_")}`;
 export const branchName = (name: UpdateName) => `update/${UPDATES[name].update}-${name}`;
 
 export type UpdateState = Record<UpdateName, boolean>;

@@ -1,5 +1,5 @@
 import type { TableDoc } from "../types.ts";
-import { CREATED, JSON_FIELDS, KEPT, UPDATED, rv } from "./common.ts";
+import { CREATED, JSON_FIELDS, KEPT, KEPT_APPEND, UPDATED, rv } from "./common.ts";
 
 // Providers and attestation: who serves models, what they charge, what they have proved about their software and how they say
 // they handle a prompt. These describe providers and models, not callers. The canary, lane-evaluation and probe rows are made
@@ -92,6 +92,20 @@ export const providerTables: Record<string, TableDoc> = {
     },
   },
 
+  price_snapshots: {
+    category: "providers",
+    purpose: "Price history (update 22): a model's lowest live input and output price, written after a catalogue refresh only when one of them changed since the last row.",
+    request: "no",
+    retention: KEPT_APPEND,
+    columns: {
+      id: "Row number.",
+      model_id: "The catalogue model id, author/slug.",
+      price_prompt: "The lowest live input price across the model's offers, pico-USD per prompt token.",
+      price_completion: "The lowest live output price across the model's offers, pico-USD per completion token.",
+      providers: "How many live offers served the model when the row was written.",
+      at: "When the change was recorded.",
+    },
+  },
   offers: {
     category: "providers",
     purpose: "What one provider charges to serve one model, and the model's features at that provider.",

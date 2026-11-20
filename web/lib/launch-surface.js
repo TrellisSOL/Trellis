@@ -90,7 +90,7 @@ export const CORE = {
   page: servedBy('page', ['/', '/how-it-works/', '/agents/', '/burn/', '/cost/', '/estimate/', '/dashboard/', '/docs/', '/whitepaper/', '/roadmap/', '/graft/', '/harness/', '/holders/', '/images/', '/video/', '/keep/', '/legal/privacy/', '/legal/terms/', '/models/', '/models/view/', '/providers/',
     '/registry/', '/registry/[id]/', '/spec/', '/spec/[doc]/', '/status/', '/tabs/', '/trust/', '/verify/']),
   // Menu, homepage-map, footer and search entries (lib/site-map.js TASKS).
-  nav: ['chat', 'images', 'media-images', 'media-video', 'price-check', 'vision', 'voice', 'history', 'install', 'models', 'model-alternatives', 'prompt-library',
+  nav: ['chat', 'images', 'media-images', 'media-video', 'price-check', 'burn-tracker', 'vision', 'voice', 'history', 'install', 'models', 'model-alternatives', 'prompt-library',
     'dashboard', 'api', 'cost', 'payments', 'lanes', 'registry', 'playground', 'settings', 'get-usdc', 'account-keys', 'account-payments', 'key-management',
     'unused-keys', 'deposit-countdown', 'tabs',
     'receipt', 'trust', 'status', 'keep', 'provider-check', 'proof-time', 'proof-pack-check',
