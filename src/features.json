@@ -129,7 +129,7 @@
 
   "burn-tracker": {
     "update": 18,
-    "on": false,
+    "on": true,
     "title": "$TRLS burn tracker",
     "summary": "A public page with the total $TRLS burned for inference, each recent burn with a link to its Solana transaction, and a chart of the total over time, read from the router's own burn records.",
     "includes": ["Total $TRLS burned for inference", "Recent burns with their Solana transaction links", "A chart of the burned total by day", "A public route: GET /api/v1/trls/burns"]
