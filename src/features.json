@@ -137,7 +137,7 @@
 
   "usage": {
     "update": 19,
-    "on": false,
+    "on": true,
     "title": "Usage breakdown",
     "summary": "See what a key spent by model and by day over the last 30 days, with totals, as a chart on the dashboard and from GET /api/v1/usage for scripts.",
     "includes": ["Daily spend for the last 30 days, stacked by model", "Totals: spend, calls and models used", "GET /api/v1/usage with the same numbers", "A management key can see its whole account or one key"]
