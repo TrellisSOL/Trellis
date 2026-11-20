@@ -161,7 +161,7 @@
 
   "price-history": {
     "update": 22,
-    "on": false,
+    "on": true,
     "title": "Price history",
     "summary": "See how a model's price has moved: a chart of its lowest input and output price per million tokens on its model page, from the changes the router records each time it refreshes the catalogue, and the same history from a public API route.",
     "includes": ["A price chart on every model page, over 30, 90 or 365 days", "Input and output price per million tokens", "Recorded by the router when a price changes, never filled in", "GET /api/v1/models/:author/:slug/prices"]
