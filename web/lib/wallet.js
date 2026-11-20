@@ -107,6 +107,15 @@ export async function signMessage(address, message) {
   return base58Encode(out.signature);
 }
 
+export async function signChatPayment(address, transaction) {
+  const { wallet, account } = await sessionFor(address);
+  const feature = wallet.features['solana:signTransaction'];
+  if (!feature) throw new Error(wallet.name + ' cannot sign a sponsored USDC payment.');
+  const [result] = await feature.signTransaction({ account, transaction, chain: 'solana:mainnet' });
+  if (!result?.signedTransaction) throw new Error('The wallet returned no signed transfer.');
+  return result.signedTransaction;
+}
+
 /**
  * Send the router's unsigned transactions in order. Each is `{ transaction (base64), description?, network? }`; the wallet
  * signs each one as fee payer and broadcasts it. `onStep(text, { hash, index, count })` is told when each one is sent,

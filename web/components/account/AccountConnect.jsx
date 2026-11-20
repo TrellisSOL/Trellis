@@ -33,6 +33,7 @@ export default function AccountConnect({ onConnect, onSecret }) {
     </form>
     {error && <p className="error" role="alert">{error}</p>}
     <p className="help-text">Your key stays in this browser tab’s session storage until you disconnect or close the tab.<span data-surface-extra=""> Use a management key or an owner/admin key to manage agents.</span></p>
+    <p><a href="/harness/">Chat with USDC per message</a> or sign in with your Solana wallet to use a TRLS balance.</p>
     <nav className={s.resources} aria-label="Account help"><a href="/docs/#payments">Payment guide</a><a href="/keep/">Data privacy</a></nav>
   </div>;
 }

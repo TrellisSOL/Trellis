@@ -42,7 +42,7 @@ const fmtUsdc = (units: bigint) => {
 };
 
 type Quote = { pricePico: Pico; bodySha: string; modelId: string };
-type QuoteInfo = Quote & { resource: string; description: string; /** The per-source limit on sponsored payments, taken where the caller's address is in hand. */ sourceOk?: () => Promise<boolean> };
+type QuoteInfo = Quote & { browserQuote?: boolean; resource: string; description: string; /** The per-source limit on sponsored payments, taken where the caller's address is in hand. */ sourceOk?: () => Promise<boolean> };
 
 export const walletAccountId = (payer: string) => `w_${payer}`;
 export const PERCALL_KIND = "percall";
@@ -101,7 +101,10 @@ export async function paymentRequired(ctx: Ctx, opts: QuoteInfo, failure?: { err
   const accepts = [await x402Requirement(ctx, { priceUsdc, resource: opts.resource, description: opts.description })];
   const error = failure ? `Payment rejected (${failure.errorReason}): send a fresh signed x402 payment.` : `Payment of ${fmtUsdc(priceUsdc)} USDC required: send the signed x402 payment as X-PAYMENT (v1) or PAYMENT-SIGNATURE (v2).`;
   const headers = { ...x402RequiredHeaders(error, accepts), ...(failure ? x402FailureHeader({ errorReason: failure.errorReason, network: accepts[0].network, payer: failure.payer }) : {}) };
-  throw new ApiError(402, error, "payment_required", undefined, headers, x402Body(error, accepts, { price_usdc: fmtUsdc(priceUsdc), network_fee_max_usdc: fmtUsdc(perCallQuote(ctx, opts.pricePico).maxNetworkFee), model: opts.modelId, x402Version: X402_VERSION, ...(failure ? { payment_error: failure.errorReason } : {}) }));
+  const lifetime = opts.browserQuote && !failure
+    ? await ctx.chain.connection.getLatestBlockhash("confirmed").catch(() => fail(503, "Cannot prepare a wallet payment right now. Try again shortly.", "chain_unavailable"))
+    : null;
+  throw new ApiError(402, error, "payment_required", undefined, headers, x402Body(error, accepts, { ...(lifetime ? { recent_blockhash: lifetime.blockhash } : {}), price_usdc: fmtUsdc(priceUsdc), network_fee_max_usdc: fmtUsdc(perCallQuote(ctx, opts.pricePico).maxNetworkFee), model: opts.modelId, x402Version: X402_VERSION, ...(failure ? { payment_error: failure.errorReason } : {}) }));
 }
 
 export type PaymentHeader = { kind: "tx"; signature: string } | { kind: "x402"; payment: X402Payment; raw: unknown };
@@ -280,7 +283,7 @@ export async function payPerCall(ctx: Ctx, c: Context, o: Quote & { description?
   const sourceOk = from ? async () => (await ctx.limiter.take(`sponsor-source:${from.id}`, 1, from.scale(ctx.cfg.facilitator.sponsor.sourcePerMin), 60_000)).ok : undefined;
   const info: QuoteInfo = { pricePico: o.pricePico, bodySha: o.bodySha, modelId: o.modelId, resource: `${ctx.cfg.publicUrl}${new URL(c.req.url).pathname}`, description: o.description ?? `Pay-per-call inference: ${o.modelId}`, sourceOk };
   const pay = paymentHeaderOf(c);
-  if (!pay) return paymentRequired(ctx, info);
+  if (!pay) return paymentRequired(ctx, { ...info, browserQuote: c.req.header("x-trellis-wallet-quote") === "1" });
   const header = parsePaymentHeader(pay);
   if (header.kind === "x402") return redeemX402(ctx, header.payment, info, header.raw);
   const auth = c.req.header("x-wallet-auth");

@@ -101,15 +101,15 @@ export async function api(path, { key, method = "GET", body, signal, headers = {
  * Streaming chat completion. Calls onDelta(text) as tokens arrive and, when given, onEvent(chunk) with every
  * parsed chunk (reasoning, tool calls, images, audio, usage, receipt); resolves with the final summary.
  */
-export async function streamChat({ key, body, headers = {}, signal, onDelta, onEvent }) {
+export async function streamChat({ key, body, headers = {}, signal, onDelta, onEvent, walletPayment = false }) {
+  const url = API_BASE + "/api/v1/chat/completions";
+  const init = { method: "POST", signal, headers: { "content-type": "application/json", ...(key ? { authorization: "Bearer " + key } : {}), ...headers }, body: JSON.stringify({ ...body, stream: true }) };
   let res;
-  try {
-    res = await fetch(API_BASE + "/api/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: { "content-type": "application/json", authorization: "Bearer " + key, ...headers },
-      body: JSON.stringify({ ...body, stream: true }),
-    });
+  if (walletPayment) {
+    const { walletChatFetch } = await import("./wallet-chat.js");
+    res = await walletChatFetch(url, init);
+  } else try {
+    res = await fetch(url, init);
   } catch (e) {
     if (e?.name === "AbortError") throw e;
     throw new ApiError(0, "The Trellis API could not be reached. Check your connection and try again.", "unreachable");
@@ -124,7 +124,7 @@ export async function streamChat({ key, body, headers = {}, signal, onDelta, onE
     const off = refusal("/api/v1/chat/completions", res.status, doc);
     if (off) throw off;
     const e = doc?.error;
-    const err = new ApiError(res.status, e?.message || `Request failed (${res.status}).`, e?.type || "error", e?.metadata);
+    const err = new ApiError(res.status, e?.message || (typeof e === "string" ? e : `Request failed (${res.status}).`), e?.type || "error", e?.metadata);
     err.suggested_models = e?.suggested_models ?? doc?.suggested_models; // B121
     err.retryAfter = res.headers.get("retry-after");
     // A withheld answer is still billed and signed: keep the receipt and usage the refusal carries, so callers can show them.

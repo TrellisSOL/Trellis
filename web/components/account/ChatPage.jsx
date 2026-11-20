@@ -45,7 +45,7 @@ export default function ChatPage({ live, busy, prompt, setPrompt, modelId, setMo
         <select value={keyId} onChange={e => setKeyId(e.target.value)} disabled={busy} aria-label={live ? 'Key' : 'Sample key'}><option value="">Select key</option>{keyOptions}</select>
       </label>
       {showPayWith && <label className={w.toolSelect}><span>Pay with</span>
-        <select value={payWith} onChange={e => setPayWith(e.target.value)} disabled={busy} aria-label="Pay with">{payOptions.map(p => <option key={p}>{p}</option>)}</select>
+        <select value={payWith} onChange={e => setPayWith(e.target.value)} disabled={busy} aria-label="Pay with">{payOptions.map(p => <option key={p} value={p}>{live && p === "USDC" ? "Account balance" : p}</option>)}</select>
       </label>}
     </div>
     <div className={w.inputRow}>
@@ -59,7 +59,7 @@ export default function ChatPage({ live, busy, prompt, setPrompt, modelId, setMo
         ? <button type="button" className={w.send} onClick={onCancel} aria-label="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor"/></svg></button>
         : <button type="submit" className={w.send} aria-label={live ? 'Run call' : 'Run sample call'} disabled={!prompt.trim()}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12M12 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>}
     </div>
-    <p className={w.hint}><span>Enter to send · Shift + Enter for a new line</span><span>{live ? 'Live call · billed to the selected key · up to 512 tokens' : 'Sample call · nothing is sent'}</span></p>
+    <p className={w.hint}><span>Enter to send · Shift + Enter for a new line</span><span>{live ? (payWith === 'USDC per message' ? 'Review the USDC quote before signing' : 'Account balance · up to 512 tokens') : 'Sample call · nothing is sent'}</span></p>
   </form>;
 
   const spent = turns.reduce((sum, t) => sum + (t.result?.cost || 0), 0);

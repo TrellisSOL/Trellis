@@ -800,7 +800,8 @@ export default function Dashboard() {
     : { balance: state.balance, keys: state.keys, sessions: state.sessions, receipts: state.receipts };
   const playModels = live ? catalog.filter((m) => m.type !== "Embeddings") : sampleModels;
   const payWithMint = live && keyId && payWithOn && payWithTick >= 0 ? loadPayWith(keyId) : ""; // the X-Pay-With mint kept in this browser for the selected key
-  const payOptions = ["USDC", ...(payWithMint ? [payWithMint] : [])];
+  const walletPayment = live && payWith === "USDC per message";
+  const payOptions = ["USDC", ...(live ? ["USDC per message"] : []), ...(payWithMint ? [payWithMint] : [])];
   const providerRows = live ? liveProviders || [] : sampleProviders;
   const signedIn = !live || (!!apiKey && !!ws);
 
@@ -837,18 +838,18 @@ export default function Dashboard() {
     setErrorKind("");
     (async () => {
       try {
-        if (!k?.secret) throw new Error("Choose a key whose secret is available in this browser (your signed-in key or one created this session).");
+        if (!walletPayment && !k?.secret) throw new Error("Choose a key whose secret is available in this browser (your signed-in key or one created this session).");
         if (modelUnavailable(catalog.find(m => m.id === modelId))) throw new Error("This model is temporarily unavailable. Choose another model."); // ON5
         if (!prompt.trim()) throw new Error("Enter a prompt before routing a call.");
-        const out = await streamChat({ key: k.secret, body: liveRequest.body, headers: liveRequest.headers, signal: ctl.signal, onDelta: setStreamText });
-        const g = (await api("/api/v1/generation?id=" + encodeURIComponent(out.id), { key: k.secret })).data;
+        const out = await streamChat({ walletPayment, key: walletPayment ? undefined : k.secret, body: liveRequest.body, headers: liveRequest.headers, signal: ctl.signal, onDelta: setStreamText });
+        const g = walletPayment ? { id: out.id, mode: "per_call", model: out.model, provider_name: out.provider, tokens_prompt: out.usage?.prompt_tokens, tokens_completion: out.usage?.completion_tokens, total_cost: out.usage?.cost, receipt_key_id: out.receipt?.key_id, created_at: new Date().toISOString() } : (await api("/api/v1/generation?id=" + encodeURIComponent(out.id), { key: k.secret })).data;
         setResult({ ...toReceiptRow({ ...g, anchored: !!g.anchor, created_at: g.created_at }, ws?.tokens), text: out.text });
         setNotice(out.error ? "The provider stopped mid-stream; the delivered part was billed. Its receipt is ready." : "Call completed. Its signed receipt is ready.");
         refresh().catch(() => {});
       } catch (err) {
         if (err?.name === "AbortError") return;
         const hint = err?.metadata?.pay_with ? " (" + err.metadata.pay_with + ")" : "";
-        setErrorKind(fundingError(err) ? "insufficient_credits" : err?.type || ""); // ON1
+        setErrorKind(!walletPayment && fundingError(err) ? "insufficient_credits" : err?.type || ""); // ON1
         setError(earlyAccessMessage(err) || err.message + hint);
         // 404 not_enabled on the chat route: the router's own sentence says what it refused (a key setting, a header).
         if (isNotEnabled(err)) setError(NOT_ENABLED_MESSAGE + (err.detail ? " " + err.detail : ""));
@@ -940,7 +941,7 @@ export default function Dashboard() {
     ...(payWith !== "USDC" ? { headers: { "X-Pay-With": payWith } } : {}),
   };
   const liveRequest = {
-    headers: payWith !== "USDC" ? { "X-Pay-With": payWith } : {},
+    headers: !walletPayment && payWith !== "USDC" ? { "X-Pay-With": payWith } : {},
     body: { model: modelId, messages: [{ role: "user", content: prompt }], max_tokens: 512, provider: { ...(privateRoute ? { private: true } : {}), allow_fallbacks: !forceFailure } },
   };
   const origin = typeof window !== "undefined" ? API_BASE || window.location.origin : "";
@@ -1012,25 +1013,18 @@ export default function Dashboard() {
               ))}
               keyId={keyId} setKeyId={setKeyId}
               keyOptions={view.keys.filter((k) => k.active && (!live || k.secret)).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-              showPayWith={!live || payWithOn} payWith={payWith} setPayWith={setPayWith} payOptions={payOptions}
+              showPayWith payWith={payWith} setPayWith={setPayWith} payOptions={payOptions}
               privateRoute={privateRoute} setPrivate={setPrivate} forceFailure={forceFailure} setForceFailure={setForceFailure}
               onRun={run} onCancel={cancel} streamText={streamText} result={result} money={money}
               request={live
                 ? JSON.stringify({ url: origin + "/api/v1/chat/completions", headers: { Authorization: "Bearer " + (view.keys.find((k) => k.id === keyId)?.token || "sk-tr-v1-…"), ...liveRequest.headers }, body: liveRequest.body }, null, 2)
                 : JSON.stringify(sampleRequest, null, 2)}
               onReceipt={(data) => setModal({ type: "receipt", data })}
-              funding={live && errorKind === "insufficient_credits" && <AddFunds key={keyId} apiKey={view.keys.find(k => k.id === keyId)?.secret || apiKey} balance={ws?.credits?.available} force onBalance={() => refresh()} onResume={() => run({ preventDefault() {} })} disabled={busy}/>} /* ON1 */
+              funding={live && errorKind === "insufficient_credits" && <AddFunds onWalletKey={signInWith} onPayUsdc={() => { setPayWith("USDC per message"); setError(""); setErrorKind(""); setNotice("Press Send to review the USDC quote."); }} key={keyId} apiKey={view.keys.find(k => k.id === keyId)?.secret || apiKey} balance={ws?.credits?.available} force onBalance={() => refresh()} onResume={() => run({ preventDefault() {} })} disabled={busy}/>} /* ON1 */
               problem={error && (isNotEnabledText(error) ? <Problem text={error} /> : (
                 <div className="error" role="alert">
                   {error}
-                  {live && errorKind === "insufficient_credits" && (
-                    <>
-                      {" "}
-                      <button type="button" className="text-button" onClick={() => setModal({ type: "credits" })}>
-                        Deposit USDC →
-                      </button>
-                    </>
-                  )}
+
                 </div>
               ))}
             />
@@ -1193,7 +1187,7 @@ export default function Dashboard() {
             </>
           )}
           {live && tab === "Payments" && (
-            <FundsCenter key={`funds:${apiKey}`} apiKey={apiKey} ws={ws} status={status} onRefresh={() => refresh()} onClose={() => setModal({ type: "close" })}>
+            <FundsCenter key={`funds:${apiKey}`} onWalletKey={signInWith} apiKey={apiKey} ws={ws} status={status} onRefresh={() => refresh()} onClose={() => setModal({ type: "close" })}>
               {payWithOn && <PayWithSetting key={apiKey} keyHash={ws?.me?.hash} onChange={() => setPayWithTick((t) => t + 1)} />}
             </FundsCenter>
           )}

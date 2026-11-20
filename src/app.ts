@@ -307,7 +307,16 @@ export async function createApp(opts: AppOptions = {}) {
       await next();
       c.header("cache-control", "public, max-age=31536000, immutable");
     });
-    app.use("*", serveStatic({ root: webDir }));
+    const serveWeb = serveStatic({ root: webDir });
+    app.use("*", async (c, next) => {
+      const url = new URL(c.req.url), canonical = new URL(ctx.cfg.publicUrl);
+      if (c.req.method === "GET" && c.req.header("accept")?.includes("text/html") && url.hostname === "www." + canonical.hostname && canonical.protocol === "https:") {
+        canonical.pathname = url.pathname;
+        canonical.search = url.search;
+        return c.redirect(canonical.href, 307);
+      }
+      return serveWeb(c, next);
+    });
     // /registry/<provider id>/ is one static page (exported as /registry/_/) that reads the id from the address.
     const registryShell = resolve(webDir, "registry/_/index.html");
     if (existsSync(registryShell)) {

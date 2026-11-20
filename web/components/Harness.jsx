@@ -8,7 +8,7 @@ import ProofBadge from "./ProofBadge"; // U76: shared evidence labels.
 import { proofBadges } from "../lib/proof-badge.js"; // inline only when the receipt shows more than a standard signed call; the rest is in the receipt panel
 import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api, clearKey, loadKey, saveKey, validKey } from "../lib/api";
-import { hasWallet, walletApiKey } from "../lib/wallet";
+import { walletApiKey } from "../lib/wallet";
 import { earlyAccessLabel, earlyAccessMessage } from "../lib/holders.js"; // holder tiers: early access to newly listed models.
 import { formatMs, formatUsd, receiptHref, estimateTokens } from "../lib/arena";
 import { retryAfterMs } from "../lib/batch";
@@ -335,7 +335,7 @@ function Palette({ models, onPick, onClose, title, onBrowse, card }) {
 
 // ---------------------------------------------------------------- sign in
 
-function SignIn({ onKey, onClose, reason }) {
+function SignIn({ onKey, onClose, reason, onPayUsdc }) {
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -351,9 +351,10 @@ function SignIn({ onKey, onClose, reason }) {
     }
   };
   return (
-    <Modal title={reason === "send" ? "Sign in to send" : "Sign in"} onClose={onClose}>
+    <Modal title={reason === "send" ? "Pay for your message" : "Sign in"} onClose={onClose}>
       <div className={s.signin}>
-        <p>{reason === "send" ? "Your message and settings stay right here. Connect a key or your wallet and press send again." : "Use a Trellis key or sign in with your wallet. The key stays in this tab only."}</p>
+        <p>{reason === "send" ? "Pay for this message in USDC, or sign in with the wallet that funds your balance in TRLS." : "Use a Trellis key or sign in with your wallet. The key stays in this tab only."}</p>
+        {reason === "send" && <Button type="button" disabled={!!busy} onClick={onPayUsdc}>Review USDC quote</Button>}
         {error && (
           <div className="error" role="alert">
             {error}
@@ -374,11 +375,9 @@ function SignIn({ onKey, onClose, reason }) {
             <Button type="submit" disabled={!!busy}>
               {busy === "key" ? "Connecting…" : "Connect key"}
             </Button>
-            {hasWallet() && (
-              <Button type="button" secondary disabled={!!busy} onClick={() => run("wallet", async () => onKey(await walletApiKey("Chat wallet key")))}>
-                {busy === "wallet" ? "Waiting for signature…" : "Sign in with wallet"}
-              </Button>
-            )}
+            <Button type="button" secondary disabled={!!busy} onClick={() => run("wallet", async () => onKey(await walletApiKey("Chat wallet key")))}>
+              {busy === "wallet" ? "Waiting for signature…" : "Sign in with wallet for TRLS"}
+            </Button>
           </div>
         </form>
         <p className="help-text">
@@ -831,6 +830,7 @@ export default function Harness() {
   const scroller = useRef(null);
   const stick = useRef(true);
   const pendingSend = useRef(false);
+  const guestUsdc = useRef(false);
   const headsRef = useRef(null);
   const lanesRef2 = useRef(null);
   // On phones the compare lanes scroll sideways; keep their headers in step.
@@ -970,9 +970,10 @@ export default function Harness() {
   // ---- sending ----
   const patchMsg = (laneId, msgId, patch) => setLanes((ls) => ls.map((l) => (l.id === laneId ? { ...l, messages: l.messages.map((m) => (m.id === msgId ? { ...m, ...(typeof patch === "function" ? patch(m) : patch) } : m)) } : l)));
 
-  async function runLane(laneId, modelId, history, msgId, imageMode = null) {
+  async function runLane(laneId, modelId, history, msgId, imageMode = null, payOnce = false) {
     const model = find(modelId);
     const key = authRef.current.key;
+    const walletPayment = !limits.state.session && (payOnce || (!key && guestUsdc.current));
     if (modelUnavailable(model)) return patchMsg(laneId, msgId, { status: "error", error: "This model is temporarily unavailable. Choose another model." }); // ON5
     if (!model) return patchMsg(laneId, msgId, { status: "error", error: "Choose a model first." });
     if (imageSendError(model, history)) return patchMsg(laneId, msgId, { status: "error", error: imageSendError(model, history), errorKind: "settings" });
@@ -991,9 +992,9 @@ export default function Harness() {
     };
     patchMsg(laneId, msgId, { notes, imageMode: !!body.modalities?.includes("image") });
     try {
-      await limits.streamChat({ // U77: no parent-key fallback when limits are on.
+      await limits.streamChat({
         messageId: msgId,
-        key,
+        walletPayment, key: walletPayment ? undefined : key,
         body,
         signal: ctl.signal,
         headers: { "x-title": "Trellis Harness", ...priv.headers() },
@@ -1023,7 +1024,7 @@ export default function Harness() {
       } else if (closingMessage(err)) { // 409 credits_closing: the key is frozen while its closure is paid; adding funds or retrying does not help.
         message = closingMessage(err);
         kind = "closing"; setDraft(d => recoverFundingDraft(d, history));
-      } else if (fundingError(err)) { // ON1: payment errors keep the draft and retry history.
+      } else if (!walletPayment && fundingError(err)) { // ON1: payment errors keep the draft and retry history.
         message = "Your balance is too low for this call. Add funds, then try again.";
         kind = "funds"; setDraft(d => recoverFundingDraft(d, history)); // ON1
       } else if (err instanceof ApiError && err.status === 429) {
@@ -1040,7 +1041,8 @@ export default function Harness() {
   }
 
   const needKey = (reason) => {
-    if (authRef.current.key) return false;
+    if (authRef.current.state === "checking") { setFileNote("Checking your account. Try again in a moment."); return true; }
+    if (authRef.current.key || guestUsdc.current && !limits.state.session) return false;
     pendingSend.current = true;
     setSignin(reason);
     return true;
@@ -1052,6 +1054,7 @@ export default function Harness() {
     if ((!body && !attachments.length) || busy || isPreparing()) return;
     const imageError = imageSendBlock(lanesRef.current, find, attachments, truncate); if (imageError) return setFileNote(imageError);
     if (needKey("send")) return;
+    if (!authRef.current.key && lanes.length > 1) return setFileNote("Choose one model to pay per message, or connect a funded key to compare models.");
     if (lanes.some((l) => !find(l.modelId))) return;
     stick.current = true;
     const jobs = [];
@@ -1076,7 +1079,7 @@ export default function Harness() {
     jobs.forEach((j) => runLane(...j));
   }
 
-  function regenerate(laneId, alternativeId) { // B121
+  function regenerate(laneId, alternativeId, payOnce = false) { // B121
     if (busy || needKey("send")) return;
     const lane = lanesRef.current.find((l) => l.id === laneId);
     if (!lane) return;
@@ -1088,7 +1091,7 @@ export default function Harness() {
     if (lane.messages.findLast(m => m.role === "assistant")?.errorKind === "funds") setDraft(d => d === recoverFundingDraft("", history) ? "" : d); // ON1
     const reply = { id: uid(), role: "assistant", model: retryModel, status: "waiting", text: "" }; // B121
     setLanes((ls) => ls.map((l) => (l.id === laneId ? { ...l, modelId: retryModel, messages: [...history, reply] } : l))); // B121
-    runLane(laneId, retryModel, history, reply.id, lane.messages.findLast((m) => m.role === "assistant")?.imageMode ?? null);
+    runLane(laneId, retryModel, history, reply.id, lane.messages.findLast((m) => m.role === "assistant")?.imageMode ?? null, payOnce);
   }
 
   // Ask the same question of another model: the answer is replaced and the lane moves to that model.
@@ -1142,6 +1145,7 @@ export default function Harness() {
 
   const onKey = async (key) => {
     await loadAccount(key);
+    guestUsdc.current = false;
     saveKey(key); // U77: keep the revoking account key until a key change succeeds.
     setSignin(null);
     if (pendingSend.current) {
@@ -1312,7 +1316,7 @@ export default function Harness() {
         )}
 
         <div className={s.scroll} ref={scroller} onScroll={onScroll}>
-          {auth.state === "ok" && !lanes.some(l => l.messages.findLast(m => m.role === "assistant")?.errorKind === "funds") && <AddFunds key={auth.key} apiKey={auth.key} balance={auth.balance} onBalance={balance => setAuth(a => ({ ...a, balance }))}/>} {/* ON1 */}
+          {auth.state === "ok" && !lanes.some(l => l.messages.findLast(m => m.role === "assistant")?.errorKind === "funds") && <AddFunds onWalletKey={onKey} key={auth.key} apiKey={auth.key} balance={auth.balance} onBalance={balance => setAuth(a => ({ ...a, balance }))}/>} {/* ON1 */}
           {empty ? (
             <div className={s.empty}>
               <h1 className={s.display}>Start a conversation</h1>
@@ -1335,7 +1339,7 @@ export default function Harness() {
                           <code>{m.text}</code>
                         </div>
                       ) : (
-                        <Reply key={m.id} msg={m} model={find(m.model)} last={m.id === lastId} onReceipt={() => setReceiptFor({ laneId: l.id, msgId: m.id })} onAsk={compare ? undefined : () => setPalette({ lane: li, add: false, ask: l.id })} busy={busy} onRegenerate={() => regenerate(l.id)} onAlternative={id => regenerate(l.id, id)} onToolResults={(r) => toolResults(l.id, r)} onSignIn={() => setSignin("send")} onUseImage={acceptsImages ? addFiles : undefined} voice={voice} limits={limits} funding={{ apiKey: auth.key, balance: auth.balance, onBalance: balance => setAuth(a => ({ ...a, balance })) }} /> /* ON1 */
+                        <Reply key={m.id} msg={m} model={find(m.model)} last={m.id === lastId} onReceipt={() => setReceiptFor({ laneId: l.id, msgId: m.id })} onAsk={compare ? undefined : () => setPalette({ lane: li, add: false, ask: l.id })} busy={busy} onRegenerate={() => regenerate(l.id)} onAlternative={id => regenerate(l.id, id)} onToolResults={(r) => toolResults(l.id, r)} onSignIn={() => setSignin("send")} onUseImage={acceptsImages ? addFiles : undefined} voice={voice} limits={limits} funding={{ onWalletKey: onKey, onPayUsdc: !limits.state.session ? () => regenerate(l.id, undefined, true) : undefined, apiKey: auth.key, balance: auth.balance, onBalance: balance => setAuth(a => ({ ...a, balance })) }} /> /* ON1 */
                       ),
                     )}
                   </div>
@@ -1478,7 +1482,7 @@ export default function Harness() {
         />
       )}
       {receiptMsg?.receipt && <ReceiptPanel msg={receiptMsg} model={find(receiptMsg.model)} onClose={() => setReceiptFor(null)} />}
-      {signin && <SignIn reason={signin} onKey={onKey} onClose={() => (setSignin(null), (pendingSend.current = false))} />}
+      {signin && <SignIn onPayUsdc={() => { guestUsdc.current = true; pendingSend.current = false; setSignin(null); send(draft); }} reason={signin} onKey={onKey} onClose={() => (setSignin(null), (pendingSend.current = false))} />}
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>

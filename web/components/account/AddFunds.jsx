@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useReducer, useRef, useState } from 'react';
+import TrlsChatFunding from './TrlsChatFunding';
 import DepositProgress from './DepositProgress';
 import DepositNextLine from './DepositNextLine';
 import TrackDeposit from './TrackDeposit';
@@ -16,7 +17,7 @@ import s from './AddFunds.module.css';
 
 // ON1: the router's deposit instructions (one unsigned trellis_credits::deposit transaction) and the Solana wallet sender,
 // with a Solana Pay code for a wallet app on a phone where the router credits such transfers.
-export default function AddFunds({ apiKey, balance, force = false, onBalance, onResume, disabled = false, showProgress = true }) {
+export default function AddFunds({ apiKey, balance, force = false, onBalance, onResume, onWalletKey, onPayUsdc, disabled = false, showProgress = true }) {
   const [state, dispatch] = useReducer(fundingState, initialFunding);
   const [data, setData] = useState(null);
   const [selected, setSelected] = useState('');
@@ -55,6 +56,7 @@ export default function AddFunds({ apiKey, balance, force = false, onBalance, on
   const option = options.find(item => item.id === selected) || defaultFundingOption(options);
   const chain = chainOf(data?.status);
   const available = data?.credits?.available ?? balance;
+  const trls = data?.status?.updates?.some(update => update.name === 'trls' && update.on) && !data.credits?.session;
   const pending = state.phase === 'pending';
   const payLink = option ? solanaPayLink(option, amount) : null;
   if (!eligible && !['pending', 'credited'].includes(state.phase)) return showProgress ? <DepositProgress apiKey={apiKey}/> : null;
@@ -73,11 +75,13 @@ export default function AddFunds({ apiKey, balance, force = false, onBalance, on
   }
   return <section className={s.card} aria-label={force ? 'Add funds to send this' : 'Add funds'}>
     <div className={s.heading}><h3>{force ? 'Add funds to send this' : Number(available) === 0 ? 'Your balance is $0. Add funds.' : 'Add funds'}</h3><button type="button" className="text-button" disabled={busy || pending} onClick={() => dispatch({ type: 'dismiss' })}>Dismiss</button></div>
-    <p>USDC on {chain.name}, into this key’s credit account. Your wallet shows the transaction before you confirm. Credits are spend-only and carry a 0% router fee.</p>
+    {onPayUsdc && <Button type="button" disabled={disabled || busy} onClick={onPayUsdc}>Pay for this message with USDC</Button>}
+    {trls && <TrlsChatFunding apiKey={apiKey} onWalletKey={onWalletKey}/>}
+    {option && <p>USDC on {chain.name}, into this key’s credit account. Your wallet shows the transaction before you confirm. Credits are spend-only and carry a 0% router fee.</p>}
     {readError && <p className="error" role="alert">{readError} Funding status is unknown; the next refresh will try again.</p>}
     {!data && <p role="status">Reading deposit instructions…</p>}
     {data?.credits?.session && <p>This session uses its owner’s balance and its own spending cap. Ask the owner to add funds or update the session budget.</p>}
-    {data && !data.credits?.session && options.length === 0 && <p>No deposit route is available for this key: the router has not published its credits program. <a className="inline-link" href="/dashboard/#payments">Open Payments to inspect your account.</a></p>}
+    {data && !trls && !data.credits?.session && options.length === 0 && <p>No deposit route is available for this key: the router has not published its credits program. <a className="inline-link" href="/dashboard/#payments">Open Payments to inspect your account.</a></p>}
     {option && <>
       <div className={s.fields}><div><label htmlFor={id + '-token'}>Send token</label><select id={id + '-token'} value={option.id} disabled={busy || pending} onChange={e => { setSelected(e.target.value); setAmount('10'); setError(''); }}>{options.map(item => <option key={item.id} value={item.id}>{item.label || item.symbol}</option>)}</select></div><div><label htmlFor={id + '-amount'}>Amount in {option.symbol}</label><input id={id + '-amount'} inputMode="decimal" value={amount} disabled={busy || pending} onChange={e => setAmount(e.target.value)} /></div></div>
       <dl><div><dt>Send</dt><dd>{amount || '0'} {option.symbol}</dd></div><div><dt>USDC mint</dt><dd><code>{option.mint}</code></dd></div><div><dt>Credits program</dt><dd><code>{option.program}</code></dd></div><div><dt>Key hash</dt><dd><code>{option.keyHash}</code></dd></div>{option.creditAccount && <div><dt>Credit account</dt><dd><code>{option.creditAccount}</code></dd></div>}{option.capUsdc != null && <div><dt>Cap per key</dt><dd>{option.capUsdc} USDC</dd></div>}</dl>

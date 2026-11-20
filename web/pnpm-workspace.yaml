@@ -1,2 +1,6 @@
+allowBuilds:
+  bigint-buffer: false
+  bufferutil: false
+  utf-8-validate: false
 ignoredOptionalDependencies:
   - "@napi-rs/canvas"

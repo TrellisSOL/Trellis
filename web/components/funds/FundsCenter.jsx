@@ -11,7 +11,8 @@ import { defaultFundingOption } from '../../lib/funding-display.js';
 import { depositSender, readDepositProgress } from '../../lib/deposit-progress.js';
 import { chainOf } from '../../lib/solana.js';
 import { PRESETS, activityItems, answersFor, balanceSeries, roughly, spendStats, sparkPaths, usd } from '../../lib/funds.js';
-import { TRLS_FACTS, TRLS_OWN_WALLET, TRLS_SIGN_IN, trlsFunding, trlsRateLine } from '../../lib/trls-funding.js';
+import TrlsChatFunding from '../account/TrlsChatFunding';
+import { TRLS_FACTS, trlsFunding } from '../../lib/trls-funding.js';
 import { useUpdate } from '../media/useUpdate';
 import { FundingDeposits } from '../account/FundingDetails.js';
 import { CopyButton } from '../UI';
@@ -67,7 +68,7 @@ function Spark({ series }) {
   );
 }
 
-export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, children }) {
+export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, onWalletKey, children }) {
   const [state, dispatch] = useReducer(fundingState, initialFunding);
   const [data, setData] = useState(null);
   const [deposits, setDeposits] = useState([]);
@@ -78,7 +79,6 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
   const [error, setError] = useState('');
   const [wallet, setWallet] = useState(false);
   const [token, setToken] = useState('usdc');
-  const [trlsPrice, setTrlsPrice] = useState(null);
   const trlsUpdate = useUpdate('trls');
   const alive = useRef(true);
   const amountId = useId();
@@ -96,13 +96,13 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
         dispatch({ type: 'observed', balance: credits.data.available, total: credits.data.total_credits, fastCredit: credits.data.fast_credit });
       } catch { /* the cards keep the last values */ }
       readDepositProgress(apiKey).then((d) => !ac.signal.aborted && setDeposits(d?.deposits || []), () => {});
-      if (!ac.signal.aborted && state.phase === 'pending') timer = setTimeout(read, 5000);
+      if (!ac.signal.aborted && (state.phase === 'pending' || trlsUpdate?.on)) timer = setTimeout(read, 5000);
     };
     read();
     const again = () => read();
     window.addEventListener('trellis-deposit-sent', again);
     return () => { ac.abort(); clearTimeout(timer); window.removeEventListener('trellis-deposit-sent', again); };
-  }, [apiKey, state.phase]);
+  }, [apiKey, state.phase, trlsUpdate?.on]);
   useEffect(() => { if (state.phase === 'credited') { setStep(3); onRefresh?.(); } }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const credits = data?.credits || ws?.credits || {};
@@ -123,13 +123,6 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
   const trls = useMemo(() => trlsFunding({ update: trlsUpdate, escrow: ws?.escrow, stock: ws?.stock }), [trlsUpdate, ws?.escrow, ws?.stock]);
   // Where the router takes no USDC deposits (no funding option), $TRLS is the one way to fund and needs no switch.
   const inTrls = !!trls && (token === 'trls' || !option);
-  useEffect(() => {
-    if (!inTrls) return;
-    let live = true;
-    api('/api/v1/escrow/trls/price').then((r) => { if (live) setTrlsPrice(r.data); }, () => {});
-    return () => { live = false; };
-  }, [inTrls]);
-  const trlsRate = inTrls ? trlsRateLine(trlsPrice, trls.symbol) : '';
   const [whole, cents] = (Math.floor(shown * 100 + 1e-6) / 100).toFixed(2).split('.'); // cents shown like the header: never rounded up
 
   async function deposit() {
@@ -197,19 +190,7 @@ export default function FundsCenter({ apiKey, ws, status, onRefresh, onClose, ch
           )}
           {inTrls ? (
             <div className={s.trls}>
-              <p className={s.buys}><Icon name="sparkles" size={15} /><span>Fund this balance with <b>${trls.symbol}</b>. Send it from your own wallet to the deposit address below.</span></p>
-              {!trls.wallet && <p className={s.muted}>{TRLS_SIGN_IN}</p>}
-              <div className={s.methodBody}>
-                {trls.payLink && <SolanaPayCode url={trls.payLink} title={`Send $${trls.symbol} from a wallet app`} />}
-              </div>
-              <dl className={s.where}>
-                <div><dt>Send ${trls.symbol} to</dt><dd><code>{trls.owner}</code><CopyButton text={trls.owner} label="Copy" /></dd></div>
-                <div><dt>Token</dt><dd><code>{trls.mint}</code></dd></div>
-                {trls.wallet && <div><dt>Credited to</dt><dd><code>{trls.wallet}</code></dd></div>}
-              </dl>
-              {trlsRate && <p className={s.muted}>{trlsRate}</p>}
-              {trls.maxUsd != null && <p className={s.muted}>Up to {usd(trls.maxUsd)} is credited per deposit.</p>}
-              <p className={s.muted}>{TRLS_OWN_WALLET}</p>
+              <TrlsChatFunding apiKey={apiKey} onWalletKey={onWalletKey}/>
               <FundingDeposits deposits={trls.deposits} escrow={ws?.escrow} />
             </div>
           ) : (<>

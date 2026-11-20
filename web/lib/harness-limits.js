@@ -171,10 +171,11 @@ export function createHarnessLimits({ request, stream, storage, pollMs = 5000 })
     } catch (e) { emit({ error: e.message }); throw e; }
   }
   async function streamChat(options) {
-    if (state.busy || !parent) throw failure('Wait for sign-in or the limits change to finish.');
+    if (state.busy || (!parent && !options.walletPayment)) throw failure('Wait for sign-in or the limits change to finish.');
     const session = state.session;
+    if (options.walletPayment && session) throw failure('Wallet checkout is unavailable while chat spending limits are active.');
     if (session && (!session.ready || session.blocked)) throw failure('Chat limits could not be set up. Remove limits to revoke this session.');
-    const snapshot = { ...options, body: structuredClone(options.body), headers: { ...options.headers }, key: session?.key || parent };
+    const snapshot = { ...options, body: structuredClone(options.body), headers: { ...options.headers }, key: options.walletPayment ? undefined : session?.key || parent };
     running++;
     try {
       try { return await stream(snapshot); }
