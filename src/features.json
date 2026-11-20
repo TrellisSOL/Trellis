@@ -157,5 +157,13 @@
     "title": "Chat export with receipts",
     "summary": "Download a conversation from the Chat page with the proof of every answer in it: in Markdown, each answer followed by its model, cost and receipt id; in JSON, each answer's signed receipt and the keys to check it, so the file stands on its own.",
     "includes": ["Markdown: model, cost and receipt id under every answer", "JSON: every answer's signed receipt and the receipt keys", "A link to check each receipt on the verify page", "POST /api/v1/receipts/batch: up to 50 receipts in one call"]
+  },
+
+  "price-history": {
+    "update": 22,
+    "on": false,
+    "title": "Price history",
+    "summary": "See how a model's price has moved: a chart of its lowest input and output price per million tokens on its model page, from the changes the router records each time it refreshes the catalogue, and the same history from a public API route.",
+    "includes": ["A price chart on every model page, over 30, 90 or 365 days", "Input and output price per million tokens", "Recorded by the router when a price changes, never filled in", "GET /api/v1/models/:author/:slug/prices"]
   }
 }

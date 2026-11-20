@@ -218,6 +218,7 @@ models	ALL /api/v1/models
 models	ALL /v1/models
 models	GET /api/v1/models
 models	GET /api/v1/models/:author/:slug/endpoints
+models	GET /api/v1/models/:author/:slug/prices
 models	GET /api/v1/providers
 models	GET /v1/models
 network-sanctions	GET /api/v1/network/sanctions

@@ -7,6 +7,8 @@ import { SORT_SUFFIXES, outputModalities, type Candidate, type ManifestRef, type
 import { priceString } from "../lib/money.ts";
 import { blendedPrice, attestationFresh, attestedLaneServed } from "../router/select.ts";
 import { fail } from "../lib/errors.ts";
+import { NOT_ENABLED } from "../surface/surface.ts";
+import { PRICE_DAYS, lowestPrices, priceHistory, priceHistoryEnabled, usdPerMillion } from "../services/price-history.ts";
 import { parseLane, type Lane } from "../router/disclosure.ts";
 import { VARIANTS, isVariant, type Variant } from "../router/lane.ts";
 import { servedDisclosure, servedPolicyHash } from "./disclosure.ts";
@@ -301,6 +303,25 @@ export function modelsRoutes(app: Hono, ctx: Ctx) {
     });
     const mj = modelJson(ctx, m);
     return c.json({ data: { id: m.id, name: m.name, created: m.createdUnix, description: m.description, architecture: mj.architecture, endpoints } });
+  });
+
+  // Price history (update 22): the lowest live input and output price of one model over the last `days` (1 to 365,
+  // default 90), as the catalogue refresh recorded it (src/services/price-history.ts). Public, like the catalogue.
+  // On a core router it is registered only with the update released; elsewhere it answers 404 not_enabled until then.
+  if (!ctx.surface?.core || priceHistoryEnabled(ctx)) app.get("/api/v1/models/:author/:slug/prices", async (c) => {
+    if (!priceHistoryEnabled(ctx)) fail(404, "Price history is not enabled on this router.", NOT_ENABLED);
+    const raw = c.req.query("days");
+    const days = raw === undefined ? PRICE_DAYS.default : /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+    if (!Number.isInteger(days) || days < PRICE_DAYS.min || days > PRICE_DAYS.max) fail(400, `days must be a whole number from ${PRICE_DAYS.min} to ${PRICE_DAYS.max}.`, "invalid_request");
+    await ctx.catalog.ensureFresh();
+    const id = `${c.req.param("author")}/${c.req.param("slug")}`;
+    const m = ctx.catalog.models.get(id);
+    if (!m || m.hidden) fail(404, `Model ${id} not found.`, "model_not_found");
+    const history = await priceHistory(ctx, m!.id, days);
+    const low = lowestPrices(ctx, m!.id);
+    const current = low ? { input_usd_per_m: usdPerMillion(low.prompt), output_usd_per_m: usdPerMillion(low.completion), providers: low.providers } : null;
+    c.header("Cache-Control", "public, max-age=60");
+    return c.json({ data: { id: m!.id, days, unit: "usd_per_million_tokens", current, ...history } });
   });
 
   app.get("/api/v1/providers", async (c) => {

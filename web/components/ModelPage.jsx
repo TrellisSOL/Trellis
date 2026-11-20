@@ -1,6 +1,7 @@
 "use client";
 // One model: who serves it, at what price, speed and uptime, with which privacy, and how each routing choice orders
-// them. Read from GET /api/v1/models and GET /api/v1/models/:author/:slug/endpoints.
+// them. Read from GET /api/v1/models and GET /api/v1/models/:author/:slug/endpoints; the price history (update 22)
+// from GET /api/v1/models/:author/:slug/prices.
 import { useEffect, useMemo, useState } from "react";
 import { api, toCatalogModel } from "../lib/api";
 import { formatContext } from "../lib/harness";
@@ -10,6 +11,8 @@ import { ROUTES, modelHref, modelSummary, providerRows, routeRows, similarModels
 import { Icon, IconTile } from "./Icons";
 import { useModelHealth } from "./ModelHealth";
 import { HEALTH_NOTE, healthFigures, healthTone } from "../lib/model-health.js";
+import PriceHistory from "./PriceHistory";
+import { useUpdate } from "./media/useUpdate.js";
 import s from "./ModelPage.module.css";
 
 const ROUTE_ICON = { balanced: "scale", floor: "coins", nitro: "zap", private: "shield" };
@@ -21,6 +24,7 @@ export default function ModelPage() {
   const [error, setError] = useState("");
   const [route, setRoute] = useState("balanced");
   const healthMap = useModelHealth(id || null); // update 17: null unless the router has it on
+  const priceHistory = useUpdate("price-history")?.on === true; // update 22: shown only where the router released it
 
   useEffect(() => {
     setId(new URLSearchParams(window.location.search).get("id") || "");
@@ -189,6 +193,8 @@ export default function ModelPage() {
           <p><strong>{choice.title}</strong> {choice.text}{nobody && <> <b className={s.warn}>No provider can take this route for this model right now, so such a call would be refused.</b></>} <a href="/trust/">How we check providers</a></p>
         </div>
       </section>
+
+      {priceHistory && <PriceHistory id={id} />}
 
       <section id="call" aria-labelledby="call-title" className={s.split}>
         <div>

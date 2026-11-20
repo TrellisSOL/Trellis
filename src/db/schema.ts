@@ -1332,3 +1332,18 @@ export { supplyDeployments } from "../supply/schema.ts"; // Warm pool deployment
 export { bushelLots, bushelAllowances, bushelShortfalls } from "../capacity/schema.ts"; // Bushels: prepaid capacity lots, allowances and after-window checks (§5.6).
 export { catalogListings } from "../catalog/auto-list-schema.ts"; // Catalogue auto-listing candidates and their licence decisions (§2).
 export { honestLedgerDays } from "../stats/schema.ts"; // Honest Ledger daily x402 volume (§9).
+
+// Price history (update 22, src/services/price-history.ts): a model's lowest live input and output price, one row each
+// time either changes, as the catalogue refresh sees it. Pico-USD per token, like `offers`.
+export const priceSnapshots = pgTable(
+  "price_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    modelId: text("model_id").notNull(),
+    pricePrompt: money("price_prompt").notNull(),
+    priceCompletion: money("price_completion").notNull(),
+    providers: integer("providers").notNull(),
+    at: ts("at").notNull().defaultNow(),
+  },
+  (t) => [index("price_snapshots_model_at_idx").on(t.modelId, t.at)],
+);

@@ -78,6 +78,13 @@
       "when": 1791872162427,
       "tag": "0010_r3_x402_network_fee",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795189207964,
+      "tag": "0011_price_history",
+      "breakpoints": true
     }
   ]
 }

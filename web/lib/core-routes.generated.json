@@ -83,6 +83,7 @@
   "models\tALL /v1/models",
   "models\tGET /api/v1/models",
   "models\tGET /api/v1/models/:author/:slug/endpoints",
+  "models\tGET /api/v1/models/:author/:slug/prices",
   "models\tGET /api/v1/providers",
   "models\tGET /v1/models",
   "public\tGET /.well-known/trellis-receipt-keys.json",

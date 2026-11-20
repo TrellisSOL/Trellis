@@ -1,5 +1,6 @@
 import { runDepositPings } from "../solana/deposit-pings.ts"; // B123
 import { MEDIA_JOB, runMediaJobs } from "../api/media.ts";
+import { refreshCatalogAndPrices } from "./price-history.ts"; // update 22
 import { registerLowBalanceJob } from "../account/low-balance.ts"; // B119
 import { registerRushJobs } from "../rush/monitor.ts"; // ON3
 import { registerWeeklySummaryJob } from "../telegram/weekly-summary.ts"; // B120
@@ -75,7 +76,7 @@ export function registerJobs(ctx: Ctx, router?: RouterCall, dispatch?: Dispatch)
   jobs.register("x402-recovery-expire", 3_600_000, () => expirePaidResults(ctx));
   if (cfg.agentPolicyEnabled) jobs.register("agent-ledger-retention", 3_600_000, () => pruneAgentLedgerLinks(ctx.db));
   if (cfg.agentPolicyEnabled) jobs.register("agent-policy-retention", 3_600_000, () => pruneAgentPolicyEvents(ctx.db));
-  jobs.register("catalog-refresh", 30_000, () => ctx.catalog.refresh(), { atStart: true });
+  jobs.register("catalog-refresh", 30_000, () => refreshCatalogAndPrices(ctx), { atStart: true }); // with price history on, a snapshot after each refresh
   jobs.register("provider-registry", cfg.workers.registryIntervalMs, () => runRegistry(ctx), { atStart: true });
   if (cfg.routing.probes) jobs.register("health-probes", cfg.routing.probeIntervalMs, () => runProbes(ctx), { atStart: true });
   if (cfg.canaries.enabled) jobs.register("canaries", cfg.canaries.intervalMs, () => runCanaries(ctx));
