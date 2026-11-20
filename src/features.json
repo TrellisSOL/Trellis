@@ -105,7 +105,7 @@
 
   "receipt-export": {
     "update": 15,
-    "on": false,
+    "on": true,
     "title": "Receipt export",
     "summary": "Download your signed receipts for a date range as CSV or JSON, from the dashboard or the API. Each row keeps the receipt id, model, cost, time and signature, so every line can be verified later.",
     "includes": ["Signed receipts for any date range", "CSV or JSON, from the dashboard or GET /api/v1/generations/export", "The signed payload, signature and key id on every row", "Paged and bounded: up to 1,000 rows a page, 366 days a range"]
