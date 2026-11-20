@@ -109,6 +109,7 @@
   "status\tPATCH /api/v1/status/incidents/:id",
   "status\tPOST /api/v1/status/incidents",
   "status\tPOST /api/v1/status/incidents/:id/updates",
+  "usage\tGET /api/v1/usage",
   "x402-recovery\tALL /api/v1/chat/completions",
   "x402-recovery\tALL /api/v1/completions",
   "x402-recovery\tALL /api/v1/embeddings"

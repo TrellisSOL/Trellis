@@ -85,6 +85,7 @@ import { agentSessionsRoutes } from "./api/agent-sessions.ts";
 import { spendRoutes } from "./api/spend.ts";
 import { holdersRoutes } from "./api/holders.ts";
 import { estimateRoutes } from "./api/estimate.ts"; // Update 13: Price check
+import { usageRoutes } from "./api/usage.ts"; // update 19: usage breakdown
 import { disclosureRoutes } from "./api/disclosure.ts";
 import { ipxRoutes } from "./api/ipx.ts";
 import { dataToolsRoutes } from "./data-tools/routes.ts"; // B: per-call market-data tools.
@@ -269,6 +270,7 @@ export async function createApp(opts: AppOptions = {}) {
   mount("weekly-summary", () => { weeklySummaryRoutes(app, ctx); }); // B120
   mount("agent-sessions", () => { agentSessionsRoutes(app, ctx); });
   mount("spend", () => { spendRoutes(app, ctx); });
+  mount("usage", () => { usageRoutes(app, ctx); }); // usage breakdown: 404 not_enabled until the `usage` switch is on
   mount("webhooks", () => { webhookRoutes(app, ctx); }); // V86.
   mount("makegood", () => { makegoodRoutes(app, ctx); }); // V6 R.
   mount("holders", () => { holdersRoutes(app, ctx); });

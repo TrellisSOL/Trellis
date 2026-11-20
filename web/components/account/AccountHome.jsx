@@ -4,6 +4,8 @@ import DepositCreditStatus from './DepositCreditStatus'; // V97
 import DepositProgress from './DepositProgress'; // V97B
 import FirstCallQuickstart from './FirstCallQuickstart'; // ON2
 import AccountActivity from './AccountActivity';
+import UsageBreakdown from './UsageBreakdown'; // update 19
+import { useUpdate } from '../media/useUpdate.js';
 import AddFunds from './AddFunds'; // ON1: first funds after connection.
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
@@ -25,6 +27,8 @@ export default function AccountHome({ apiKey, workspace, onReceipt, onRefresh })
   const [refreshError, setRefreshError] = useState('');
   // Launch surface: agent rulebooks, the spend report, the activity feed and the runway estimate are not core. Each is
   // read and shown only once the router has said it serves them; a core router's Home is balance, keys and receipts.
+  // Usage breakdown (update 19): shown where the router lists the `usage` update as on, core or not.
+  const usageOn = useUpdate('usage')?.on === true;
   const agentsOn = usePart('part', 'agents'), spendOn = usePart('part', 'spend'), activityOn = usePart('part', 'activity'), runwayOn = usePart('part', 'runway');
   useEffect(() => {
     const ac = new AbortController(); setData({});
@@ -76,6 +80,7 @@ export default function AccountHome({ apiKey, workspace, onReceipt, onRefresh })
         {spendOn && !spend && <p className="help-text" role="status">{status('spend')}</p>}
       </section>
     </div>
+    {usageOn && <UsageBreakdown apiKey={apiKey} revision={revision}/>}
     <AddFunds key={apiKey} showProgress={false} apiKey={apiKey} balance={balance} onBalance={onRefresh}/> {/* ON1 */}
     <DepositProgress apiKey={apiKey}/> {/* V97B: visible regardless of balance. */}
     {agentsOn && <div className={s.cards}>

@@ -89,6 +89,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
   // in core only with its switch on; it answers `enabled: false` where $TRLS is not accepted.
   "burn-tracker": ["GET /api/v1/trls/burns"],
   "account-runway": ["GET /api/v1/account/low-balance", "PATCH /api/v1/account/low-balance"],
+  // Usage breakdown (update 19, src/api/usage.ts): a key's spend by model and by day. Registered, and answering 404
+  // `not_enabled` until the `usage` release switch is on (src/features.json). A key's own charges only; no setting.
+  usage: ["GET /api/v1/usage"],
   // Blind tokens: the issuer keys and the purchase from a key's balance. Mounted in core only with the blind update
   // released and TRELLIS_FEATURE_BLIND on (src/app.ts); a token is spent on the chat and embeddings routes above.
   blind: ["GET /api/v1/blind/keys", "POST /api/v1/blind/purchase"],

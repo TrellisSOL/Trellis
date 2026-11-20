@@ -109,6 +109,7 @@ status	GET /api/v1/status/slo
 status	PATCH /api/v1/status/incidents/:id
 status	POST /api/v1/status/incidents
 status	POST /api/v1/status/incidents/:id/updates
+usage	GET /api/v1/usage
 x402-recovery	ALL /api/v1/chat/completions
 x402-recovery	ALL /api/v1/completions
 x402-recovery	ALL /api/v1/embeddings

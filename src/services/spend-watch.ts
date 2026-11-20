@@ -82,11 +82,11 @@ const resetWindow = (reset: string | null) => (reset === "daily" ? "day" : reset
 export type SpendScope = { accountId: string; keyHash: string | null };
 type Daily = Map<string, { cost: Pico; requests: number }>;
 
-const DAY_SQL = sql<string>`to_char(${generations.ts} at time zone 'UTC', 'YYYY-MM-DD')`;
-const SUM_COST = sql<string>`coalesce(sum(${generations.cost}), 0)`;
-const COUNT = sql<number>`count(*)::int`;
+export const DAY_SQL = sql<string>`to_char(${generations.ts} at time zone 'UTC', 'YYYY-MM-DD')`;
+export const SUM_COST = sql<string>`coalesce(sum(${generations.cost}), 0)`;
+export const COUNT = sql<number>`count(*)::int`;
 
-function scopeWhere(db: Db, s: SpendScope, from: number, to: number) {
+export function scopeWhere(db: Db, s: SpendScope, from: number, to: number) {
   return and(
     eq(generations.accountId, s.accountId),
     s.keyHash ? eq(generations.keyHash, s.keyHash) : inArray(generations.keyHash, db.select({ k: keys.keyHash }).from(keys).where(eq(keys.accountId, s.accountId))),

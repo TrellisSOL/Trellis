@@ -52,4 +52,17 @@
 .next a{display:inline-block;padding:7px 12px;border:1px solid #dcdcd3;border-radius:20px;font-size:13px;color:#17281d;text-decoration:none}
 .next a:hover{border-color:#71766d}
 @media (max-width:900px){.top{grid-template-columns:1fr;gap:32px}}
-@media (max-width:600px){.amount{font-size:58px}.ledger th:nth-child(2),.ledger td:nth-child(2),.ledger th:nth-child(4),.ledger td:nth-child(4){display:none}}
+/* Usage breakdown (update 19): spend per day stacked by model, and the models as a table. */
+.breakdown{padding:24px 26px;border:1px solid #dcdcd3;border-radius:10px;background:var(--g-card)}
+.breakdown .figures{margin:0 0 18px}
+.stack{display:flex;align-items:flex-end;gap:3px;height:160px;padding:0 2px;border-bottom:1px solid #17281d;background:repeating-linear-gradient(to top,transparent 0 39px,#efeee8 39px 40px)}
+.stackBar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column-reverse;justify-content:flex-start}
+.stackBar i{display:block;width:100%;min-height:1px}
+.stackBar i:last-child{border-radius:2px 2px 0 0}
+.stackBar:hover i{filter:brightness(1.08)}
+.stackAxis{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#71766d;font-variant-numeric:tabular-nums}
+.modelTable{width:100%;margin-top:18px;border-collapse:collapse}
+.modelTable th{padding:10px 0;border-bottom:1px solid #e6e6df;font:500 10px/1.4 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:#71766d;text-align:left;background:none}
+.modelTable td{padding:9px 0;border-bottom:1px solid #eeeee8;font-size:13px;color:#3f463d;overflow-wrap:anywhere}
+.swatch{display:inline-block;width:9px;height:9px;margin-right:9px;border-radius:2px;vertical-align:baseline}
+@media (max-width:600px){.stack{gap:1px;height:120px}.breakdown{padding:20px 16px}.amount{font-size:58px}.ledger th:nth-child(2),.ledger td:nth-child(2),.ledger th:nth-child(4),.ledger td:nth-child(4){display:none}}

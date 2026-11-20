@@ -353,6 +353,7 @@ telegram	ALL /api/v1/telegram/*
 telegram	DELETE /api/v1/telegram/link
 telegram	GET /api/v1/telegram/link
 telegram	POST /api/v1/telegram/link
+usage	GET /api/v1/usage
 webhooks	DELETE /api/v1/webhooks/:id
 webhooks	GET /api/v1/webhooks
 webhooks	GET /api/v1/webhooks/:id/deliveries
