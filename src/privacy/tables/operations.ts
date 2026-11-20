@@ -62,16 +62,16 @@ export const operationTables: Record<string, TableDoc> = {
 
   spend_alerts: {
     category: "operations",
-    purpose: "Alert rules on spend (threshold, share of a budget, anomaly), evaluated by the spend-watch job. They read spending totals, not requests.",
+    purpose: "Alert rules on spend (threshold, share of a budget, anomaly, pace toward a daily line), evaluated by the spend-watch job. They read spending totals, not requests.",
     request: "no",
     retention: "Kept until the account deletes the rule (DELETE /api/v1/spend/alerts/:id).",
     columns: {
       id: "Rule id.",
       account_id: "The account.",
       key_hash: "The key the rule watches; empty means the whole account.",
-      kind: "threshold, budget_pct or anomaly.",
+      kind: "threshold, budget_pct, anomaly or pace.",
       window: "day, week or month.",
-      threshold: "The spend threshold in pico-USD, for a threshold rule.",
+      threshold: "The spend threshold in pico-USD, for a threshold rule, or the daily line of a pace rule.",
       pct: "The budget percentage, for a budget_pct rule.",
       webhook_url_enc: {
         purpose: "The address alerts are posted to, if the owner set one. Stored encrypted with the router's APP_SECRET.",

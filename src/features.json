@@ -93,5 +93,13 @@
     "title": "Price check",
     "summary": "Price a prompt on every model before you call: the estimated cost at the listed price, the amount the router would hold on your balance while it runs, and whether it fits the model's context and output limits, cheapest first.",
     "includes": ["POST /api/v1/estimate: a prompt and an output cap in, every text model priced out", "The hold the router would place, not only the estimate", "Context window and output limit checked per model", "A Price check page in the workspace"]
+  },
+
+  "pace": {
+    "update": 14,
+    "on": false,
+    "title": "Pace alerts",
+    "summary": "Set a daily spend line on a key or the whole account and hear about it before it is crossed: when today's spend, at its rate so far, would reach the line by midnight UTC, a notice appears in the dashboard bell. An alert, never a cap: the key keeps working.",
+    "includes": ["A daily line per key or for the whole account", "A projection of the UTC day at today's rate, checked every minute", "One notice a day in the dashboard bell, and the optional webhook", "Never stops a call"]
   }
 }

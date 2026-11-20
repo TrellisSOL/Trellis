@@ -64,7 +64,7 @@ export async function readActivity(ctx: Ctx, key: KeyRow, q: ActivityQuery, elig
     else 'Could not top up ' || ${topupBy} || ': the team budget is fully allocated' end,
     '0', null, null, null, ${label}, null, case when t.outcome = 'added' then 'added' else 'skipped' end, t.id, null
     from key_topups t join keys k on k.key_hash = t.key_hash where ${agents}`);
-  if (!q.kind || q.kind === "alert") sources.push(sql`select 'spend-alert:' || s.id || ':' || (f->>'id'), (f->>'at')::timestamptz, 'alert', 'Spending alert', '0', null, null, null,
+  if (!q.kind || q.kind === "alert") sources.push(sql`select 'spend-alert:' || s.id || ':' || (f->>'id'), (f->>'at')::timestamptz, 'alert', case when f->>'kind' = 'pace' then 'Spending on pace to cross its daily line' else 'Spending alert' end, '0', null, null, null,
     coalesce(f->>'key_label',${label}), null, f->'delivery'->>'status', s.id, null
     from spend_alerts s cross join lateral jsonb_array_elements(s.state->'history') f left join keys k on k.key_hash = s.key_hash
     where s.account_id = ${key.accountId} and (${key.management && !session} or s.key_hash = ${key.keyHash})

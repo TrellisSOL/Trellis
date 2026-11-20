@@ -48,8 +48,8 @@ const ruleFields = {
   webhook_url: z.string().max(2048).nullable().optional(),
   enabled: z.boolean().optional(),
 };
-const createBody = z.object({ kind: z.enum(["threshold", "budget_pct", "anomaly"]), ...ruleFields }).strict();
-const patchBody = z.object({ kind: z.enum(["threshold", "budget_pct", "anomaly"]).optional(), ...ruleFields }).strict();
+const createBody = z.object({ kind: z.enum(["threshold", "budget_pct", "anomaly", "pace"]), ...ruleFields }).strict();
+const patchBody = z.object({ kind: z.enum(["threshold", "budget_pct", "anomaly", "pace"]).optional(), ...ruleFields }).strict();
 
 type Draft = { kind: string; window: string; keyHash: string | null; thresholdUsd: bigint | null; pct: number | null };
 
@@ -65,6 +65,14 @@ function shape(kind: string, v: z.infer<typeof patchBody>, base?: Draft): Draft 
     const thresholdUsd = v.threshold_usd !== undefined ? usdToPico(v.threshold_usd) : (base?.thresholdUsd ?? null);
     if (thresholdUsd == null || thresholdUsd <= 0n) fail(400, "threshold rules need threshold_usd (the spend that triggers the alert).", "invalid_request");
     return { kind, window: v.window ?? base?.window ?? "day", keyHash, thresholdUsd, pct: null };
+  }
+  if (kind === "pace") {
+    // Update 14: a daily line, warned about when today's spend is on pace to reach it before the UTC day ends.
+    unexpected(["pct", "multiplier"]);
+    if (v.window && v.window !== "day") fail(400, "pace rules project the UTC day; window must be day.", "invalid_request");
+    const thresholdUsd = v.threshold_usd !== undefined ? usdToPico(v.threshold_usd) : (base?.thresholdUsd ?? null);
+    if (thresholdUsd == null || thresholdUsd <= 0n) fail(400, "pace rules need threshold_usd (the daily line the pace is measured against).", "invalid_request");
+    return { kind, window: "day", keyHash, thresholdUsd, pct: null };
   }
   if (kind === "budget_pct") {
     unexpected(["threshold_usd", "multiplier", "window"]);
@@ -159,6 +167,7 @@ export function spendRoutes(app: Hono, ctx: Ctx) {
     const k = await caller(c);
     await requireRole(ctx, k, ["owner", "admin"]);
     const v = createBody.parse(await readJson(c));
+    if (v.kind === "pace" && !ctx.cfg.updates.pace) fail(400, "Pace alerts are not released on this router (update 14).", "invalid_request");
     const d = shape(v.kind, v);
     await checkTarget(k, d);
     const webhookUrlEnc = sealWebhook(v.webhook_url);

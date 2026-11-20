@@ -2,6 +2,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { Button, CopyButton, Modal } from "../UI";
+import { useUpdate } from "../media/useUpdate.js";
 import styles from "./SpendWatch.module.css";
 
 /**
@@ -58,6 +59,7 @@ const WINDOW_WORD = { day: "per day", week: "per week", month: "per month", life
 export function describeRule(r) {
   if (r.kind === "threshold") return `Spend ≥ ${formatUsd(r.threshold_usd)} ${WINDOW_WORD[r.window] || "per " + r.window}`;
   if (r.kind === "budget_pct") return `Budget ≥ ${r.pct}% used`;
+  if (r.kind === "pace") return `On pace to spend ${formatUsd(r.threshold_usd)} in a UTC day`; // update 14
   return `Day spend ≥ ${Number(r.multiplier ?? 3).toLocaleString("en-US")}× the 7-day average`;
 }
 export const ruleScope = (r) => (r.key_hash ? r.key_name || r.key_label || "One key" : "Whole account");
@@ -65,6 +67,7 @@ export const ruleScope = (r) => (r.key_hash ? r.key_name || r.key_label || "One 
 export function firingText(f) {
   if (f.kind === "threshold") return `${formatUsd(f.value_usd)} spent ${f.window === "day" ? "today" : "this " + f.window} (limit ${formatUsd(f.threshold_usd)})`;
   if (f.kind === "budget_pct") return `${f.pct}% of budget used (${formatUsd(f.value_usd)})`;
+  if (f.kind === "pace") return `${formatUsd(f.value_usd)} spent so far today, on pace for ${f.pct}% of the ${formatUsd(f.threshold_usd)} line`; // update 14
   return `${formatUsd(f.value_usd)} today${f.pct ? ` · ${(f.pct / 100).toLocaleString("en-US", { maximumFractionDigits: 1 })}× the average` : " · no spend the week before"}`;
 }
 
@@ -98,6 +101,7 @@ export function emptyForm(rule, ownKey) {
 /** Client-side checks (the router re-validates everything, including the webhook destination). */
 export function formProblem(f) {
   if (f.kind === "threshold" && !(Number(f.threshold) > 0)) return "Enter the spend that triggers the alert, in USD.";
+  if (f.kind === "pace" && !(Number(f.threshold) > 0 && Number(f.threshold) <= 10_000_000)) return "Enter the daily line, in USD.";
   if (f.kind === "budget_pct") {
     if (!f.key) return "Choose the key whose budget to watch.";
     if (!/^\d+$/.test(String(f.pct).trim()) || Number(f.pct) < 1 || Number(f.pct) > 1000) return "Use a whole percentage from 1 to 1000.";
@@ -113,6 +117,7 @@ export function ruleBody(f, editing) {
   const body = editing ? {} : { kind: f.kind };
   if (f.kind === "threshold") Object.assign(body, { window: f.window, threshold_usd: Number(f.threshold) });
   if (f.kind === "budget_pct") body.pct = Number(f.pct);
+  if (f.kind === "pace") body.threshold_usd = Number(f.threshold); // update 14: the window is always the UTC day
   if (f.kind === "anomaly") body.multiplier = Number(f.multiplier);
   body.key_hash = f.key || null;
   const url = f.webhook.trim();
@@ -426,6 +431,7 @@ function Budgets({ budgets, sample }) {
 }
 
 function RuleForm({ rule, keyOptions, management, ownKey, onSave, onClose }) {
+  const pace = useUpdate("pace")?.on; // Pace alerts (update 14): offered only once the router has released them
   const [form, setForm] = useState(() => emptyForm(rule, management ? "" : ownKey));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -458,6 +464,7 @@ function RuleForm({ rule, keyOptions, management, ownKey, onSave, onClose }) {
             <option value="threshold">Spend reaches an amount</option>
             <option value="budget_pct">A key uses a share of its budget</option>
             <option value="anomaly">Day spend spikes above its average</option>
+            {(pace || form.kind === "pace") && <option value="pace">Spend is on pace to cross a daily line</option>}
           </select>
           {editing && <p className="help-text">A rule’s kind is fixed; create a new rule for another kind.</p>}
         </div>
@@ -475,6 +482,13 @@ function RuleForm({ rule, keyOptions, management, ownKey, onSave, onClose }) {
                 <option value="month">One calendar month</option>
               </select>
             </div>
+          </div>
+        )}
+        {form.kind === "pace" && (
+          <div className="field">
+            <label htmlFor={id + "line"}>Daily line (USD)</label>
+            <input id={id + "line"} type="number" inputMode="decimal" min="0.01" step="0.01" value={form.threshold} onChange={(e) => set({ threshold: e.target.value })} disabled={busy} required />
+            <p className="help-text">Checked every minute from one hour into the UTC day: today’s spend so far, carried at the same rate to midnight UTC. It warns in the bell once a day and never stops a call.</p>
           </div>
         )}
         {form.kind === "budget_pct" && (

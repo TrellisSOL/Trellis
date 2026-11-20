@@ -30,7 +30,9 @@ export const DEFAULT_ANOMALY_PCT = 300; // 3x the trailing daily average
 const RULES_PAGE = 500;
 const BREAKDOWN_LIMIT = 100;
 
-export type AlertKind = "threshold" | "budget_pct" | "anomaly";
+export type AlertKind = "threshold" | "budget_pct" | "anomaly" | "pace";
+/** Pace alerts (update 14): no projection before the UTC day is this old, so one early call is not read as a trend. */
+export const PACE_MIN_ELAPSED_MS = 60 * 60 * 1000;
 export type AlertWindow = "day" | "week" | "month";
 export type SpendAlertRow = typeof spendAlerts.$inferSelect;
 type KeyRow = typeof keys.$inferSelect;
@@ -403,8 +405,15 @@ export type Plan = { period: string; window: string; value: Pico; threshold: Pic
 /** The effective window a rule reports: threshold windows, the anomaly day, or the key's budget period. */
 export function ruleWindow(rule: Pick<SpendAlertRow, "kind" | "window">, key?: Pick<KeyRow, "budgetReset"> | null) {
   if (rule.kind === "threshold") return rule.window;
-  if (rule.kind === "anomaly") return "day";
+  if (rule.kind === "anomaly" || rule.kind === "pace") return "day";
   return resetWindow(key?.budgetReset ?? null);
+}
+
+/** The UTC day's spend projected to its end at the rate so far (integer math); null before PACE_MIN_ELAPSED_MS or with nothing spent. */
+export function paceProjection(today: Pico, now: number): Pico | null {
+  const elapsed = now - utcDay(now);
+  if (elapsed < PACE_MIN_ELAPSED_MS || today <= 0n) return null;
+  return (today * BigInt(DAY_MS)) / BigInt(elapsed);
 }
 
 /** Pure: whether a rule's condition holds at facts.now, and the period that firing belongs to. */
@@ -437,6 +446,15 @@ export function evaluateRule(rule: Pick<SpendAlertRow, "kind" | "window" | "keyH
       pct: pctOf(spent, key.budget),
       keyLabel,
     };
+  }
+  if (rule.kind === "pace") {
+    // Update 14: today's spend so far, carried at the same rate to the end of the UTC day, reaches the line. It warns
+    // before the line is crossed; it never stops a call. Fires at most once a day, like a daily threshold.
+    if (rule.thresholdUsd == null || rule.thresholdUsd <= 0n) return null;
+    const today = sumDays(series, today0, end).cost;
+    const projected = paceProjection(today, now);
+    if (projected == null || projected < rule.thresholdUsd) return null;
+    return { period: `day:${dayKey(today0)}`, window: "day", value: today, threshold: rule.thresholdUsd, pct: Number((projected * 100n) / rule.thresholdUsd), keyLabel };
   }
   if (rule.kind === "anomaly") {
     const pct = rule.pct ?? DEFAULT_ANOMALY_PCT;
@@ -620,7 +638,8 @@ export async function runSpendWatch(ctx: Ctx, opts: SpendWatchOptions = {}) {
       try {
         const facts = await accountFacts(ctx.db, accountId, list, now);
         for (const rule of list) {
-          const plan = evaluateRule(rule, facts);
+          // Pace alerts belong to update 14: a rule saved while it was on stays quiet while its switch is off.
+          const plan = rule.kind === "pace" && !ctx.cfg.updates.pace ? null : evaluateRule(rule, facts);
           let hasDue = parseAlertState(rule.state).history.some((f) => due(f, now));
           if (plan && plan.period !== rule.lastPeriod) {
             const firing = await claimFiring(ctx.db, rule, plan, now);

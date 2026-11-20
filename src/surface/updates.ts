@@ -18,7 +18,7 @@ type Raw = Record<string, unknown>;
 type Entry = { update: number; on: boolean; title: string; summary: string; includes: string[] };
 
 /** In release order: the number of an update is its place here and in src/features.json. */
-export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate"] as const;
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "estimate", "pace"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -60,6 +60,11 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // Price check has no setting of its own: the `estimate` route group is mounted only while the switch is on, on either
   // surface (src/app.ts), and a router without it answers 404 for POST /api/v1/estimate.
   estimate: [],
+  // Pace alerts have no setting of their own: the spend alert routes take the `pace` kind only while the switch is on,
+  // and the spend-watch job leaves saved pace rules quiet while it is off (src/api/spend.ts, src/services/spend-watch.ts).
+  // They ride on Spend Watch, which is not on the core launch surface (core-allowlist.ts NON_CORE_FEATURES `webhooks`):
+  // the switch opens nothing on a core router.
+  pace: [],
   // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
   // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [
