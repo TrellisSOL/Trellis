@@ -89,7 +89,7 @@
 
   "estimate": {
     "update": 13,
-    "on": false,
+    "on": true,
     "title": "Price check",
     "summary": "Price a prompt on every model before you call: the estimated cost at the listed price, the amount the router would hold on your balance while it runs, and whether it fits the model's context and output limits, cheapest first.",
     "includes": ["POST /api/v1/estimate: a prompt and an output cap in, every text model priced out", "The hold the router would place, not only the estimate", "Context window and output limit checked per model", "A Price check page in the workspace"]
