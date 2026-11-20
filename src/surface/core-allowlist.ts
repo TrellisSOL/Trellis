@@ -59,6 +59,9 @@ export const CORE_ROUTES: Record<string, readonly string[]> = {
     "GET /ready",
     "GET /ready/metrics",
   ],
+  // Chat export with receipts (update 21, src/api/receipt-batch.ts): the signed receipts of up to 50 answers at once.
+  // Registered in core only with that update released (src/app.ts).
+  "receipt-batch": ["POST /api/v1/receipts/batch"],
   // Make-good refunds, read-only. Make-good is not core in this launch (R5-12: MAKEGOOD_ENABLED is refused and
   // services/makegood.ts issues nothing in core), so this route answers 404 until a later review enables it.
   makegood: ["GET /api/v1/refunds"],

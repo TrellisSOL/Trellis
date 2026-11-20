@@ -96,6 +96,7 @@ import { laneRoutes } from "./api/lane.ts";
 import { dayzeroRoutes } from "./api/dayzero.ts";
 import { creatorClaimRoutes } from "./api/creator-claims.ts";
 import { publicRoutes } from "./api/public.ts";
+import { receiptBatchRoutes } from "./api/receipt-batch.ts"; // update 21
 import { embeddingsRoutes } from "./api/embeddings.ts";
 import { modelHealthRoutes } from "./api/model-health.ts";
 import { burnTrackerRoutes } from "./api/burn-tracker.ts";
@@ -296,6 +297,8 @@ export async function createApp(opts: AppOptions = {}) {
   mount("skills", () => { skillsRoutes(app, ctx); });
   mount("tools", () => { toolsRoutes(app, ctx); }); // v6 T: registers nothing unless TOOLS_MARKET_ENABLED.
   mount("network-waitlist", () => { networkRoutes(app, ctx); });
+  // Chat export with receipts (update 21): in core only with that update released; elsewhere 404 not_enabled until then.
+  if (!surface.core || cfg.updates["chat-receipts"]) mount("receipt-batch", () => { receiptBatchRoutes(app, ctx); });
   mount("public", () => { publicRoutes(app, ctx); });
   mount("network-sanctions", () => { networkSanctionsRoutes(app, ctx); });
   mount("network-hosts", () => { networkHostRoutes(app, ctx); });

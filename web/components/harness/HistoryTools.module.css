@@ -33,3 +33,6 @@
   .rename { flex-wrap: wrap; }
   .body button { min-height: 32px; }
 }
+.withReceipts { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.withReceipts > p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.withReceipts b { color: var(--ink); font-weight: 500; }

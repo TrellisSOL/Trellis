@@ -285,6 +285,7 @@ public	POST /api/v1/providers/apply
 public	POST /api/v1/receipts/verify
 rag	POST /api/v1/rag
 rag	POST /v1/rag
+receipt-batch	POST /api/v1/receipts/batch
 rerank	POST /api/v1/rerank
 rerank	POST /v1/rerank
 responses	ALL /api/v1/responses/*

@@ -3,6 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MAX_BYTES } from "../../lib/private-history";
 import { buildSearchIndex, downloadChats, highlightParts, historyShortcut, mergeImport, parseImport, searchChats } from "../../lib/harness-history";
 import { Button, Modal } from "../UI";
+import { api } from "../../lib/api";
+import { answerIds, downloadText, fetchReceipts, jsonWithReceipts, markdownWithReceipts } from "../../lib/chat-receipts.js";
+import { useUpdate } from "../media/useUpdate.js";
 import s from "./HistoryTools.module.css";
 
 export function useHistoryKeys(onSearch, onExport) {
@@ -36,8 +39,29 @@ function ExportButtons({ onExport, disabled = false }) {
   </div>;
 }
 
+// Update 21: the same conversation with each answer's model, cost and receipt, and in JSON the signed receipts.
+function ReceiptExport({ chat, onDone, setError }) {
+  const [pending, setPending] = useState(false);
+  const ids = answerIds(chat);
+  const run = async (format) => {
+    setPending(true); setError("");
+    try {
+      const bundle = await fetchReceipts(ids, (path, body) => api(path, { method: "POST", body }));
+      const opts = { origin: location.origin, now: new Date() };
+      if (format === "json") downloadText("trellis-chat-receipts.json", jsonWithReceipts(chat, bundle, opts), "application/json");
+      else downloadText("trellis-chat-receipts.md", markdownWithReceipts(chat, bundle, opts), "text/markdown;charset=utf-8");
+      onDone();
+    } catch (e) { setError(e.message); } finally { setPending(false); }
+  };
+  return <div className={s.withReceipts}>
+    <p><b>With receipts.</b> Each answer followed by its model, cost and receipt ID; the JSON file also carries every answer’s signed receipt and the keys to check it. {ids.length ? `The ${ids.length === 1 ? "receipt is" : `${ids.length} receipts are`} read from Trellis by ID; the conversation text is not sent.` : "No answer here has a receipt yet."}</p>
+    <ExportButtons disabled={pending} onExport={run} />
+  </div>;
+}
+
 export function ExportCurrent({ chat, onClose }) {
   const [error, setError] = useState("");
+  const receipts = useUpdate("chat-receipts")?.on === true; // shown only where the router released update 21
   return <Modal title="Export current chat" onClose={onClose}>
     <div className={s.body}>
       <p>Downloads contain readable message text. Keep them somewhere you trust. Nothing is uploaded.</p>
@@ -46,6 +70,7 @@ export function ExportCurrent({ chat, onClose }) {
       {chat ? <ExportButtons onExport={(format) => {
         try { downloadChats([chat], format); onClose(); } catch (e) { setError(e.message); }
       }} /> : <p>Finish a message before exporting this conversation.</p>}
+      {chat && receipts && <ReceiptExport chat={chat} onDone={onClose} setError={setError} />}
     </div>
   </Modal>;
 }

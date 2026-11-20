@@ -23,6 +23,8 @@ export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed",
 export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "usage"] as const;
 /** In release order: the order here and in src/features.json. Each entry names its own number (`update`). */
 export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "taste"] as const;
+/** In release order. The number of an update is the `update` field of its entry in src/features.json. */
+export const UPDATE_NAMES = ["credits", "trls", "tabs", "facilitator", "sealed", "anchor", "media", "holders", "council", "agents", "blind", "chat-receipts"] as const;
 export type UpdateName = (typeof UPDATE_NAMES)[number];
 export const UPDATES = spec as Record<UpdateName, Entry>;
 
@@ -83,6 +85,9 @@ export const UPDATE_SETTINGS: Record<UpdateName, { setting: string; when?: (v: u
   // /api/v1/status and offers it only then. It has no setting and no route of its own: each answer is an ordinary call
   // to the chat route, which is on the core surface already, so it needs nothing on the allow-list.
   taste: [],
+  // Chat export with receipts has no setting either: its route answers 404 `not_enabled` while the switch is off
+  // (src/api/receipt-batch.ts), and the Chat page offers the export with receipts only while it is on.
+  "chat-receipts": [],
   // Paying in the token: deposits to the escrow wallet, priced from the router's own readings of the token's market
   // (src/solana/trls-price.ts), and the burn of what credited deposits paid (src/solana/trls-burn.ts). The token's address is a setting of holder tiers too; either update lets it through.
   trls: [
@@ -137,6 +142,7 @@ export function releasedCoreSettings(raw: Raw): Set<string> {
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replaceAll("-", "_")}`;
 /** FEATURE_<NAME>: upper case, with a hyphen in a name written as an underscore (model-health: FEATURE_MODEL_HEALTH). */
 /** FEATURE_<NAME>: upper case, with a hyphen in a name written as an underscore (burn-tracker: FEATURE_BURN_TRACKER). */
+/** FEATURE_<NAME>: the name in capitals, a hyphen written as an underscore (FEATURE_CHAT_RECEIPTS). */
 export const overrideName = (name: UpdateName) => `FEATURE_${name.toUpperCase().replace(/-/g, "_")}`;
 export const branchName = (name: UpdateName) => `update/${UPDATES[name].update}-${name}`;
 

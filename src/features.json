@@ -149,5 +149,13 @@
     "title": "Taste test",
     "summary": "Compare models in Chat without knowing which is which: the answers arrive side by side as Answer A and B, in a random order, and the model names, prices, costs and receipts show once you pick the better one.",
     "includes": ["Model names, prices and costs hidden until you pick", "A new random order every round", "Each answer still paid and receipted on its own", "A tally of your picks, kept in your browser only"]
+  },
+
+  "chat-receipts": {
+    "update": 21,
+    "on": false,
+    "title": "Chat export with receipts",
+    "summary": "Download a conversation from the Chat page with the proof of every answer in it: in Markdown, each answer followed by its model, cost and receipt id; in JSON, each answer's signed receipt and the keys to check it, so the file stands on its own.",
+    "includes": ["Markdown: model, cost and receipt id under every answer", "JSON: every answer's signed receipt and the receipt keys", "A link to check each receipt on the verify page", "POST /api/v1/receipts/batch: up to 50 receipts in one call"]
   }
 }

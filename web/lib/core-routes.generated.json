@@ -95,6 +95,7 @@
   "public\tGET /ready",
   "public\tGET /ready/metrics",
   "public\tPOST /api/v1/receipts/verify",
+  "receipt-batch\tPOST /api/v1/receipts/batch",
   "site.builtin\tGET /",
   "site.static\tALL /*",
   "site.static\tALL /_next/static/*",

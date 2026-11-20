@@ -95,6 +95,7 @@ public	GET /health
 public	GET /ready
 public	GET /ready/metrics
 public	POST /api/v1/receipts/verify
+receipt-batch	POST /api/v1/receipts/batch
 site.builtin	GET /
 site.static	ALL /*
 site.static	ALL /_next/static/*
